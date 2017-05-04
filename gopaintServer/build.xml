@@ -1,0 +1,133 @@
+<?xml version="1.0" encoding="US-ASCII"?>
+<project name="GOPaintServer" default="GOPaintServer" basedir=".">
+  <!-- Set properties -->
+    <target name="init_props">
+        <echo message="Initializing properties ..."></echo>
+        <tstamp/>
+        <property name="build" value="${basedir}/classes"/>
+        <echo message="Build directory = ${build}"></echo>
+        <!-- Create a directory for the class files-->
+        <mkdir dir="${build}"/>
+
+        <property name="src.dir" value="${basedir}/src"/>
+        <property name="lib.dir" value="${basedir}/lib"/>
+        <property name="config.dir" value="${basedir}/config"/>
+        <property name="lib.output.dir" value="${basedir}/lib_output"/>
+        <mkdir dir="${lib.output.dir}"/>
+        
+        <!-- Properties for web server-->
+        <property name="webroot.dir" value="${basedir}/wwwroot"/>
+        <property name="webroot.webinf.dir" value="${webroot.dir}/WEB-INF"/> 
+        <property name="webroot.classes.dir" value="${webroot.webinf.dir}/classes"/>
+        <property name="webroot.lib.dir" value="${webroot.webinf.dir}/lib"/>
+        <property name="webroot.downloads.dir" value="${webroot.dir}/downloads"/>
+        
+        <property name="paintCommon.dir" value="${basedir}/../gopaintCommon/"/>
+        <property name="paintCommon.config.dir" value="${paintCommon.dir}/config/"/> 
+        <property name="paintCommon.output.dir" value="${paintCommon.dir}/lib_output"/>     
+        
+        <property name="paint.dir" value="${basedir}/../gopaint/"/>
+        <property name="paint.app.dir" value="${paint.dir}/paintApp"/>
+
+        <!--*================================================================*-->
+        <!--* Property used to identify the Java classpath used to build the *-->
+        <!--* source files.                                                  *-->
+        <!--*================================================================*-->
+        <property name="classpath"
+                  value="${build}:
+                        ${lib.output.dir}/gopaintCommon.jar:
+                        ${lib.dir}/thirdparty/apache/log4j/log4j-1.2.15.jar:
+                        ${lib.dir}/thirdparty/apache/server/servlet.jar:
+                        ${lib.dir}/thirdparty/forester/forester_1030.jar:
+                        ${lib.dir}/thirdParty/apache/commons/commons-dbcp.jar:
+                        ${lib.dir}/thirdParty/apache/commons/commons-logging.jar:
+                        ${lib.dir}/thirdParty/apache/commons/commons-pool.jar:
+                        ${lib.dir}/thirdParty/apache/commons/commons-collections.jar:
+                        ${lib.dir}/thirdparty/postgreSQL/postgresql-9.1-902.jdbc4.jar"/>
+                        
+        <property name="java.debug" value="on"/>
+    </target>
+  
+    <target name="ExternalPaintCommon" depends="init_props">
+        <ant dir="${paintCommon.dir}" inheritAll="false" />
+        <copy file="${paintCommon.output.dir}/gopaintCommon.jar" todir="${lib.output.dir}" overwrite="true"/>
+    </target>
+    
+    <!--Build the application, generate a jar file and copy into the downloads directory  -->
+    <target name="ExternalPaint" depends="init_props">
+        <ant dir="${paint.dir}" inheritAll="false" />
+        <tar destfile="paintApp.tar">
+            <tarfileset dir="${paint.app.dir}">
+                <include name="**"/>
+            </tarfileset>
+        </tar>
+        <move file="paintApp.tar" todir="${webroot.downloads.dir}" overwrite="true"/>
+    </target>
+    
+    
+    <target name="GOPaintServer"
+          depends="init_props, ExternalPaintCommon"
+          description="Builds all java files necessary for the GOPaintServer.">
+  	<echo message="Building all modules..." />
+        <!-- Compile the java files -->
+        <javac
+            srcdir="${src.dir}"
+            includes="com/sri/panther/paintServer/**,com/usc/panther/paintServer/**,edu/usc/ksom/pm/panther/**"
+            destdir="${build}"
+            classpath="${classpath}"
+            debug="${java.debug}"
+            deprecation="${java.deprecation}"
+            optimize="${java.optimize}"/>
+            
+        <jar destfile="${lib.output.dir}/gopaintServer.jar">
+            <fileset dir="${build}">
+                <include name="com/sri/panther/paintServer/**/*.class"/>
+            </fileset>
+            <fileset dir="${build}">
+                <include name="com/usc/panther/paintServer/**/*.class"/>
+            </fileset>
+            <fileset dir="${build}">
+                <include name="edu/usc/ksom/pm/panther/**/*.class"/>
+            </fileset>            
+        </jar>
+
+    </target>
+    
+    <target name="CopyFiles">
+      	<echo message="Copying files into the web server directory" />
+        <copy file="${lib.output.dir}/gopaintCommon.jar" todir="${webroot.lib.dir}" overwrite="true"/>
+        <copy file="${lib.output.dir}/gopaintServer.jar" todir="${webroot.lib.dir}" overwrite="true"/>
+        <copy file="${lib.dir}/thirdparty/apache/log4j/log4j-1.2.15.jar" todir="${webroot.lib.dir}" overwrite="true"/>
+        <copy file="${lib.dir}/thirdParty/apache/commons/commons-dbcp.jar" todir="${webroot.lib.dir}" overwrite="true"/>
+        <copy file="${lib.dir}/thirdParty/apache/commons/commons-logging.jar" todir="${webroot.lib.dir}" overwrite="true"/>
+        <copy file="${lib.dir}/thirdParty/apache/commons/commons-collections.jar" todir="${webroot.lib.dir}" overwrite="true"/>
+        <copy file="${lib.dir}/thirdParty/apache/commons/commons-pool.jar" todir="${webroot.lib.dir}" overwrite="true"/>
+        <copy file="${lib.dir}/thirdparty/postgreSQL/postgresql-9.1-902.jdbc4.jar" todir="${webroot.lib.dir}" overwrite="true"/>
+        <copy file="${lib.dir}/thirdparty/forester/forester_1030.jar" todir="${webroot.lib.dir}" overwrite="true"/>
+        <copy file="${config.dir}/log4j.properties" todir="${webroot.classes.dir}" overwrite="true"/>
+        <copy file="${config.dir}/paint.properties" todir="${webroot.classes.dir}" overwrite="true"/>
+        <copy file="${config.dir}/database.properties" todir="${webroot.classes.dir}" overwrite="true"/>
+        <copy file="${paintCommon.config.dir}/treeViewer.properties" todir="${webroot.classes.dir}" overwrite="true"/>
+        <copy file="${config.dir}/web.xml" todir="${webroot.webinf.dir}" overwrite="true"/>
+    </target>
+    
+    <target name="pub"
+          depends="GOPaintServer,ExternalPaint,CopyFiles"
+          description="Copies all files into the web server directory.">
+    </target>
+       
+    <target name="clean" depends="init_props">
+        <delete dir="${build}"/>
+        <delete dir="${lib.output.dir}"/>
+        <delete dir="${webroot.downloads.dir}"/>
+        <delete dir="${webroot.webinf.dir}"/>  
+    </target>
+    
+        <target depends="clean" name="cleanall">
+        <ant antfile="${paintCommon.dir}/build.xml" inheritAll="false" target="clean"/>
+        <ant antfile="${paint.dir}/build.xml" inheritAll="false" target="clean"/>
+    </target>
+
+    
+    
+</project>
