@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<java version="1.7.0_07" class="java.beans.XMLDecoder">
+ <object class="org.paint.config.Preferences">
+  <void property="expPaintColor">
+   <object class="java.awt.Color">
+    <int>51</int>
+    <int>153</int>
+    <int>0</int>
+   </object>
+  </void>
+  <void property="msa_colors">
+   <void index="0">
+    <object class="java.awt.Color">
+     <int>173</int>
+     <int>227</int>
+     <int>255</int>
+    </object>
+   </void>
+   <void index="1">
+    <object class="java.awt.Color">
+     <int>178</int>
+     <int>255</int>
+     <int>101</int>
+    </object>
+   </void>
+   <void index="2">
+    <object class="java.awt.Color">
+     <int>255</int>
+     <int>246</int>
+     <int>132</int>
+    </object>
+   </void>
+  </void>
+  <void property="msa_weighted_colors">
+   <array class="java.awt.Color" length="3">
+    <void index="0">
+     <object class="java.awt.Color">
+      <int>50</int>
+      <int>153</int>
+      <int>255</int>
+     </object>
+    </void>
+    <void index="1">
+     <object class="java.awt.Color">
+      <int>153</int>
+      <int>203</int>
+      <int>255</int>
+     </object>
+    </void>
+    <void index="2">
+     <object class="java.awt.Color">
+      <int>204</int>
+      <int>229</int>
+      <int>255</int>
+     </object>
+    </void>
+   </array>
+  </void>
+  <void property="msa_weighted_threshold">
+   <array class="float" length="3">
+    <void index="0">
+     <float>90.0</float>
+    </void>
+    <void index="1">
+     <float>75.0</float>
+    </void>
+    <void index="2">
+     <float>50.0</float>
+    </void>
+   </array>
+  </void>
+ </object>
+</java>

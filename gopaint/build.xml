@@ -1,0 +1,191 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<project basedir="." default="GOPaint" name="GOpaint">
+  <!-- Set properties -->
+    <target name="init_props">
+    <echo message="Initializing properties ..."></echo>
+    <tstamp/>
+
+        <property name="build" value="${basedir}/classes"/>
+        <echo message="Build directory = ${build}"></echo>
+        <!-- Create a directory for the class files-->
+        <mkdir dir="${build}"/>
+
+        <property name="src.dir" value="${basedir}/src"/>
+        <property name="lib.dir" value="${basedir}/lib"/>
+        <property name="config.dir" value="${basedir}/config"/>
+        <property name="config.dir.perspectives" value="${config.dir}/perspectives"/>        
+        <property name="lib.output.dir" value="${basedir}/lib_output"/>
+        <mkdir dir="${lib.output.dir}"/>
+        <property name="debuglevel" value="source,lines,vars"/>
+
+ 
+ 
+ 
+        <property name="paintCommon.dir" value="${basedir}/../gopaintCommon/"/>
+        <property name="paintCommon.config.dir" value="${paintCommon.dir}/config/"/>
+        <property name="paintCommon.output.dir" value="${paintCommon.dir}/lib_output"/> 
+
+    	
+        <property name="paintApp.dir" value="${basedir}/paintApp"/>
+        <mkdir dir="${paintApp.dir}"/>
+
+        <property name="classpath"
+                  value="${build}:
+                        ${lib.output.dir}/gopaintCommon.jar:
+                        ${lib.dir}/bbop.jar:
+                        ${lib.dir}/BrowserLauncher2-all-1_3.jar:
+                        ${lib.dir}/commons-lang-2.3.jar:
+                        ${lib.dir}/dom4j-1.6.1.jar:
+                        ${lib.dir}/obo.jar:                        
+                        ${lib.dir}/ghoul.jar:
+                        ${lib.dir}/log4j-1.2.15.jar:
+                        
+                        ${lib.dir}/batik-anim.jar:
+                        ${lib.dir}/batik-awt-util.jar:
+                        ${lib.dir}/batik-bridge.jar:
+                        ${lib.dir}/batik-css.jar:                                                                                                
+                        ${lib.dir}/batik-dom.jar:
+                        ${lib.dir}/batik-ext.jar:
+                        ${lib.dir}/batik-gvt.jar:
+                        ${lib.dir}/batik-parser.jar:                         
+                        ${lib.dir}/batik-script.jar:
+                        ${lib.dir}/batik-svg-dom.jar:
+                        ${lib.dir}/batik-svggen.jar:
+                        ${lib.dir}/batik-util.jar:                                                                                                
+                        ${lib.dir}/batik-xml.jar:
+
+                        
+                                                                        
+                        
+                        
+                        ${lib.dir}/hibernate-c3p0-4.1.2.Final.jar:
+                        ${lib.dir}/hibernate-commons-annotations-4.0.1.Final.jar:
+                        ${lib.dir}/hibernate-core-4.1.2.Final.jar:
+                        ${lib.dir}/hibernate-c3p0-4.1.2.Final.jar:
+                        ${lib.dir}/hibernate-ehcache-4.1.2.Final.jar:
+                        ${lib.dir}/hibernate-entitymanager-4.1.2.Final.jar:
+                        ${lib.dir}/hibernate-envers-4.1.2.Final.jar:
+                        ${lib.dir}/hibernate-infinispan-4.1.2.Final.jar:
+                        ${lib.dir}/hibernate-jpa-2.0-api-1.0.1.Final.jar: 
+                        ${lib.dir}/hibernate-proxool-4.1.2.Final.jar:
+                        ${lib.dir}/idw-gpl.jar:                                                                                                                                               
+                        ${lib.dir}/mysql.jar:
+                        ${lib.dir}/mysql-connector-java-5.1.6-bin.jar:                        
+                        ${lib.dir}/servlet.jar:     
+                        ${lib.dir}/versioncheck.jar"/>
+                        
+        <property name="java.debug" value="on"/>
+    </target>
+
+    <target name="ExternalPaintCommon" depends="init_props">
+        <ant dir="${paintCommon.dir}" inheritAll="false" />
+        <copy file="${paintCommon.output.dir}/gopaintCommon.jar" todir="${lib.output.dir}" overwrite="true"/>
+    </target>
+    
+	
+    <target name="clean" depends="init_props">
+        <delete dir="${build}"/>
+        <delete dir="${lib.output.dir}"/>
+        <delete dir="${paintApp.dir}"/>
+    </target> 
+    
+    <target depends="clean" name="cleanall">
+        <ant antfile="${paintCommon.dir}/build.xml" inheritAll="false" target="clean"/>
+    </target>
+    
+	
+    <target name="GOPaint" depends="CopyFiles,CompileJar">
+        <copy file="${config.dir}/user.properties.paintCuration" tofile="${paintApp.dir}/user.properties" overwrite="true"/>
+    </target>
+    
+    
+    <target name="CompileJar"
+            depends="init_props, ExternalPaintCommon"
+          description="Builds all java files necessary for Paint.">
+        <echo message="Building all modules..." />
+        
+        <!-- Compile the java files -->
+        <javac
+            srcdir="${src.dir}"
+            includes="org/paint/**,edu/usc/ksom/pm/**"
+            destdir="${build}"
+            classpath="${classpath}"
+            debug="${java.debug}"
+            deprecation="${java.deprecation}"
+
+            optimize="${java.optimize}"/>
+            
+        <jar destfile="${lib.output.dir}/paint.jar">
+            <fileset dir="${build}">
+                <include name="org/paint/**/*.class" />
+            </fileset>
+            <fileset dir="${src.dir}">
+                <include name="org/paint/resources/*.*" />
+                <include name="org/paint/resources/*" />
+            </fileset>
+            <fileset dir="${build}">
+                <include name="edu/usc/ksom/pm/**/*.class" />
+            </fileset>            
+        </jar>
+
+    </target>
+    
+    <target name="CopyFiles" depends="CompileJar">
+        <copy file="${lib.output.dir}/gopaintCommon.jar" todir="${paintApp.dir}" overwrite="true"/>
+        <copy file="${lib.dir}/bbop.jar" todir="${paintApp.dir}" overwrite="true"/>
+        <copy file="${lib.dir}/BrowserLauncher2-all-1_3.jar" todir="${paintApp.dir}" overwrite="true"/>
+        <copy file="${lib.dir}/commons-lang-2.3.jar" todir="${paintApp.dir}" overwrite="true"/>
+        <copy file="${lib.dir}/dom4j-1.6.1.jar" todir="${paintApp.dir}" overwrite="true"/>
+        <copy file="${lib.dir}/obo.jar" todir="${paintApp.dir}" overwrite="true"/>                                
+        
+        <copy file="${lib.dir}/log4j-1.2.15.jar" todir="${paintApp.dir}" overwrite="true"/>
+        <copy file="${lib.dir}/batik-anim.jar" todir="${paintApp.dir}" overwrite="true"/>
+        <copy file="${lib.dir}/batik-awt-util.jar" todir="${paintApp.dir}" overwrite="true"/>
+        <copy file="${lib.dir}/batik-bridge.jar" todir="${paintApp.dir}" overwrite="true"/>
+        <copy file="${lib.dir}/batik-css.jar" todir="${paintApp.dir}" overwrite="true"/>         
+        <copy file="${lib.dir}/batik-dom.jar" todir="${paintApp.dir}" overwrite="true"/>
+        <copy file="${lib.dir}/batik-ext.jar" todir="${paintApp.dir}" overwrite="true"/>
+        <copy file="${lib.dir}/batik-gvt.jar" todir="${paintApp.dir}" overwrite="true"/>
+        <copy file="${lib.dir}/batik-parser.jar" todir="${paintApp.dir}" overwrite="true"/>
+        <copy file="${lib.dir}/batik-script.jar" todir="${paintApp.dir}" overwrite="true"/> 
+        <copy file="${lib.dir}/batik-svg-dom.jar" todir="${paintApp.dir}" overwrite="true"/>
+        <copy file="${lib.dir}/batik-svggen.jar" todir="${paintApp.dir}" overwrite="true"/>
+        <copy file="${lib.dir}/batik-util.jar" todir="${paintApp.dir}" overwrite="true"/>
+        <copy file="${lib.dir}/batik-xml.jar" todir="${paintApp.dir}" overwrite="true"/>
+        <copy file="${lib.dir}/hibernate-c3p0-4.1.2.Final.jar" todir="${paintApp.dir}" overwrite="true"/>
+        <copy file="${lib.dir}/hibernate-commons-annotations-4.0.1.Final.jar" todir="${paintApp.dir}" overwrite="true"/>
+        <copy file="${lib.dir}/hibernate-core-4.1.2.Final.jar" todir="${paintApp.dir}" overwrite="true"/>
+        <copy file="${lib.dir}/hibernate-c3p0-4.1.2.Final.jar" todir="${paintApp.dir}" overwrite="true"/>
+        <copy file="${lib.dir}/hibernate-ehcache-4.1.2.Final.jar" todir="${paintApp.dir}" overwrite="true"/>         
+        <copy file="${lib.dir}/hibernate-entitymanager-4.1.2.Final.jar" todir="${paintApp.dir}" overwrite="true"/>
+        <copy file="${lib.dir}/hibernate-envers-4.1.2.Final.jar" todir="${paintApp.dir}" overwrite="true"/>
+        <copy file="${lib.dir}/hibernate-infinispan-4.1.2.Final.jar" todir="${paintApp.dir}" overwrite="true"/>
+        <copy file="${lib.dir}/hibernate-jpa-2.0-api-1.0.1.Final.jar" todir="${paintApp.dir}" overwrite="true"/>
+        <copy file="${lib.dir}/hibernate-proxool-4.1.2.Final.jar" todir="${paintApp.dir}" overwrite="true"/> 
+        <copy file="${lib.dir}/idw-gpl.jar" todir="${paintApp.dir}" overwrite="true"/>
+        <copy file="${lib.dir}/mysql.jar" todir="${paintApp.dir}" overwrite="true"/>
+        <copy file="${lib.dir}/mysql-connector-java-5.1.6-bin.jar" todir="${paintApp.dir}" overwrite="true"/>                 
+        <copy file="${paintCommon.config.dir}/treeViewer.properties" todir="${paintApp.dir}" overwrite="true"/>
+        <copy file="${lib.output.dir}/paint.jar" todir="${paintApp.dir}" overwrite="true"/>
+        <copy file="${src.dir}/hibernate.cfg.xml" todir="${paintApp.dir}" overwrite="true"/>
+        <copy file="${src.dir}/preferences.xml" todir="${paintApp.dir}" overwrite="true"/>        
+        <copy file="${src.dir}/log4j.properties" todir="${paintApp.dir}" overwrite="true"/>
+        <copy file="${config.dir}/launchPAINT.sh" todir="${paintApp.dir}" overwrite="true"/>
+        <copy file="${config.dir}/launchPAINT.bat" todir="${paintApp.dir}" overwrite="true"/>
+        <chmod file="${paintApp.dir}/launchPAINT.sh" perm="755"/>
+        
+        <copy todir="${paintApp.dir}">
+            <fileset dir="${lib.dir}">
+                <include name="*.jar"/>
+            </fileset>
+        </copy>
+              	<echo message="Copying files into config directory" />
+        <copy todir="${paintApp.dir}/perspectives">  
+            <fileset dir="${config.dir.perspectives}">  
+
+            </fileset>
+        </copy>        
+    </target>
+    
+</project>
