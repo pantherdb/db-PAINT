@@ -14,10 +14,10 @@ The client version has dependencies on database related libraries (such as hiber
 ***
 
 There are three main components:
-+The client (gopaint), 
-+The server(gopaintServer) and
-+Classes common to both client and server (gopaintCommon)
-***
++ The client (gopaint), 
++ The server(gopaintServer) and
++ Classes common to both client and server (gopaintCommon)  
+
 Each of these can be build separately.  There is a README.txt file in each subdirectory with instructions for building.  Building gopaintServer and publishing will create the server package as well as the client download.
 Before building, update the property files in the config subdirectory for each component.  These specify database connection parameters, server locations, etc. Also properties in file user.properties.paintCuration have to be modified to specify server location, etc.
 
