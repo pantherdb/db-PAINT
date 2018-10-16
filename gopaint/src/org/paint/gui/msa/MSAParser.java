@@ -173,24 +173,24 @@ public class MSAParser{
 			return condense_ruler;
 	}
 
-	protected boolean parseWts(String[] wtsInfo) {
-		if (wtsInfo != null && wtsInfo.length > 0) {
-			String[]  tmpWts = wtsInfo;
-			// Ignore first two lines
-			for (int i = 2; i < tmpWts.length; i++){
-				String  seqWt[] = Utils.tokenize(tmpWts[i], Constant.STR_SPACE);
-				GeneNode gene = PantherParseUtil.inst().findThatNode(seqWt[0]);
-				if (gene != null)
-					gene.setSequenceWt((new Double(seqWt[1]).doubleValue()));
-				else
-					log.warn ("Unable to parse ID from wts row " + seqWt[0]);
-			}
-			return true;
-		} 
-		else {
-			return false;
-		}
-	}
+//	protected boolean parseWts(String[] wtsInfo) {
+//		if (wtsInfo != null && wtsInfo.length > 0) {
+//			String[]  tmpWts = wtsInfo;
+//			// Ignore first two lines
+//			for (int i = 2; i < tmpWts.length; i++){
+//				String  seqWt[] = Utils.tokenize(tmpWts[i], Constant.STR_SPACE);
+//				GeneNode gene = PantherParseUtil.inst().findThatNode(seqWt[0]);
+//				if (gene != null)
+//					gene.setSequenceWt((new Double(seqWt[1]).doubleValue()));
+//				else
+//					log.warn ("Unable to parse ID from wts row " + seqWt[0]);
+//			}
+//			return true;
+//		} 
+//		else {
+//			return false;
+//		}
+//	}
 
 	private char [] setCondensedSequences(List<GeneNode> nodes) {
 		int gap_size = 0;

@@ -22,7 +22,7 @@ import java.io.Serializable;
  *
  * @author muruganu
  */
-public class Node implements Serializable {
+public class Node implements Serializable, IWith {
     private NodeStaticInfo staticInfo;
     private NodeVariableInfo variableInfo;
 

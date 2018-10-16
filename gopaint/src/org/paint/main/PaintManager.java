@@ -1,6 +1,6 @@
 /* 
  * 
- * Copyright (c) 2017, Regents of the University of California 
+ * Copyright (c) 2018, Regents of the University of California 
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
@@ -113,7 +113,9 @@ public class PaintManager {
     private HashMap<GeneNode, HashSet<Annotation>> removedAnnotLookup = new HashMap<GeneNode, HashSet<Annotation>>();
     private BrowserLauncher browserLauncher;
 
-    private ArrayList<TermAncestor> termAncestorList;      // termAncestor information user wants to see in matrix 
+    private ArrayList<TermAncestor> termAncestorList;      // termAncestor information user wants to see in matrix
+    private MatrixInfo matrixInfo;
+    
 
     private PaintManager() {
         // Exists only to defeat instantiation.
@@ -168,6 +170,7 @@ public class PaintManager {
 
         family = null;
         termAncestorList = null;
+        matrixInfo = null;
         removedAnnotLookup.clear();
     }
 
@@ -205,46 +208,46 @@ public class PaintManager {
         if (an_number == null || an_number.length() == 0) {
             log.error("Paint ID for node is missing!");
         } else if (paintIdtoGene.get(an_number) != null) {
-            log.error("We've already indexed this node: " + an_number);
+            log.error("We've already indexed this node by annotation id: " + an_number);
         } else {
             paintIdtoGene.put(an_number, node);
         }
     }
 
-    public void indexBySeqID(GeneNode node) {
-        indexBySeqID(node, node.getSeqDB(), node.getSeqId());
-    }
+//    public void indexBySeqID(GeneNode node) {
+//        indexBySeqID(node, node.getSeqDB(), node.getSeqId());
+//    }
 
-    private void indexBySeqID(GeneNode node, String db, String db_id) {
-        if (db_id != null && db_id.length() > 0) {
-            String key = db + ':' + db_id.toUpperCase();
-            if (db_id.equals("ENSPTRG00000033944")) {
-                log.debug("Give us a moment to follow along");
-            }
-            List<GeneNode> genes = seqIdtoGene.get(key);
-            if (genes == null) {
-                genes = new ArrayList<GeneNode>();
-                seqIdtoGene.put(key, genes);
-            }
-            if (!genes.contains(node)) {
-                genes.add(node);
-            } else {
-                log.debug("Already indexed " + key);
-            }
-        }
-    }
+//    private void indexBySeqID(GeneNode node, String db, String db_id) {
+//        if (db_id != null && db_id.length() > 0) {
+//            String key = db + ':' + db_id.toUpperCase();
+//            if (db_id.equals("ENSPTRG00000033944")) {
+//                log.debug("Give us a moment to follow along");
+//            }
+//            List<GeneNode> genes = seqIdtoGene.get(key);
+//            if (genes == null) {
+//                genes = new ArrayList<GeneNode>();
+//                seqIdtoGene.put(key, genes);
+//            }
+//            if (!genes.contains(node)) {
+//                genes.add(node);
+//            } else {
+//                log.debug("Already indexed by seqId " + key);
+//            }
+//        }
+//    }
 
-    public void indexByDBID(GeneNode node) {
-        String db_name = node.getDatabase();
-        String key = db_name + ':' + node.getDatabaseID().toUpperCase();
-        if (key != null && key.length() > 0) {
-            if (DbIdtoGene.get(key) != null) {
-                log.debug("Already indexed " + key);
-            } else {
-                DbIdtoGene.put(key, node);
-            }
-        }
-    }
+//    public void indexByDBID(GeneNode node) {
+//        String db_name = node.getDatabase();
+//        String key = db_name + ':' + node.getDatabaseID().toUpperCase();
+//        if (key != null && key.length() > 0) {
+//            if (DbIdtoGene.get(key) != null) {
+//                log.debug("Already indexed by dbid " + key);
+//            } else {
+//                DbIdtoGene.put(key, node);
+//            }
+//        }
+//    }
 
     public void indexByGP(GeneNode node) {
         String db = node.getGeneProduct().getDbxref().getDb_name();
@@ -259,36 +262,39 @@ public class PaintManager {
         ptnIdtoGene.put(ptn_id, node);
     }
 
-    private void initRefGenome() {
-        List<String[]> go_genes = new ArrayList<String[]>();
-        List<GeneNode> treeNodes = tree_pane.getTerminusNodes();
-        int max = Math.min(go_max, treeNodes.size());
-        for (int i = 0; i < treeNodes.size(); i++) {
-            GeneNode node = treeNodes.get(i);
-            if (node != null && node.isLeaf()) {
-                String[] xref = new String[2];
-                xref[0] = GO_Util.inst().dbNameHack(node.getDatabase());
-                xref[1] = node.getDatabaseID();
-                go_genes.add(xref);
-            } else {
-                log.error("Should never have a null or non-leaf terminus node");
-            }
-            if (go_genes.size() == max) {
-                GO_Util.inst().getGeneProducts(go_genes);
-                go_genes = new ArrayList<String[]>();
-                max = Math.min(go_max, treeNodes.size() - i - 1);
-            }
-        }
-        if (go_genes.size() > 0) {
-            log.debug("Odd have some remaining gene products to fetch");
-            GO_Util.inst().getGeneProducts(go_genes);
-        }
-    }
+//    private void initRefGenome() {
+//        List<String[]> go_genes = new ArrayList<String[]>();
+//        List<GeneNode> treeNodes = tree_pane.getTerminusNodes();
+//        int max = Math.min(go_max, treeNodes.size());
+//        for (int i = 0; i < treeNodes.size(); i++) {
+//            GeneNode node = treeNodes.get(i);
+//            if (node != null && node.isLeaf()) {
+//                String[] xref = new String[2];
+//                xref[0] = GO_Util.inst().dbNameHack(node.getDatabase());
+//                xref[1] = node.getDatabaseID();
+//                go_genes.add(xref);
+//            } else {
+//                log.error("Should never have a null or non-leaf terminus node");
+//            }
+//            if (go_genes.size() == max) {
+//                GO_Util.inst().getGeneProducts(go_genes);
+//                go_genes = new ArrayList<String[]>();
+//                max = Math.min(go_max, treeNodes.size() - i - 1);
+//            }
+//        }
+//        if (go_genes.size() > 0) {
+//            log.debug("Odd have some remaining gene products to fetch");
+//            GO_Util.inst().getGeneProducts(go_genes);
+//        }
+//    }
 
     public GeneNode getGeneByPTNId(String id) {
         GeneNode node = null;
         if (id != null && ptnIdtoGene != null) {
             node = ptnIdtoGene.get(id);
+        }
+        if (null == node) {
+            System.out.println( "did not find node for " + id);
         }
         return node;
     }
@@ -305,22 +311,22 @@ public class PaintManager {
         return node;
     }
 
-    public List<GeneNode> getGenesBySeqId(String db, String id) {
-        String key = db + ':' + id.toUpperCase();
-        List<GeneNode> node = seqIdtoGene.get(key);
-        String family = getFamily().getFamilyID();
-        if (node == null && id.startsWith(family)) {
-            id = id.substring(id.indexOf('_') + 1);
-            node = seqIdtoGene.get(id.toUpperCase());
-        }
-        return node;
-    }
+//    public List<GeneNode> getGenesBySeqId(String db, String id) {
+//        String key = db + ':' + id.toUpperCase();
+//        List<GeneNode> node = seqIdtoGene.get(key);
+//        String family = getFamily().getFamilyID();
+//        if (node == null && id.startsWith(family)) {
+//            id = id.substring(id.indexOf('_') + 1);
+//            node = seqIdtoGene.get(id.toUpperCase());
+//        }
+//        return node;
+//    }
 
-    public GeneNode getGeneByDbId(String db, String id) {
-        String db_name = GO_Util.inst().dbNameHack(db);
-        String key = db_name + ':' + id.toUpperCase();
-        return DbIdtoGene.get(key);
-    }
+//    public GeneNode getGeneByDbId(String db, String id) {
+//        String db_name = GO_Util.inst().dbNameHack(db);
+//        String key = db_name + ':' + id.toUpperCase();
+//        return DbIdtoGene.get(key);
+//    }
 
     public GeneNode getGeneByGP(String db, String db_id) {
         GeneNode node = null;
@@ -398,7 +404,7 @@ public class PaintManager {
                 continue;
             }
             for (Annotation a : annotList) {
-                String code = a.getEvidence().getEvidenceCode();
+                String code = a.getSingleEvidenceCodeFromSet();
                 if (edu.usc.ksom.pm.panther.paintCommon.Evidence.CODE_IBD.equals(code) || edu.usc.ksom.pm.panther.paintCommon.Evidence.CODE_IKR.equals(code) || edu.usc.ksom.pm.panther.paintCommon.Evidence.CODE_IRD.equals(code)) {
 //                        ArrayList<Annotation> astdList = saveNodeLookup.get(n);
 //                        if (null == astdList) {
@@ -407,12 +413,17 @@ public class PaintManager {
 //                        }
 //                        astdList.add(a);
                     annotationList.add(a);
-                    Annotation childAnnot = a.getChildAnnotation();
-                    if (null != childAnnot && edu.usc.ksom.pm.panther.paintCommon.Evidence.CODE_IBA.equals(childAnnot.getEvidence().getEvidenceCode()) && (edu.usc.ksom.pm.panther.paintCommon.Evidence.CODE_IKR.equals(code) || edu.usc.ksom.pm.panther.paintCommon.Evidence.CODE_IRD.equals(code))) {
-                        //astdList.add(childAnnot);
-                        annotationList.add(childAnnot);
-                    }
+//                    Annotation childAnnot = a.getChildAnnotation();
+//                    if (null != childAnnot && edu.usc.ksom.pm.panther.paintCommon.Evidence.CODE_IBA.equals(childAnnot.getSingleEvidenceCodeFromSet()) && (edu.usc.ksom.pm.panther.paintCommon.Evidence.CODE_IKR.equals(code) || edu.usc.ksom.pm.panther.paintCommon.Evidence.CODE_IRD.equals(code))) {
+//                        //astdList.add(childAnnot);
+//                        annotationList.add(childAnnot);
+//                    }
 
+                }
+                else if (edu.usc.ksom.pm.panther.paintCommon.Evidence.CODE_IBA.equals(code)) {
+                    if (true == AnnotationUtil.isIBAForIKRorIRD(a, gNode)) {
+                        annotationList.add(a);
+                    }
                 }
             }
         }
@@ -514,6 +525,12 @@ public class PaintManager {
 
             String progressMessage = "Initializing tree, attributes and MSA";
             fireProgressChange(progressMessage, 0, ProgressEvent.Status.START);
+            
+            if (null == family.getTreeStrings() || 0 == family.getTreeStrings().length || null == family.getNodeLookup() || 0 == family.getNodeLookup().size()) {
+                JOptionPane.showMessageDialog(GUIManager.getManager().getFrame(), "Please contact administrator about book " + familyID, "Failed to load information for book", JOptionPane.ERROR_MESSAGE);
+                closeCurrent();
+                return;
+            }
 
             // Parse file and create tree
             GeneNode root = GeneNodeUtil.inst().parseTreeData(family.getTreeStrings(), family.getNodeLookup(), familyID);
@@ -740,9 +757,17 @@ public class PaintManager {
         MatrixInfo mi = MatrixBuilder.getMatrixInfo(treeModel);
         annot_matrix.setModels(getTree().getTerminusNodes(), mi);
     }
-
+ 
     public ArrayList<TermAncestor> getTermAncestorList() {
         return termAncestorList;
+    }
+    
+    public void setMatrixInfo(MatrixInfo mi) {
+        this.matrixInfo = mi;
+    }
+    
+    public MatrixInfo getMatrixInnfo() {
+        return matrixInfo;
     }
 
     public BrowserLauncher getBrowserLauncher() {

@@ -1,5 +1,24 @@
+/**
+ *  Copyright 2018 University Of Southern California
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing,
+ *  software distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ */
 package com.usc.panther.paintServer.webservices;
 
+import edu.usc.ksom.pm.panther.paintCommon.AnnotationNode;
+import edu.usc.ksom.pm.panther.paintCommon.AnnotationHelper;
+import com.sri.panther.paintCommon.Constant;
+import com.sri.panther.paintCommon.util.StringUtils;
 import com.sri.panther.paintCommon.util.Utils;
 import com.sri.panther.paintServer.database.DataIO;
 import com.sri.panther.paintServer.database.DataServer;
@@ -15,6 +34,7 @@ import edu.usc.ksom.pm.panther.paintCommon.DBReference;
 import edu.usc.ksom.pm.panther.paintCommon.Evidence;
 import edu.usc.ksom.pm.panther.paintCommon.GOTerm;
 import edu.usc.ksom.pm.panther.paintCommon.GOTermHelper;
+import edu.usc.ksom.pm.panther.paintCommon.IWith;
 import edu.usc.ksom.pm.panther.paintCommon.Node;
 import edu.usc.ksom.pm.panther.paintCommon.NodeStaticInfo;
 import edu.usc.ksom.pm.panther.paintCommon.NodeVariableInfo;
@@ -73,17 +93,23 @@ public class FamilyUtil {
     private static final String ELEMENT_NODE = "node";
     private static final String ELEMENT_NODES = "nodes";
     private static final String ELEMENT_ANNOTATION_LIST = "annotation_list";
-    private static final String ELEMENT_ANNOTATION = "annotation"; 
+    private static final String ELEMENT_ANNOTATION = "annotation";
+    private static final String ELEMENT_WITH_LIST = "with_list";    
+    private static final String ELEMENT_WITH = "with";
+    private static final String ELEMENT_CODE = "code";
     private static final String ELEMENT_ANNOTATION_NODE = "annotation_node";
     private static final String ELEMENT_ANNOTATION_ACCESSION = "accession";
-    private static final String ELEMENT_ANNOTATION_NODE_ID = "annotation_node_id";
+    private static final String ELEMENT_ANNOTATION_ID = "annotation_id";
     private static final String ELEMENT_ANNOTATION_PUBLIC_ID = "public_id";
+    private static final String ELEMENT_NODE_PUBLIC_ID = "public_id";
     private static final String ELEMENT_ANNOTATION_PARENT = "parent";
     private static final String ELEMENT_FAMILY = "family";
     private static final String ELEMENT_FAMILY_ACCESSION = "family_accession";
     private static final String ELEMENT_FAMILY_NAME = "family_name";
     private static final String ELEMENT_FAMILY_ID = "family_id";
     private static final String ELEMENT_FAMILY_COMMENT = "family_comment";
+    private static final String ELEMENT_FAMILY_ANNOTATION_INFO_OTHER = "family_annot_info_other";
+    private static final String ELEMENT_FAMILY_ANNOTATION_INFO_PAINT = "family_annot_info_paint";    
     private static final String ELEMENT_NODE_NAME = "node_name";
     private static final String ELEMENT_NODE_SPECIES = "species";
     private static final String ELEMENT_REFERENCE_SPECIATION_EVENT= "reference_speciation_event";
@@ -107,8 +133,12 @@ public class FamilyUtil {
     private static final String ELEMENT_ANNOT_FROM_PAINT = "annotation_from_paint";
     private static final String ELEMENT_ANNOT_DIRECT = "annotation_direct";
     private static final String ELEMENT_ANNOT_WITH_LIST = "annotation_with_list";
-    private static final String ELEMENT_ANNOT_WITH = "annotation_with";
+//    private static final String ELEMENT_ANNOT_WITH = "annotation_with";
     
+    private static final String ELEMENT_ANNOT_WITH_ANNOTATION_TO_NODE = "annotation_with_annotation_to_node";
+    private static final String ELEMENT_ANNOT_WITH_DB_REFERENCE = "annotation_with_db_reference";    
+    private static final String ELEMENT_ANNOT_WITH_NODE = "annotation_with_node"; 
+        
     private static final String ELEMENT_QUALIFIER_LIST = "qualifier_list";
     private static final String ELEMENT_QUALIFIER = "qualifier";    
 
@@ -133,6 +163,9 @@ public class FamilyUtil {
     public static final String DELIM_PROVIDER = ":";
     
     public static final String DELIM_PROTEIN_INFO = "=";
+    public static final String DELIM_DB_REF = ":";   
+    public static final String STR_EMPTY = "";
+    public static final String DELIM_EV_CODE = ",";
     
     private static OrganismManager organismManager = OrganismManager.getInstance();
     private static GOTermHelper goTermHelper = CategoryLogic.getInstance().getGOTermHelper();
@@ -182,6 +215,16 @@ public class FamilyUtil {
             return getXmlFamilyComment(id, uplVersion);
         }
         
+        if (true == searchType.equals(WSConstants.SEARCH_TYPE_FAMILY_ANNOTATION_INFO)) {
+            return getXMLAnnotationInfo(id, uplVersion);
+        }
+        if (true == searchType.equals(WSConstants.SEARCH_TYPE_AGG_FAMILY_ANNOTATION_INFO)) {
+            return getXMLAggAnnotationInfo(id, uplVersion);
+        }
+        if (true == searchType.equals(WSConstants.SEARCH_TYPE_FAMILY_EVIDENCE_INFO)) {
+            return getXMLOtherEvdnce(id, uplVersion);
+        }
+        
 
         return null;
     }
@@ -190,7 +233,13 @@ public class FamilyUtil {
         ArrayList<Integer> commentArray = new ArrayList<Integer>();
         long timeStart = System.currentTimeMillis();        
         DataIO di = new DataIO(ConfigFile.getProperty(ConfigFile.KEY_DB_JDBC_DBSID));
-        String comment = di.getFamilyComment(familyId, uplVersion, commentArray);
+        String comment = null;
+        try {
+            comment = di.getFamilyComment(familyId, uplVersion, commentArray);
+        }
+        catch(Exception e) {
+            
+        }
         long duration = System.currentTimeMillis() - timeStart;
         return outputFamliyComment(comment, familyId, duration, WSConstants.SEARCH_TYPE_FAMILY_COMMENT);
     }
@@ -204,20 +253,38 @@ public class FamilyUtil {
         MSAUtil.parsePIRForNonGO(msaInfo, new Vector(tl.getIdToNodeTbl().values()));
         DataIO di = new DataIO(ConfigFile.getProperty(ConfigFile.KEY_DB_JDBC_DBSID));
         di.getGeneInfo(familyId, uplVersion, nodeLookup);
-        String familyName = di.getFamilyName(familyId, uplVersion);
-        di.getAnnotationNodeLookup(familyId, uplVersion, nodeLookup);   // This will get all nodes in tree
+        String familyName = null;
+        try {
+            familyName = di.getFamilyName(familyId, uplVersion);
+            di.getAnnotationNodeLookup(familyId, uplVersion, nodeLookup);   // This will get all nodes in tree
+        }
+        catch(Exception e) {
+            
+        }
+       
         
         Hashtable<String, AnnotationNode> nodeTbl = tl.getIdToNodeTbl();        // The key does not have the family id plus ":".  Create a copy of table with
                                                                                 // key that contains familyid plus ":".  Also set the associated node structure
         Hashtable<String, AnnotationNode> accToAnnotNodeLookup = new Hashtable<String, AnnotationNode>(nodeTbl.size());
-        for (String nodeAcc: nodeTbl.keySet()) {
-            AnnotationNode an = nodeTbl.get(nodeAcc);
-            accToAnnotNodeLookup.put(an.getAccession(), an);
-            an.setNode(nodeLookup.get(an.getAccession()));
+        if (null != nodeTbl) {
+            for (String nodeAcc: nodeTbl.keySet()) {
+                AnnotationNode an = nodeTbl.get(nodeAcc);
+                accToAnnotNodeLookup.put(an.getAccession(), an);
+                an.setNode(nodeLookup.get(an.getAccession()));
+            }
         }
 
-        
-        di.getFullGOAnnotations(familyId, uplVersion, nodeLookup);
+        try {
+            HashMap<edu.usc.ksom.pm.panther.paintCommon.Annotation, ArrayList<IWith>> annotToPosWithLookup = new HashMap<edu.usc.ksom.pm.panther.paintCommon.Annotation, ArrayList<IWith>>();
+            StringBuffer errorBuf = new StringBuffer();
+            StringBuffer paintErrBuf = new StringBuffer();
+            HashSet<String> removeSet = new HashSet<String>();
+            HashSet<String> modifySet = new HashSet<String>();
+            di.getFullGOAnnotations(familyId, uplVersion, nodeLookup, annotToPosWithLookup, errorBuf, paintErrBuf, removeSet, modifySet, false);
+        }
+        catch(Exception e) {
+            
+        }
         // Keep list of non-propagated annotations
         HashSet<edu.usc.ksom.pm.panther.paintCommon.Annotation> nonPropAnnotSet = new HashSet<edu.usc.ksom.pm.panther.paintCommon.Annotation>();
         for (Node n: nodeLookup.values()) {
@@ -231,7 +298,12 @@ public class FamilyUtil {
             }
             nonPropAnnotSet.addAll(annotList);
         }
-        di.addPruned(familyId, uplVersion, nodeLookup);
+        try {
+            di.addPruned(familyId, uplVersion, nodeLookup);
+        }
+        catch (Exception e) {
+            
+        }
         AnnotationHelper.propagateAndFixAnnotationsForBookOpen(familyId, tl.getRoot(), accToAnnotNodeLookup);
         
         long duration = System.currentTimeMillis() - timeStart;
@@ -248,8 +320,14 @@ public class FamilyUtil {
         TreeLogic tl = new TreeLogic();
         tl.setTreeStructure(familyId, uplVersion, nodeLookup);
         DataIO di = new DataIO(ConfigFile.getProperty(ConfigFile.KEY_DB_JDBC_DBSID));
-        String familyName = di.getFamilyName(familyId, uplVersion);
-        di.getAnnotationNodeLookup(familyId, uplVersion, nodeLookup);   // This will get all nodes in tree
+        String familyName = null;
+        try {
+            familyName = di.getFamilyName(familyId, uplVersion);
+            di.getAnnotationNodeLookup(familyId, uplVersion, nodeLookup);   // This will get all nodes in tree
+        }
+        catch (Exception e) {
+            
+        }
         
         Hashtable<String, AnnotationNode> nodeTbl = tl.getIdToNodeTbl();        // The key does not have the family id plus ":".  Create a copy of table with
                                                                                 // key that contains familyid plus ":".  Also set the associated node structure
@@ -296,8 +374,15 @@ public class FamilyUtil {
                 continue;
             }
             nonPropAnnotSet.addAll(annotList);
-        }        
-        String familyName = di.getFamilyName(familyId, uplVersion);
+        }
+        
+        String familyName = null;
+        try {
+            familyName = di.getFamilyName(familyId, uplVersion);
+        }
+        catch (Exception e) {
+            
+        }
         long duration = System.currentTimeMillis() - timeStart;
         
         return outputFamilyDirectAnnotations(nodeLookup, nonPropAnnotSet, familyId, familyName, duration, WSConstants.SEARCH_TYPE_FAMILY_DIRECT_ANNOTATIONS);
@@ -767,9 +852,9 @@ public class FamilyUtil {
             Text familyId_text = doc.createTextNode(familyId);
             familyIdElem.appendChild(familyId_text);
             root.appendChild(familyIdElem);
-            
-            root.appendChild(WSUtil.createTextNode(doc, ELEMENT_FAMILY_COMMENT, comment));            
-            
+            if (null != comment) {
+                root.appendChild(WSUtil.createTextNode(doc, ELEMENT_FAMILY_COMMENT, comment));            
+            }
             // Output information
             DOMImplementationLS domImplementation = (DOMImplementationLS) doc.getImplementation();
             LSSerializer lsSerializer = domImplementation.createLSSerializer();
@@ -1110,7 +1195,7 @@ public class FamilyUtil {
         return false;
     }
     
-    private static void addAnnotationInfo(Document doc, Element parent, Node n, HashSet<edu.usc.ksom.pm.panther.paintCommon.Annotation> nonPropAnnotSet) {
+   private static void addAnnotationInfo(Document doc, Element parent, Node n, HashSet<edu.usc.ksom.pm.panther.paintCommon.Annotation> nonPropAnnotSet) {
         NodeVariableInfo nvi = n.getVariableInfo();
         if (null != nvi) {
             ArrayList<edu.usc.ksom.pm.panther.paintCommon.Annotation> annotList = nvi.getGoAnnotationList();
@@ -1120,26 +1205,32 @@ public class FamilyUtil {
                 for (edu.usc.ksom.pm.panther.paintCommon.Annotation a : annotList) {
                     Element paintAnnot = doc.createElement(ELEMENT_ANNOTATION);
                     annotListElem.appendChild(paintAnnot);
-                    Evidence e = a.getEvidence();
-                    Element evidenceCde = WSUtil.createTextNode(doc, ELEMENT_EVIDENCE_CODE, e.getEvidenceCode());
-                    paintAnnot.appendChild(evidenceCde);
+                    
+                    Element evidenceCde = WSUtil.createTextNode(doc, ELEMENT_EVIDENCE_CODE, StringUtils.listToString(a.getEvidenceCodeSet(), Constant.STR_EMPTY, Constant.STR_COMMA));
+                    if (null != evidenceCde) {
+                        paintAnnot.appendChild(evidenceCde);
+                    }
                     
                     if (true == nonPropAnnotSet.contains(a)) {
                         Element directAnnot = WSUtil.createTextNode(doc, ELEMENT_ANNOT_DIRECT, Boolean.TRUE.toString());
                         paintAnnot.appendChild(directAnnot);
                     }                    
-                    if (true == evidenceIsFromPAINT(e)) {
+                    if (true == a.isPaint()) {
                         Element evidenceFromPaint = WSUtil.createTextNode(doc, ELEMENT_ANNOT_FROM_PAINT, Boolean.TRUE.toString());
                         paintAnnot.appendChild(evidenceFromPaint);
-
-                        AnnotationDetail ad = a.getAnnotationDetail();
-                        if (null != ad) {
-                            HashSet<edu.usc.ksom.pm.panther.paintCommon.Annotation> withSet = ad.getWithAnnotSet();
-                            if (null != withSet && 0 != withSet.size()) {
-                                Element withList = doc.createElement(ELEMENT_ANNOT_WITH_LIST);
-                                paintAnnot.appendChild(withList);
-                                HashSet<String> processedNodeSet = new HashSet<String>();
-                                for (edu.usc.ksom.pm.panther.paintCommon.Annotation withAnnot : withSet) {
+                    }
+                    
+                    AnnotationDetail ad = a.getAnnotationDetail();
+                    if (null != ad) {
+                        HashSet<edu.usc.ksom.pm.panther.paintCommon.WithEvidence> withEvSet = ad.getWithEvidenceSet();
+                        if (null != withEvSet && 0 != withEvSet.size()) {
+                            Element withList = doc.createElement(ELEMENT_ANNOT_WITH_LIST);
+                            paintAnnot.appendChild(withList);
+                            HashSet<String> processedNodeSet = new HashSet<String>();
+                            for (edu.usc.ksom.pm.panther.paintCommon.WithEvidence withEv : withEvSet) {
+                                IWith with = withEv.getWith();
+                                if (with instanceof edu.usc.ksom.pm.panther.paintCommon.Annotation) {
+                                    edu.usc.ksom.pm.panther.paintCommon.Annotation withAnnot = (edu.usc.ksom.pm.panther.paintCommon.Annotation) withEv.getWith();
                                     AnnotationDetail withAnnotDetail = withAnnot.getAnnotationDetail();
                                     if (null != withAnnotDetail) {
                                         Node annotatedNode = withAnnotDetail.getAnnotatedNode();
@@ -1152,15 +1243,53 @@ public class FamilyUtil {
                                                 continue;
                                             }
                                             processedNodeSet.add(publicId);
-                                            Element annotatedNodeElem = WSUtil.createTextNode(doc, ELEMENT_ANNOT_WITH, publicId);
+                                            Element annotatedNodeElem = WSUtil.createTextNode(doc, ELEMENT_ANNOT_WITH_ANNOTATION_TO_NODE, publicId);
                                             withList.appendChild(annotatedNodeElem);
                                         }
                                     }
                                 }
+                                else if (with instanceof DBReference) {
+                                    DBReference dbref = (DBReference) with;
+                                    Element annotatedDBElem = WSUtil.createTextNode(doc, ELEMENT_ANNOT_WITH_DB_REFERENCE, dbref.getEvidenceType() + DELIM_DB_REF + dbref.getEvidenceValue());
+                                    withList.appendChild(annotatedDBElem);
+                                }
+                                else if (with instanceof Node) {
+                                    Node node = (Node)with;
+                                    Element annotatedNodeElem = WSUtil.createTextNode(doc, ELEMENT_ANNOT_WITH_NODE, node.getStaticInfo().getPublicId());
+                                    withList.appendChild(annotatedNodeElem);                                    
+                                }
                             }
                         }
+                    }                    
+//                    if (null != ad) {
+//                        HashSet<edu.usc.ksom.pm.panther.paintCommon.WithEvidence> withEvSet = ad.getWithEvidenceAnnotSet();
+//                        if (null != withEvSet && 0 != withEvSet.size()) {
+//                            Element withList = doc.createElement(ELEMENT_ANNOT_WITH_LIST);
+//                            paintAnnot.appendChild(withList);
+//                            HashSet<String> processedNodeSet = new HashSet<String>();
+//                            for (edu.usc.ksom.pm.panther.paintCommon.WithEvidence withEv : withEvSet) {
+//                                edu.usc.ksom.pm.panther.paintCommon.Annotation withAnnot = (edu.usc.ksom.pm.panther.paintCommon.Annotation) withEv.getWith();
+//                                AnnotationDetail withAnnotDetail = withAnnot.getAnnotationDetail();
+//                                if (null != withAnnotDetail) {
+//                                    Node annotatedNode = withAnnotDetail.getAnnotatedNode();
+//                                    if (null != annotatedNode) {
+//                                        if (n == annotatedNode) {
+//                                            continue;
+//                                        }
+//                                        String publicId = annotatedNode.getStaticInfo().getPublicId();
+//                                        if (true == processedNodeSet.contains(publicId)) {
+//                                            continue;
+//                                        }
+//                                        processedNodeSet.add(publicId);
+//                                        Element annotatedNodeElem = WSUtil.createTextNode(doc, ELEMENT_ANNOT_WITH, publicId);
+//                                        withList.appendChild(annotatedNodeElem);
+//                                    }
+//                                }
+//                            }
+//                        }
+//                    }
                         
-                    }
+
                     
                     String term = a.getGoTerm();
                     GOTerm gTerm = goTermHelper.getTerm(term);
@@ -1324,6 +1453,194 @@ public class FamilyUtil {
         }
         return an.getSpecies();
     }
+    
+    public static String getXMLAnnotationInfo(String familyId, String uplVersion) {
+        HashMap<String, Node> treeNodeLookup = new HashMap<String, Node>();
+        long start = System.currentTimeMillis();
+        DataIO dataIO = new DataIO(ConfigFile.getProperty(ConfigFile.KEY_DB_JDBC_DBSID));
+        dataIO.getAnnotationNodeLookup(familyId, uplVersion, treeNodeLookup);
+        HashMap<edu.usc.ksom.pm.panther.paintCommon.Annotation, ArrayList<IWith>> annotToPosWithLookup = new HashMap<edu.usc.ksom.pm.panther.paintCommon.Annotation, ArrayList<IWith>>();
+        StringBuffer errorBuf = new StringBuffer();
+        StringBuffer paintErrBuf = new StringBuffer();
+        HashSet<String> removeSet = new HashSet<String>();
+        HashSet<String> modifySet = new HashSet<String>();
+        try {
+            dataIO.getFullGOAnnotations(familyId, uplVersion, treeNodeLookup, annotToPosWithLookup, errorBuf, paintErrBuf, removeSet, modifySet, false);
+            return outputFamilyAnnotationInfoStr(errorBuf, paintErrBuf, familyId, System.currentTimeMillis() - start, WSConstants.SEARCH_TYPE_FAMILY_ANNOTATION_INFO);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
+    public static String getXMLAggAnnotationInfo(String familyId, String uplVersion) {
+        HashMap<String, Node> treeNodeLookup = new HashMap<String, Node>();
+        long start = System.currentTimeMillis();
+        DataIO dataIO = new DataIO(ConfigFile.getProperty(ConfigFile.KEY_DB_JDBC_DBSID));
+        dataIO.getAnnotationNodeLookup(familyId, uplVersion, treeNodeLookup);
+        HashMap<edu.usc.ksom.pm.panther.paintCommon.Annotation, ArrayList<IWith>> annotToPosWithLookup = new HashMap<edu.usc.ksom.pm.panther.paintCommon.Annotation, ArrayList<IWith>>();
+        StringBuffer errorBuf = new StringBuffer();
+        StringBuffer paintErrBuf = new StringBuffer();
+        HashSet<String> removeSet = new HashSet<String>();
+        HashSet<String> modifySet = new HashSet<String>();
+        try {
+            dataIO.getFullGOAnnotations(familyId, uplVersion, treeNodeLookup, annotToPosWithLookup, errorBuf, paintErrBuf, removeSet, modifySet, true);
+            return outputFamilyAnnotationInfoStr(errorBuf, paintErrBuf, familyId, System.currentTimeMillis() - start, WSConstants.SEARCH_TYPE_AGG_FAMILY_ANNOTATION_INFO);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
+        }
+    }    
+    public static String getXMLOtherEvdnce(String familyId, String uplVersion) {
+        HashMap<String, Node> treeNodeLookup = new HashMap<String, Node>();
+        long start = System.currentTimeMillis();
+        DataIO dataIO = new DataIO(ConfigFile.getProperty(ConfigFile.KEY_DB_JDBC_DBSID));
+        dataIO.getAnnotationNodeLookup(familyId, uplVersion, treeNodeLookup);
+        HashMap<edu.usc.ksom.pm.panther.paintCommon.Annotation, ArrayList<IWith>> annotToPosWithLookup = new HashMap<edu.usc.ksom.pm.panther.paintCommon.Annotation, ArrayList<IWith>>();
+        StringBuffer errorBuf = new StringBuffer();
+        StringBuffer paintErrBuf = new StringBuffer();
+        HashSet<String> removeSet = new HashSet<String>();
+        HashSet<String> modifySet = new HashSet<String>();
+        try {
+            dataIO.getFullGOAnnotations(familyId, uplVersion, treeNodeLookup, annotToPosWithLookup, errorBuf, paintErrBuf, removeSet, modifySet, false);
+            return outputFamilyOtherEvdnce(annotToPosWithLookup, familyId, System.currentTimeMillis() - start, WSConstants.SEARCH_TYPE_FAMILY_EVIDENCE_INFO);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
+    
+   private static String outputFamilyOtherEvdnce(HashMap<edu.usc.ksom.pm.panther.paintCommon.Annotation, ArrayList<IWith>> annotToPosWithLookup, String familyId, long duration, String searchType) {
+        try {        
+            DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+            DocumentBuilder builder = factory.newDocumentBuilder();
+            Document doc = builder.newDocument();  
+         
+            Element root = doc.createElement(ELEMENT_SEARCH);
+            doc.appendChild(root);
+            
+            // Search parameters and time
+            Element parameters = doc.createElement(ELEMENT_PARAMETERS);
+            Element id = doc.createElement(ELEMENT_ID);
+            Text id_text = doc.createTextNode(familyId);
+            id.appendChild(id_text);
+
+            Element searchString = doc.createElement(ELEMENT_SEARCH_TYPE);
+            Text searchStringText = doc.createTextNode(searchType);
+            searchString.appendChild(searchStringText);
+
+            Element elapsedTime = doc.createElement(ELEMENT_ELAPSED_TIME);
+            Text time_text = doc.createTextNode(duration + MS);
+            elapsedTime.appendChild(time_text);
+            
+            parameters.appendChild(id);
+            parameters.appendChild(searchString);
+            parameters.appendChild(elapsedTime);
+            root.appendChild(parameters);
+            
+            Element familyIdElem = doc.createElement(ELEMENT_FAMILY_ID);
+            Text familyId_text = doc.createTextNode(familyId);
+            familyIdElem.appendChild(familyId_text);
+            root.appendChild(familyIdElem);
+            if (null != annotToPosWithLookup && false == annotToPosWithLookup.isEmpty()) {
+                Element annotListElem = doc.createElement(ELEMENT_ANNOTATION_LIST);
+                root.appendChild(annotListElem);
+                for (edu.usc.ksom.pm.panther.paintCommon.Annotation a: annotToPosWithLookup.keySet()) {
+                    Element annotElem = doc.createElement(ELEMENT_ANNOTATION);
+                    annotListElem.appendChild(annotElem);
+                    
+                    Element idElem = doc.createElement(ELEMENT_ANNOTATION_ID);
+                    annotElem.appendChild(idElem);
+                    idElem.appendChild(doc.createTextNode(a.getAnnotationId()));
+
+                    Element codeElem = doc.createElement(ELEMENT_CODE);
+                    annotElem.appendChild(codeElem);
+                    codeElem.appendChild(doc.createTextNode( a.getSingleEvidenceCodeFromSet()));
+                  
+                    Element publicIdElem = doc.createElement(ELEMENT_NODE_PUBLIC_ID);
+                    annotElem.appendChild(publicIdElem);
+                    publicIdElem.appendChild(doc.createTextNode(a.getAnnotationDetail().getAnnotatedNode().getStaticInfo().getPublicId()));                    
+                    
+                    ArrayList<IWith> withList = annotToPosWithLookup.get(a);                     
+                    Element withListElem = doc.createElement(ELEMENT_WITH_LIST);
+                    annotElem.appendChild(withListElem);
+                    for (IWith with : withList) {
+                        if (with instanceof edu.usc.ksom.pm.panther.paintCommon.Annotation) {
+                            edu.usc.ksom.pm.panther.paintCommon.Annotation iAnnot = (edu.usc.ksom.pm.panther.paintCommon.Annotation)with;
+                            Element withElem = doc.createElement(ELEMENT_WITH);
+                            withListElem.appendChild(withElem);
+                            
+                            Element withAnnotElem = doc.createElement(ELEMENT_ANNOTATION_ID);
+                            withElem.appendChild(withAnnotElem);
+                            withAnnotElem.appendChild(doc.createTextNode(iAnnot.getAnnotationId()));
+
+                            
+                            Element withNodeElem = doc.createElement(ELEMENT_NODE_PUBLIC_ID);
+                            withElem.appendChild(withNodeElem);
+                            withNodeElem.appendChild(doc.createTextNode(iAnnot.getAnnotationDetail().getAnnotatedNode().getStaticInfo().getPublicId()));
+                        }
+                    }
+                }
+            }            
+            // Output information
+            DOMImplementationLS domImplementation = (DOMImplementationLS) doc.getImplementation();
+            LSSerializer lsSerializer = domImplementation.createLSSerializer();
+            return lsSerializer.writeToString(doc); 
+        }
+        catch(Exception e) {
+             e.printStackTrace();
+             return null;
+        }            
+    }    
+     
+    
+    private static String outputFamilyAnnotationInfoStr(StringBuffer otherAnnotInfo, StringBuffer paintAnnotInfo, String familyId, long duration, String searchType) {
+        try {        
+            DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+            DocumentBuilder builder = factory.newDocumentBuilder();
+            Document doc = builder.newDocument();  
+         
+            Element root = doc.createElement(ELEMENT_SEARCH);
+            doc.appendChild(root);
+            
+            // Search parameters and time
+            Element parameters = doc.createElement(ELEMENT_PARAMETERS);
+            Element id = doc.createElement(ELEMENT_ID);
+            Text id_text = doc.createTextNode(familyId);
+            id.appendChild(id_text);
+
+            Element searchString = doc.createElement(ELEMENT_SEARCH_TYPE);
+            Text searchStringText = doc.createTextNode(searchType);
+            searchString.appendChild(searchStringText);
+
+            Element elapsedTime = doc.createElement(ELEMENT_ELAPSED_TIME);
+            Text time_text = doc.createTextNode(duration + MS);
+            elapsedTime.appendChild(time_text);
+            
+            parameters.appendChild(id);
+            parameters.appendChild(searchString);
+            parameters.appendChild(elapsedTime);
+            root.appendChild(parameters);
+            
+            Element familyIdElem = doc.createElement(ELEMENT_FAMILY_ID);
+            Text familyId_text = doc.createTextNode(familyId);
+            familyIdElem.appendChild(familyId_text);
+            root.appendChild(familyIdElem);
+            if (null != otherAnnotInfo) {
+                root.appendChild(WSUtil.createTextNode(doc, ELEMENT_FAMILY_ANNOTATION_INFO_OTHER, otherAnnotInfo.toString()));            
+            }
+            if (null != paintAnnotInfo) {
+                root.appendChild(WSUtil.createTextNode(doc, ELEMENT_FAMILY_ANNOTATION_INFO_PAINT, paintAnnotInfo.toString()));            
+            }            
+            // Output information
+            DOMImplementationLS domImplementation = (DOMImplementationLS) doc.getImplementation();
+            LSSerializer lsSerializer = domImplementation.createLSSerializer();
+            return lsSerializer.writeToString(doc); 
+        }
+        catch(Exception e) {
+             e.printStackTrace();
+             return null;
+        }            
+    }    
     
     public static void main(String[] args) {
         System.out.println(FamilyUtil.getFamilyInfo("PTHR10000", null, null, WSConstants.SEARCH_TYPE_FAMILY_PHYLOXML));

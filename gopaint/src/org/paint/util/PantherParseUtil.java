@@ -190,84 +190,84 @@ public class PantherParseUtil {
 		return inst().currentColHeadings;
 	}
 
-	public GeneNode parseAttributeRow(Vector<String> row, int idColIndex) {
-		String id = row.elementAt(idColIndex);
-		String ptn = row.elementAt(row.size() - 1);
-		GeneNode gene = findThatNode(id);
-		if (gene.getPersistantNodeID() != null && !gene.getPersistantNodeID().equals(ptn)) {
-			/*
-			 * This should never happen!
-			 */
-			log.error("Yikes, " + gene.getPersistantNodeID() + " does not equal " + ptn);	
-		}
-		for (int j = 0; j < row.size(); j++) {
-			String tag = origColumnHeadings.elementAt(j);
-			String value = row.elementAt(j);
-			gene.setAttrLookup(tag, value);
+//	public GeneNode parseAttributeRow(Vector<String> row, int idColIndex) {
+//		String id = row.elementAt(idColIndex);
+//		String ptn = row.elementAt(row.size() - 1);
+//		GeneNode gene = findThatNode(id);
+//		if (gene.getPersistantNodeID() != null && !gene.getPersistantNodeID().equals(ptn)) {
+//			/*
+//			 * This should never happen!
+//			 */
+//			log.error("Yikes, " + gene.getPersistantNodeID() + " does not equal " + ptn);	
+//		}
+//		for (int j = 0; j < row.size(); j++) {
+//			String tag = origColumnHeadings.elementAt(j);
+//			String value = row.elementAt(j);
+//			gene.setAttrLookup(tag, value);
+//
+//			if (tag.equals(ACC_TAG) || tag.equals(PROT_TAG)) {
+//				if (gene.getSeqId() == null) {
+//					gene.setSeqId(gene.getSeqDB(), value);
+//					log.error("Set accession after the fact for: " + value);
+//				}
+//			} else if (tag.equals(DEF_TAG)) {
+//				gene.setDescription(cleanDefinition(value));
+//			} else if (tag.equals(ORG_TAG)) {
+//				gene.addSpeciesLabel(value);
+//                                gene.setSpecies(value);
+//			} else if (tag.equals(SYMB_TAG)) {
+//				gene.setSeqName(value);
+//			} else if (tag.equals(GENE_TAG)) {
+//				/* 
+//				 * First eliminate the weird comma separated values
+//				 */
+//				String [] doublet = value.split(Constant.STR_COMMA);
+//				if (doublet.length == 2) {
+//					value = doublet[0];
+//				}
+//			} else if (tag.equals(OMCL_TAG)) {
+//				/*
+//				 * If this is a member of an OrthoMCL family the value like this is provided: ORTHOMCL1010
+//				 */
+//				gene.setOrthoMCL(value);
+//			} else if (tag.equals(PERM_NODE_TAG)) {
+//				gene.setPersistantNodeID(value);
+//			}
+//		}
+//		return gene;
+//	}
 
-			if (tag.equals(ACC_TAG) || tag.equals(PROT_TAG)) {
-				if (gene.getSeqId() == null) {
-					gene.setSeqId(gene.getSeqDB(), value);
-					log.error("Set accession after the fact for: " + value);
-				}
-			} else if (tag.equals(DEF_TAG)) {
-				gene.setDescription(cleanDefinition(value));
-			} else if (tag.equals(ORG_TAG)) {
-				gene.addSpeciesLabel(value);
-                                gene.setSpecies(value);
-			} else if (tag.equals(SYMB_TAG)) {
-				gene.setSeqName(value);
-			} else if (tag.equals(GENE_TAG)) {
-				/* 
-				 * First eliminate the weird comma separated values
-				 */
-				String [] doublet = value.split(Constant.STR_COMMA);
-				if (doublet.length == 2) {
-					value = doublet[0];
-				}
-			} else if (tag.equals(OMCL_TAG)) {
-				/*
-				 * If this is a member of an OrthoMCL family the value like this is provided: ORTHOMCL1010
-				 */
-				gene.setOrthoMCL(value);
-			} else if (tag.equals(PERM_NODE_TAG)) {
-				gene.setPersistantNodeID(value);
-			}
-		}
-		return gene;
-	}
-
-	public GeneNode findThatNode(String row) {
-		PaintManager manager = PaintManager.inst();
-		GeneNode gene = null;
-		String paint_id = parseANid(row);
-
-		if (paint_id != null)
-			gene = manager.getGeneByPaintId(paint_id);
-		if (gene == null) {
-			String [] seq_source = 	getSeqParts(row);
-
-			if (seq_source != null && seq_source.length >= 2) {
-				List<GeneNode> genes = manager.getGenesBySeqId(seq_source[0], seq_source[1]);
-				String [] db_source = getDBparts(row);
-				if (genes == null) {
-					gene = manager.getGeneByDbId(db_source[0], db_source[1]);
-				} else {
-					for (GeneNode check : genes) {
-						String db = GO_Util.inst().dbNameHack(db_source[0]);
-						if (check.getDatabase().equals(db) && check.getDatabaseID().equals(db_source[1])) {
-							gene = check;
-//							if (genes.size() > 1)
-//							log.debug("Multiple genes for " + seq_source[0] + ':' + seq_source[1] + ", but found match to " + gene.getDatabase() + ':' + gene.getDatabaseID());
-						}
-					}
-				}
-			}
-		}
-		if (gene == null)
-			log.debug("Unable to locate node for " + row);
-		return gene;
-	}
+//	public GeneNode findThatNode(String row) {
+//		PaintManager manager = PaintManager.inst();
+//		GeneNode gene = null;
+//		String paint_id = parseANid(row);
+//
+//		if (paint_id != null)
+//			gene = manager.getGeneByPaintId(paint_id);
+//		if (gene == null) {
+//			String [] seq_source = 	getSeqParts(row);
+//
+//			if (seq_source != null && seq_source.length >= 2) {
+//				List<GeneNode> genes = manager.getGenesBySeqId(seq_source[0], seq_source[1]);
+//				String [] db_source = getDBparts(row);
+//				if (genes == null) {
+//					gene = manager.getGeneByDbId(db_source[0], db_source[1]);
+//				} else {
+//					for (GeneNode check : genes) {
+//						String db = GO_Util.inst().dbNameHack(db_source[0]);
+//						if (check.getDatabase().equals(db) && check.getDatabaseID().equals(db_source[1])) {
+//							gene = check;
+////							if (genes.size() > 1)
+////							log.debug("Multiple genes for " + seq_source[0] + ':' + seq_source[1] + ", but found match to " + gene.getDatabase() + ':' + gene.getDatabaseID());
+//						}
+//					}
+//				}
+//			}
+//		}
+//		if (gene == null)
+//			log.debug("Unable to locate node for " + row);
+//		return gene;
+//	}
 	/**
 	 * Add Attributes for non GO user
 	 * @param orderedNodes

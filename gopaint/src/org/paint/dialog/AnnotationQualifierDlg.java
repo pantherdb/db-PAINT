@@ -15,24 +15,31 @@
  */
 package org.paint.dialog;
 
+import com.sri.panther.paintCommon.util.Utils;
+import edu.usc.ksom.pm.panther.paint.annotation.AnnotQualifierGroup;
+import edu.usc.ksom.pm.panther.paint.annotation.QualifierAnnotRltn;
+import edu.usc.ksom.pm.panther.paintCommon.Annotation;
 import edu.usc.ksom.pm.panther.paintCommon.Qualifier;
 import java.awt.BorderLayout;
 import java.awt.Dimension;
 import java.awt.Frame;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.Vector;
 import javax.swing.BorderFactory;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
 import javax.swing.JButton;
-import javax.swing.JCheckBox;
 import javax.swing.JDialog;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
+import javax.swing.JRadioButton;
 import javax.swing.border.Border;
 import org.paint.util.RenderUtil;
 
@@ -41,24 +48,30 @@ import org.paint.util.RenderUtil;
  * @author muruganu
  */
 public class AnnotationQualifierDlg extends JDialog implements ActionListener{
+    public static final String STR_DASH = "-";
+    public static final String STR_EMPTY = "";
+    public static final String STR_COMMA = ",";
+    public static final String STR_BTN_TEXT = " from ";
     
-    private Map<JCheckBox, Qualifier> selections;
-    private HashSet<Qualifier> selected = new HashSet<Qualifier>();
+    private Map<JRadioButton, QualifierAnnotRltn> selections;
+    private QualifierAnnotRltn selected;
+    AnnotQualifierGroup aqg;
     private boolean userClickedOk = false;
-    public AnnotationQualifierDlg(Frame frame, HashSet<Qualifier> qualifierSet) {
-        		super(frame, "Qualifier", true);
+    public AnnotationQualifierDlg(Frame frame, AnnotQualifierGroup aqg) {
+        	super(frame, "Different qualifiers for annotation to term", true);
+                this.aqg = aqg;
 		setLayout(new BorderLayout());
-		setContentPane(qualifyPane(qualifierSet));
+		setContentPane(qualifyPane(aqg));
 		pack();
 		setLocationRelativeTo(frame);
     }
     
-    private JPanel qualifyPane(HashSet<Qualifier> qualifierSet) {
+    private JPanel qualifyPane( AnnotQualifierGroup aqg) {
         JPanel qualify = new JPanel();
         		qualify.setLayout(new BoxLayout(qualify, BoxLayout.PAGE_AXIS));
 		
 		//Create the components.
-		JPanel selectionPane = createSelectionPane(qualifierSet);
+		JPanel selectionPane = createSelectionPane(aqg);
 		JPanel buttonPane = new JPanel();
 		buttonPane.setOpaque(true);
 		buttonPane.setBackground(RenderUtil.getAspectColor());
@@ -77,50 +90,82 @@ public class AnnotationQualifierDlg extends JDialog implements ActionListener{
 		return qualify;                
     }
     
-    private JPanel createSelectionPane(HashSet<Qualifier> qualifierSet) {
-        String description = "Check qualifiers you wish propagated.";
-        		JPanel box = new JPanel();
-		JLabel label = new JLabel(description);
-		label.setBorder(BorderFactory.createEmptyBorder(10,10,10,10));
-		box.setOpaque(true);
-		box.setBackground(RenderUtil.getAspectColor());
-
-		box.setLayout(new BoxLayout(box, BoxLayout.PAGE_AXIS));
-		box.add(label);
-
-		selections = new HashMap<JCheckBox, Qualifier>();
-		JCheckBox check;
-                for (Qualifier q: qualifierSet) {
-                    if (null == q.getText()) {
-                        continue;
-                    }
-                    check = addCheckbox(q);
-                    selections.put(check, q);
-                    box.add(check);
-                }
-
-		JPanel pane = new JPanel(new BorderLayout());
-		pane.add(box, BorderLayout.PAGE_START);
-		Border padding = BorderFactory.createEmptyBorder(20,20,5,20);
-		pane.setBorder(padding);
-		pane.setOpaque(true);
-		pane.setBackground(RenderUtil.getAspectColor());
-		return pane;
-        
+    private String getQualifierString(HashSet<Qualifier> qSet) {
+        if (null == qSet) {
+            return null;
+        }
+        if (qSet.isEmpty()) {
+            return STR_DASH;
+        }
+        ArrayList<String> qList = new ArrayList<String>(qSet.size());
+        for (Qualifier q: qSet) {
+            String text = q.getText();
+            if (null == text || 0 == text.length()) {
+                continue;
+            }
+            qList.add(text);
+        }
+        if (true == qList.isEmpty()) {
+            return STR_DASH;
+        }
+        Collections.sort(qList);
+        return Utils.listToString(new Vector<String>(qList), STR_EMPTY, STR_COMMA);
     }
     
-    private JCheckBox addCheckbox(Qualifier q) {
-        			JCheckBox check = new JCheckBox();
-			check.setText(q.getText());
-                        // User cannot modify NOT qualifier
-                        if (q.isNot()) {
-                            check.setSelected(true);
-                            check.setEnabled(false);
-                        }
-                        else {
-                            check.setSelected(false);
-                        }
-			return(check);
+    private String getAnnotationInfo(HashSet<Annotation> annotSet) {
+        HashSet<String> nodeIdSet = new HashSet<String>(annotSet.size());
+        for (Annotation a: annotSet) {
+           nodeIdSet.add(a.getAnnotationDetail().getAnnotatedNode().getStaticInfo().getPublicId());
+        }
+        Vector<String> nodeList = new Vector<String>(nodeIdSet);
+        return Utils.listToString(nodeList, STR_EMPTY, STR_COMMA);
+    }
+    
+    
+
+    private JPanel createSelectionPane(AnnotQualifierGroup aqg) {
+        String description = "Found annotations to term with conflicting qualifiers.\nSelect applicable qualifier set.\nSubmit ticket to challenge annotations with qualifiers not selected";
+        JPanel box = new JPanel();
+        JLabel label = new JLabel(description);
+        label.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+        box.setOpaque(true);
+        box.setBackground(RenderUtil.getAspectColor());
+
+        box.setLayout(new BoxLayout(box, BoxLayout.PAGE_AXIS));
+        box.add(label);
+
+        selections = new HashMap<JRadioButton, QualifierAnnotRltn>();
+        HashMap<HashSet<Qualifier>, HashSet<Annotation>> qualifierAnnotLookup = aqg.getQualifierAnnotLookup();
+        Set<HashSet<Qualifier>> qKeySet = qualifierAnnotLookup.keySet();
+        boolean selected = false;
+        for (HashSet<Qualifier> qSet : qKeySet) {
+            String qualifierStr = getQualifierString(qSet);
+            HashSet<Annotation> annotSet = qualifierAnnotLookup.get(qSet);
+            String annotInfoStr = getAnnotationInfo(annotSet);
+            JRadioButton rb = addRadioButton(qualifierStr + STR_BTN_TEXT + annotInfoStr);
+            if (false == selected) {
+                rb.setSelected(selected);
+                selected = true;
+            }
+            selections.put(rb, new QualifierAnnotRltn(qSet, annotSet));
+            box.add(rb);
+        }
+
+        JPanel pane = new JPanel(new BorderLayout());
+        pane.add(box, BorderLayout.PAGE_START);
+        Border padding = BorderFactory.createEmptyBorder(20, 20, 5, 20);
+        pane.setBorder(padding);
+        pane.setOpaque(true);
+        pane.setBackground(RenderUtil.getAspectColor());
+        return pane;
+
+    }
+    
+    private JRadioButton addRadioButton(String text) {
+        JRadioButton button = new JRadioButton();
+        button.setText(text);
+        button.setSelected(false);
+        return button;
     }
     
     public boolean didUserSubmitForm() {
@@ -130,18 +175,19 @@ public class AnnotationQualifierDlg extends JDialog implements ActionListener{
     @Override
     public void actionPerformed(ActionEvent e) {
         userClickedOk = true;
-		Set<JCheckBox> checkboxes = selections.keySet();
+        Set<JRadioButton> buttons = selections.keySet();
 
-		for (JCheckBox check : checkboxes) {
-			if (check.isSelected()) {
-				selected.add(selections.get(check));
-			}
-		}
-		this.setVisible(false);		        
-        //throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        for (JRadioButton btn : buttons) {
+            if (btn.isSelected()) {
+                selected = selections.get(btn);
+                break;
+            }
+        }
+        this.setVisible(false);
+
     }
     
-    public HashSet<Qualifier> getQualifiers() {
+    public QualifierAnnotRltn getAnnotationSet() {
         setVisible(true);
         return selected;
     }

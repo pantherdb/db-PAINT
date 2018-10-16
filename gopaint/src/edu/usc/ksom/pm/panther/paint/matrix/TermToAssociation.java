@@ -1,5 +1,5 @@
 /**
- *  Copyright 2016 University Of Southern California
+ *  Copyright 2017 University Of Southern California
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -36,36 +36,18 @@ import org.paint.datamodel.Association;
         }
         
         public TermToAssociation(GOTerm term, ArrayList <Association> asnList) {
-                        if (term.getAcc().equals("GO:0004222")) {
-                System.out.println("Here");
-            }
+//                        if (term.getAcc().equals("GO:0004222")) {
+//                System.out.println("Here");
+//            }
             this.term = term;
             this.asnList = asnList;
-//            if (null != asnList) {
-//            
-////                for (Association a: asnList) {
-////                    updateLookup(a);            
-////                }
-//            }
         }
         
         
         public void addAsn(Association a) {
             asnList.add(a);
-//            updateLookup(a);
            
         }
-        
-//        private void updateLookup(Association a) {
-//            // Indicate if the annotation was done to term as opposed to parent of term
-////            String annotTerm = a.getAnnotation().getGoTerm();
-////            if (false == term.getAcc().equals(annotTerm)) {
-////                annotatedToTermLookup.put(a, Boolean.FALSE);
-////            }
-////            else {
-////                annotatedToTermLookup.put(a, Boolean.TRUE);
-////            }             
-//        }
 
         public GOTerm getTerm() {
             return term;
@@ -78,13 +60,7 @@ import org.paint.datamodel.Association;
         }
         
     public void setAsnList(ArrayList<Association> asnList) {
-        this.asnList = asnList;
-//        if (null != asnList) {
-//
-//            for (Association a: asnList) {
-//                updateLookup(a);            
-//            }
-//        }        
+        this.asnList = asnList;    
     }        
 
         public ArrayList<Node> getNodesForAssociation() {
@@ -105,7 +81,7 @@ import org.paint.datamodel.Association;
             }
             ArrayList<Node> rtnList = new ArrayList<Node>(asnList.size());
             for (Association a: asnList) {
-                if (true == a.getAnnotation().getEvidence().isExperimental()) {
+                if (true == a.getAnnotation().isExperimental()) {
                     rtnList.add(a.getNode());
                 }
             }
@@ -114,11 +90,6 @@ import org.paint.datamodel.Association;
         
         public boolean isAssociationDirect(Association a) {
             return !a.getAnnotation().isAnnotIsToChildTerm();
-//            Boolean b = annotatedToTermLookup.get(a);
-//            if (null == b) {
-//                return false;
-//            }
-//            return b.booleanValue();
         }
         
     }

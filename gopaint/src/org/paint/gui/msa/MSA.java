@@ -88,7 +88,7 @@ public class MSA {
 	public MSA(String[] msaInfo, String[] wtsInfo) {
 		MSAParser parser = MSAParser.inst();
 		parser.parseSeqs(msaInfo);
-		have_weights = parser.parseWts(wtsInfo);
+		have_weights = false;//parser.parseWts(wtsInfo);
 		full_length = true;
 		display_type = MSA_DISPLAY.SIGNIFICANT;
 

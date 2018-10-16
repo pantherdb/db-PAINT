@@ -1,5 +1,5 @@
 /**
- * Copyright 2017 University Of Southern California
+ * Copyright 2018 University Of Southern California
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -17,7 +17,6 @@ package edu.usc.ksom.pm.panther.paintServer.servlet;
 
 import com.sri.panther.paintCommon.Book;
 import com.sri.panther.paintCommon.Constant;
-import com.sri.panther.paintCommon.FixedInfo;
 import com.sri.panther.paintCommon.TransferInfo;
 import com.sri.panther.paintCommon.User;
 import com.sri.panther.paintCommon.familyLibrary.EntryType;
@@ -30,6 +29,7 @@ import com.sri.panther.paintServer.logic.CategoryLogic;
 import com.sri.panther.paintServer.logic.TaxonomyConstraints;
 import com.sri.panther.paintServer.logic.VersionManager;
 import com.sri.panther.paintServer.util.ConfigFile;
+import edu.usc.ksom.pm.panther.paintCommon.DataTransferObj;
 import edu.usc.ksom.pm.panther.paintCommon.GOTermHelper;
 import edu.usc.ksom.pm.panther.paintCommon.MSA;
 import edu.usc.ksom.pm.panther.paintCommon.Node;
@@ -58,7 +58,8 @@ import javax.servlet.http.HttpServletResponse;
  */
 public class DataServlet extends HttpServlet {
     
-    public static final String CLASSIFICATION_VERSION_SID = ConfigFile.getProperty(ConfigFile.PROPERTY_CLASSIFICATION_VERSION_SID);    
+    public static final String CLASSIFICATION_VERSION_SID = ConfigFile.getProperty(ConfigFile.PROPERTY_CLASSIFICATION_VERSION_SID);
+    public static final Boolean UPDATE_ALLOWED = new Boolean(ConfigFile.getProperty("updates_allowed"));
 
     public static final String ACTION_GET_GO_HIERARCHY = "goHierarchy";
     public static final String ACTION_GET_TAXONOMY_CONSTRAINTS = "taxonomyConstraints";
@@ -70,7 +71,7 @@ public class DataServlet extends HttpServlet {
     public static final String ACTION_GET_FAMILY_NAME = "familyName";
     public static final String ACTION_FAMILY_COMMENT = "familyComment";
     public static final String ACTION_GET_USER_INFO = "userInfo";
-    public static final String ACTION_VERIFY_USER = "VerifyUserInfo";
+    private static final String ACTION_VERIFY_USER = "VerifyUserInfo";
     public static final String ACTION_SAVE_BOOK = "saveBook";
     
     public static final String REQUEST_LOCK_BOOKS = "LockBooks";
@@ -80,9 +81,12 @@ public class DataServlet extends HttpServlet {
     public static final String REQUEST_SEARCH_GENE_EXT_ID = "searchGeneExtId";
     public static final String REQUEST_SEARCH_PROTEIN_EXT_ID = "searchProteinExtId";
     public static final String REQUEST_SEARCH_DEFINITION = "searchDefinition";
+    public static final String REQUEST_SEARCH_BOOK_ID = "searchBookId";
+    public static final String REQUEST_SEARCH_BOOK_PTN = "searchBookPTN";
     public static final String REQUEST_SEARCH_ALL_BOOKS = "allBooks";
     public static final String REQUEST_SEARCH_UNCURATED_BOOKS = "uncuratedBooks";
-    public static final String REQUEST_MY_BOOKS = "MyBooks";    
+    public static final String REQUEST_MY_BOOKS = "MyBooks";
+    public static final String REQUEST_SEARCH_REQUIRE_PAINT_REVIEW_UNLOCKED = "requirePaintReviewUnlocked";    
     
     protected static final String PROPERTY_SUFFIX_MSA_LIB_ROOT = "_msa_lib_root";
     protected static final String PROPERTY_SUFFIX_LIB_ROOT = "_lib_root";
@@ -109,9 +113,15 @@ public class DataServlet extends HttpServlet {
     public static final int SEARCH_TYPE_DEFINITION = 3;
     public static final int SEARCH_TYPE_ALL_BOOKS = 4;
     public static final int SEARCH_TYPE_UNCURATED_BOOKS = 5;
+    public static final int SEARCH_TYPE_BOOK_ID = 6;
+    public static final int SEARCH_TYPE_BOOK_PTN = 7;
+    public static final int SEARCH_TYPE_REQUIRE_PAINT_REVIEW_UNLOCKED_BOOKS = 8;
     
     public static final int REQUEST_TYPE_LOCK = 0;
     public static final int REQUEST_TYPE_UNLOCK = 1;    
+    
+    public static final String MSG_ERROR_RETRIEVING_BOOK_INFO = "Error retrieving book information";
+    public static final String MSG_ERROR_OPERATION_NOT_PERMITTED = "Operation not permitted";
     
     public void doGet(HttpServletRequest request, HttpServletResponse response) {
         doPost(request, response);
@@ -188,11 +198,22 @@ public class DataServlet extends HttpServlet {
             searchDefinition(request, response);
             return;
         }
+        if (actionParam.compareTo(REQUEST_SEARCH_BOOK_ID) == 0) {
+            searchBookId(request, response);
+            return;
+        }
+        if (actionParam.compareTo(REQUEST_SEARCH_BOOK_PTN) == 0) {
+            searchBookPTN(request, response);
+            return;
+        }
         if (actionParam.compareTo(REQUEST_SEARCH_ALL_BOOKS) == 0) {
             searchAllBooks(request, response);
         }
         if (actionParam.compareTo(REQUEST_SEARCH_UNCURATED_BOOKS) == 0) {
             searchUncuratedBooks(request, response);
+        }
+        if (actionParam.compareTo(REQUEST_SEARCH_REQUIRE_PAINT_REVIEW_UNLOCKED) == 0) {
+            searchRequirePaintReviewUnlockedBooks(request, response);
         }
         if (actionParam.compareTo(REQUEST_MY_BOOKS) == 0) {
             getMyBooks(request, response);
@@ -260,6 +281,10 @@ public class DataServlet extends HttpServlet {
     }
     
     private void saveBook(HttpServletRequest request, HttpServletResponse response) {
+        if (false == UPDATE_ALLOWED.booleanValue()) {
+            sendGZIP(response, MSG_ERROR_OPERATION_NOT_PERMITTED);
+            return;
+        }
         System.out.println("Going to save book");
         response.setContentType("java/object");
         ObjectInputStream in = null;
@@ -287,7 +312,13 @@ public class DataServlet extends HttpServlet {
             return;
         }
         DataIO dataIO = new DataIO(ConfigFile.getProperty(ConfigFile.KEY_DB_JDBC_DBSID));
-        String returnInfo = dataIO.saveBook(sbi, CLASSIFICATION_VERSION_SID);
+        String returnInfo = null;
+        try {
+            returnInfo = dataIO.saveBook(sbi, CLASSIFICATION_VERSION_SID);
+        }
+        catch(Exception e) {
+            
+        }
         sendGZIP(response, returnInfo);
         
     }    
@@ -321,11 +352,19 @@ public class DataServlet extends HttpServlet {
             return;
         }
         DataIO dataIO = new DataIO(ConfigFile.getProperty(ConfigFile.KEY_DB_JDBC_DBSID));
-        HashMap<String, Node> nodeLookup = dataIO.getNodeInfo(book, CLASSIFICATION_VERSION_SID);
-        if (null == nodeLookup) {
-            nodeLookup = new HashMap<String, Node>();
+        HashMap<String, Node> nodeLookup = null;
+        StringBuffer errorBuf = new StringBuffer(); 
+        StringBuffer paintErrBuf = new StringBuffer();
+        try {           
+            nodeLookup = dataIO.getNodeInfo(book, CLASSIFICATION_VERSION_SID, errorBuf, paintErrBuf);
         }
-        sendGZIP(response, nodeLookup);
+        catch (Exception e) {
+            errorBuf.append(MSG_ERROR_RETRIEVING_BOOK_INFO);
+            nodeLookup = null;
+            e.printStackTrace();
+        }
+        DataTransferObj dto = new DataTransferObj(nodeLookup, errorBuf.append(paintErrBuf));
+        sendGZIP(response, dto);
         
     }
     
@@ -357,7 +396,13 @@ public class DataServlet extends HttpServlet {
             return;
         }
         DataIO dataIO = new DataIO(ConfigFile.getProperty(ConfigFile.KEY_DB_JDBC_DBSID));
-        String familyComment = dataIO.getFamilyComment(book, CLASSIFICATION_VERSION_SID, new ArrayList<Integer>());
+        String familyComment = null;
+        try {
+            familyComment = dataIO.getFamilyComment(book, CLASSIFICATION_VERSION_SID, new ArrayList<Integer>());
+        }
+        catch (Exception e) {
+            
+        }
         if (null == familyComment) {
             familyComment = new String();
         }
@@ -394,7 +439,14 @@ public class DataServlet extends HttpServlet {
             return;
         }
         DataIO dataIO = new DataIO(ConfigFile.getProperty(ConfigFile.KEY_DB_JDBC_DBSID));
-        String familyName = dataIO.getFamilyName(book, CLASSIFICATION_VERSION_SID);
+        String familyName = null;
+        try {
+            familyName = dataIO.getFamilyName(book, CLASSIFICATION_VERSION_SID);
+        }
+        catch(Exception e) {
+            
+        }
+        
         if (null == familyName) {
             familyName = new String();
         }
@@ -508,6 +560,9 @@ public class DataServlet extends HttpServlet {
             return null;
 
         } catch (Exception e) {
+            if (null != msa.getMsaContents()) {
+                return msa;
+            }
             System.out.println("Unable to read msa information from url " + msaURL);
 
             return null;
@@ -574,7 +629,7 @@ public class DataServlet extends HttpServlet {
         return null;
     }
     
-    protected static Object sendAndReceiveZip(String servletURL,
+    public static Object sendAndReceiveZip(String servletURL,
                                               String servletPath,
                                               String actionRequest,
                                               Object sendInfo,
@@ -656,7 +711,15 @@ public class DataServlet extends HttpServlet {
         searchBooks(request, response, SEARCH_TYPE_DEFINITION);
         
     }
-    
+    public void searchBookId(HttpServletRequest request, HttpServletResponse response) {
+        searchBooks(request, response, SEARCH_TYPE_BOOK_ID);
+        
+    }
+    public void searchBookPTN(HttpServletRequest request, HttpServletResponse response) {
+        searchBooks(request, response, SEARCH_TYPE_BOOK_PTN);
+        
+    }    
+
     public void searchAllBooks(HttpServletRequest request, HttpServletResponse response) {
         searchBooks(request, response, SEARCH_TYPE_ALL_BOOKS);
         
@@ -665,6 +728,11 @@ public class DataServlet extends HttpServlet {
         searchBooks(request, response, SEARCH_TYPE_UNCURATED_BOOKS);
         
     }
+    public void searchRequirePaintReviewUnlockedBooks(HttpServletRequest request, HttpServletResponse response) {
+        searchBooks(request, response, SEARCH_TYPE_REQUIRE_PAINT_REVIEW_UNLOCKED_BOOKS);
+        
+    }    
+
     
 
     public void searchBooks(HttpServletRequest request,
@@ -708,11 +776,20 @@ public class DataServlet extends HttpServlet {
         else if (SEARCH_TYPE_DEFINITION == type) {
             books = dataIO.searchBooksByDefinition(searchField, CLASSIFICATION_VERSION_SID);           
         }
+        else if (SEARCH_TYPE_BOOK_ID == type) {
+            books = dataIO.searchBooksById(searchField, CLASSIFICATION_VERSION_SID);
+        }
+        else if (SEARCH_TYPE_BOOK_PTN == type) {
+            books = dataIO.searchBooksByPTN(searchField, CLASSIFICATION_VERSION_SID);
+        }        
         else if (SEARCH_TYPE_ALL_BOOKS == type) {
             books = dataIO.getAllBooks(CLASSIFICATION_VERSION_SID);
         }
         else if (SEARCH_TYPE_UNCURATED_BOOKS == type) {
             books = dataIO.getUncuratedUnlockedBooks(CLASSIFICATION_VERSION_SID);
+        }
+        else if (SEARCH_TYPE_REQUIRE_PAINT_REVIEW_UNLOCKED_BOOKS == type) {
+            books = dataIO.getRequirePAINTReviewUnlockedBooks(CLASSIFICATION_VERSION_SID);
         }
         else {
             System.out.println("Invalid search type specified");
@@ -786,16 +863,34 @@ public class DataServlet extends HttpServlet {
 
     }
   
-  public void lockBooks(HttpServletRequest request, HttpServletResponse response){
-     lockUnlockBooks(request, response, REQUEST_TYPE_LOCK);
-  }
+    public void lockBooks(HttpServletRequest request, HttpServletResponse response) {
+        if (false == UPDATE_ALLOWED.booleanValue()) {
+            Vector outputInfo = new Vector(1);
+            outputInfo.add(new TransferInfo(MSG_ERROR_OPERATION_NOT_PERMITTED));
+            sendGZIP(response, outputInfo);
+            return;
+        }
+        lockUnlockBooks(request, response, REQUEST_TYPE_LOCK);
+    }
   
   
   public void unlockBooks(HttpServletRequest request, HttpServletResponse response){
+      if (false == UPDATE_ALLOWED.booleanValue()) {
+            Vector outputInfo = new Vector(1);
+            outputInfo.add(new TransferInfo(MSG_ERROR_OPERATION_NOT_PERMITTED));
+            sendGZIP(response, outputInfo);
+            return;
+      }     
       lockUnlockBooks(request, response, REQUEST_TYPE_UNLOCK);
   }
   
  private void lockUnlockBooks (HttpServletRequest request, HttpServletResponse response, int requestType){
+     if (false == UPDATE_ALLOWED.booleanValue()) {
+         Vector outputInfo = new Vector(1);
+         outputInfo.add(new TransferInfo(MSG_ERROR_OPERATION_NOT_PERMITTED));
+         sendGZIP(response, outputInfo);
+         return;
+     }   
      System.out.println("Going to lock/unlock books");
      response.setContentType("java/object");
      ObjectInputStream in = null;
@@ -832,10 +927,21 @@ public class DataServlet extends HttpServlet {
         if (null == userInfo) {
             System.out.println("user info is null");
         }
-         operationInfo = dataIO.lockBooks(userName, password, CLASSIFICATION_VERSION_SID, bookList);
+        try {
+           operationInfo = dataIO.lockBooks(userName, password, CLASSIFICATION_VERSION_SID, bookList); 
+        }
+        catch (Exception e) {
+            
+        }
+         
      }
      else if (REQUEST_TYPE_UNLOCK == requestType){
-         operationInfo = dataIO.unlockBooks(userName, password, CLASSIFICATION_VERSION_SID, bookList);
+         try {
+            operationInfo = dataIO.unlockBooks(userName, password, CLASSIFICATION_VERSION_SID, bookList);
+         }
+         catch (Exception e) {
+             
+         }
      }
      else {
          System.out.println("Invalid lock/unlock operation specified");
@@ -875,6 +981,12 @@ public class DataServlet extends HttpServlet {
      }
      
     private void lockUnlockBooks (HttpServletRequest request, HttpServletResponse response){
+        if (false == UPDATE_ALLOWED.booleanValue()) {
+         Vector outputInfo = new Vector(1);
+         outputInfo.add(new TransferInfo(MSG_ERROR_OPERATION_NOT_PERMITTED));
+         sendGZIP(response, outputInfo);
+         return;
+        }        
         System.out.println("Going to both lock and unlock books");
         response.setContentType("java/object");
         ObjectInputStream in = null;
@@ -915,17 +1027,32 @@ public class DataServlet extends HttpServlet {
         
         String operationInfo = null;
         if (0 != lockBookList.size()) {
-            operationInfo = dataIO.lockBooks(userName, password, CLASSIFICATION_VERSION_SID, lockBookList);
+            try {
+                operationInfo = dataIO.lockBooks(userName, password, CLASSIFICATION_VERSION_SID, lockBookList);
+            }
+            catch(Exception e) {
+                
+            }
         }
         else {
             operationInfo = Constant.STR_EMPTY;
         }
         if (0 != unlockBookList.size()) {
             if (0 == operationInfo.length()) {
-                operationInfo = dataIO.unlockBooks(userName, password, CLASSIFICATION_VERSION_SID, unlockBookList);
+                try {
+                    operationInfo = dataIO.unlockBooks(userName, password, CLASSIFICATION_VERSION_SID, unlockBookList);
+                }
+                catch(Exception e) {
+                    
+                }
             }
             else {
-                operationInfo += Constant.STR_NEWLINE + dataIO.unlockBooks(userName, password, CLASSIFICATION_VERSION_SID, unlockBookList);
+                try {
+                    operationInfo += Constant.STR_NEWLINE + dataIO.unlockBooks(userName, password, CLASSIFICATION_VERSION_SID, unlockBookList);
+                }
+                catch(Exception e) {
+                    
+                }
             }
         }
        Vector outputInfo = new Vector(1);
@@ -973,7 +1100,9 @@ public class DataServlet extends HttpServlet {
 
           System.out.println("Output stream is " + outputToApplet.toString());
           System.out.println("Sending back information");
-          outputToApplet.writeObject(sendObject);
+          if (null != sendObject) {
+            outputToApplet.writeObject(sendObject);
+          }
           System.out.println("After write object");
           outputToApplet.flush();
           System.out.println("After flush object");

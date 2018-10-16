@@ -325,6 +325,12 @@ public class GeneNodeUtil {
                     node.setPrune(true);
                 }
             }
+            else {
+                System.out.println("Did not find node information for " + lookupId);
+            }
+        }
+        else {
+            System.out.println("Did not find any node information to match with tree");
         }
         node.setOriginalChildrenToCurrentChildren();
         List<GeneNode> children = node.getChildren();
@@ -403,6 +409,17 @@ public class GeneNodeUtil {
             }
         }
         
+        public static void getAncestors(GeneNode gNode, List<GeneNode> ancestors) {
+            if (null == gNode || null == ancestors) {
+                return;
+            }
+            GeneNode parent = gNode.getParent();
+            if (null != parent) {
+                ancestors.add(parent);
+                getAncestors(parent, ancestors);
+            }
+        }
+        
         public static void allNonPrunedDescendents(GeneNode gNode, List<GeneNode> nodeList) {
             if (null == gNode || null == nodeList) {
                 return;
@@ -471,8 +488,8 @@ public class GeneNodeUtil {
                 return false;
             }
             for (edu.usc.ksom.pm.panther.paintCommon.Annotation annot: annotList) {
-                edu.usc.ksom.pm.panther.paintCommon.Evidence e = annot.getEvidence();
-                String evidenceCode = e.getEvidenceCode();
+                //edu.usc.ksom.pm.panther.paintCommon.Evidence e = annot.getEvidence();
+                String evidenceCode = annot.getSingleEvidenceCodeFromSet();
                 if (GOConstants.DESCENDANT_SEQUENCES_EC.equals(evidenceCode) || GOConstants.KEY_RESIDUES_EC.equals(evidenceCode) || GOConstants.DIVERGENT_EC.equals(evidenceCode)) {
                     return true;
                 }
@@ -491,8 +508,8 @@ public class GeneNodeUtil {
                 return false;
             }
             for (edu.usc.ksom.pm.panther.paintCommon.Annotation annot: annotList) {
-                edu.usc.ksom.pm.panther.paintCommon.Evidence e = annot.getEvidence();
-                String evidenceCode = e.getEvidenceCode();
+                //edu.usc.ksom.pm.panther.paintCommon.Evidence e = annot.getEvidence();
+                String evidenceCode = annot.getSingleEvidenceCodeFromSet();
                 if (GOConstants.DESCENDANT_SEQUENCES_EC.equals(evidenceCode) || GOConstants.KEY_RESIDUES_EC.equals(evidenceCode) || GOConstants.DIVERGENT_EC.equals(evidenceCode)) {
                     return false;
                 }

@@ -1,5 +1,5 @@
 /**
- *  Copyright 2016 University Of Southern California
+ *  Copyright 2018 University Of Southern California
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -27,7 +27,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import org.paint.datamodel.GeneNode;
 import org.paint.main.PaintManager;
-import com.sri.panther.paintCommon.util.QualifierDif;
+import edu.usc.ksom.pm.panther.paintCommon.QualifierDif;;
 
 /**
  *
@@ -303,8 +303,8 @@ public class PruneInfo {
         HashSet<Qualifier> qFromChildAnnot = new HashSet<Qualifier>();
         boolean oldSetNegative = QualifierDif.containsNegative(oldSet);
         for (Annotation annot: annotList) {
-            Evidence e = annot.getEvidence();
-            if (false == e.isExperimental()) {
+            //Evidence e = annot.getEvidence();
+            if (false == annot.isExperimental()) {
                 continue;
             }
 //            HashSet<Qualifier> curSet = annot.getQualifierSet();

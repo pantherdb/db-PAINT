@@ -22,7 +22,7 @@ import java.util.ArrayList;
  *
  * @author muruganu
  */
-public class DBReference implements Serializable {
+public class DBReference implements Serializable, IWith {
     private String evidenceTypeId;          
     private String evidenceType;            // Pubmed, Reactome, website, PANTHER... 
     private String evidenceValue;           // REACT_736, PTN1234

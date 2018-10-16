@@ -1,7 +1,17 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
+/**
+ *  Copyright 2018 University Of Southern California
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing,
+ *  software distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
  */
 package edu.usc.ksom.pm.panther.paint.matrix;
 
@@ -15,7 +25,7 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import org.paint.datamodel.GeneNode;
 import org.paint.util.GeneNodeUtil;
-import com.sri.panther.paintCommon.util.QualifierDif;
+import edu.usc.ksom.pm.panther.paintCommon.QualifierDif;;
 
 /**
  *
@@ -61,7 +71,7 @@ public class NodeInfoForMatrix {
             String curTerm = a.getGoTerm();
             GOTerm cGOTerm = gth.getTerm(curTerm);            
             if (notAncestors.contains(cGOTerm) || cGOTerm.equals(gTerm)) {
-                boolean experimental = a.getEvidence().isExperimental();
+                boolean experimental = a.isExperimental();
                 if (true == experimental) {
                     expBackground = true;
                     if (cGOTerm.equals(gTerm)) {
@@ -100,7 +110,7 @@ public class NodeInfoForMatrix {
             if (handledSet.contains(a)) {
                 continue;
             }
-            boolean experimental = a.getEvidence().isExperimental();
+            boolean experimental = a.isExperimental();
             String curTerm = a.getGoTerm();
             GOTerm cGOTerm = gth.getTerm(curTerm);
             ArrayList<GOTerm> ancestors = gth.getAncestors(cGOTerm);
@@ -110,11 +120,16 @@ public class NodeInfoForMatrix {
                     if (cGOTerm.equals(gTerm)) {
                         expAnnotToTerm = true;
                     }
-                    if (null != a.getQualifierSet()) {
+                    HashSet<Qualifier> curSet = a.getQualifierSet();
+                    if (null != curSet) {
                         if (null == qSet) {
                             qSet = new HashSet();
                         }
-                        QualifierDif.addIfNotPresent(qSet, a.getQualifierSet());
+                        for (Qualifier q: curSet) {
+                            if (true == gth.isQualifierValidForTerm(gTerm, q)) {
+                                QualifierDif.addIfNotPresent(qSet, q);  
+                            }
+                        }
                     }
                 }
                 else {
@@ -122,11 +137,17 @@ public class NodeInfoForMatrix {
                     if (cGOTerm.equals(gTerm)) {
                         nonExpAnnotToTerm = true;
                     }
-                    if (null != a.getQualifierSet()) {
+                    HashSet<Qualifier> curSet = a.getQualifierSet();
+                    if (curSet != a.getQualifierSet()) {
                         if (null == nonQset) {
                             nonQset = new HashSet();
                         }
-                        QualifierDif.addIfNotPresent(nonQset, a.getQualifierSet());
+                        
+                        for (Qualifier q: curSet) {
+                            if (true == gth.isQualifierValidForTerm(gTerm, q)) {
+                                QualifierDif.addIfNotPresent(nonQset, q);  
+                            }
+                        }
                     }                    
                 }
             }

@@ -10,7 +10,7 @@ import org.apache.log4j.Logger;
 import org.bbop.framework.GUIManager;
 import org.bbop.framework.VetoableShutdownListener;
 import org.paint.dataadapter.EvidenceAdapter;
-import org.paint.dataadapter.GafAdapter;
+//import org.paint.dataadapter.GafAdapter;
 import org.paint.datamodel.Family;
 import org.paint.dialog.ActiveFamily;
 import org.paint.go.GO_Util;
@@ -48,13 +48,14 @@ public class DirtyIndicator implements VetoableShutdownListener {
       saving changes and canceling exit, if false is returned(cancel) then shutdown
       is cancelled/vetoed */
 	public boolean willShutdown() {
-		boolean shut_down;
-		if (familyLoaded() && dirty_genes) {
-			shut_down = this.runDirtyDialog("quitting?");
-		} else {
-			shut_down = true;
-		}
-		return shut_down;
+            return true;
+//		boolean shut_down;
+//		if (familyLoaded() && dirty_genes) {
+//			shut_down = this.runDirtyDialog("quitting?");
+//		} else {
+//			shut_down = true;
+//		}
+//		return shut_down;
 	}
 
 	/**
@@ -74,37 +75,37 @@ public class DirtyIndicator implements VetoableShutdownListener {
       (shutdown or new), returning false indicates cancellation
       shutdown is true if this is for shutdown, and false for clearing out data
 	 */
-	public boolean runDirtyDialog(String prompt) {
-		if (genesAreDirty()) {
-			String save = "Save";
-			String cancel = "Cancel";
-			String dontSave = "Don't Save";
-			final String[] options = {save, cancel, dontSave};
-			String m = "You have unsaved GO annotations.  Would you like to export a GAF file before " + prompt;
-			final int result = 
-				JOptionPane.showOptionDialog(GUIManager.getManager().getFrame(),m, "",
-						JOptionPane.YES_NO_CANCEL_OPTION,
-						JOptionPane.WARNING_MESSAGE, null, options, "Save");
-			if (options[result] == save) {
-				ActiveFamily dlg = new ActiveFamily(GUIManager.getManager().getFrame());
-				File f = dlg.getSelectedFile(true, "gaf");
-				if (null != f){
-					String familyID = PaintManager.inst().getFamily().getFamilyID();
-					try {
-						String path = f.getCanonicalPath();
-						GafAdapter.exportAnnotations(path);
-						EvidenceAdapter.exportEvidence(path);
-					} catch (IOException e) {
-						// TODO Auto-generated catch block
-						log().error("Unable to save " + familyID);
-					}
-				}	
-			}
-			return (options[result] != cancel);
-		} else {
-			return true;
-		}
-	}
+//	public boolean runDirtyDialog(String prompt) {
+//		if (genesAreDirty()) {
+//			String save = "Save";
+//			String cancel = "Cancel";
+//			String dontSave = "Don't Save";
+//			final String[] options = {save, cancel, dontSave};
+//			String m = "You have unsaved GO annotations.  Would you like to export a GAF file before " + prompt;
+//			final int result = 
+//				JOptionPane.showOptionDialog(GUIManager.getManager().getFrame(),m, "",
+//						JOptionPane.YES_NO_CANCEL_OPTION,
+//						JOptionPane.WARNING_MESSAGE, null, options, "Save");
+//			if (options[result] == save) {
+//				ActiveFamily dlg = new ActiveFamily(GUIManager.getManager().getFrame());
+//				File f = dlg.getSelectedFile(true, "gaf");
+//				if (null != f){
+//					String familyID = PaintManager.inst().getFamily().getFamilyID();
+//					try {
+//						String path = f.getCanonicalPath();
+//						GafAdapter.exportAnnotations(path);
+//						EvidenceAdapter.exportEvidence(path);
+//					} catch (IOException e) {
+//						// TODO Auto-generated catch block
+//						log().error("Unable to save " + familyID);
+//					}
+//				}	
+//			}
+//			return (options[result] != cancel);
+//		} else {
+//			return true;
+//		}
+//	}
 
 	public boolean genesAreDirty() {
 		return dirty_genes;
@@ -116,16 +117,21 @@ public class DirtyIndicator implements VetoableShutdownListener {
 
 	public boolean isPainted() {
 		if (familyLoaded()) {
-			TreePanel tree = PaintManager.inst().getTree();
-			return GO_Util.inst().isPainted(tree.getRoot(), true);
+                    return annotated;
+//			TreePanel tree = PaintManager.inst().getTree();
+//			return GO_Util.inst().isPainted(tree.getRoot(), true);
 		} else {
 			return false;
 		}
 	}
         
-        public void setAnnotated(boolean annotated) {
-            this.annotated = annotated;
-        }
+    public void setAnnotated(boolean annotated) {
+        this.annotated = annotated;
+        System.out.println("ONLY DEBUGGING - No exception here. annotated set to " + Boolean.valueOf(annotated));
+        Exception e = new Exception();
+        e.printStackTrace();
+
+    }
         
         public boolean bookUpdated() {
             return annotated;

@@ -1,9 +1,25 @@
+/**
+ * Copyright 2018 University Of Southern California
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not
+ * use this file except in compliance with the License. You may obtain a copy of
+ * the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations under
+ * the License.
+ */
 package com.usc.panther.paintServer.webservices;
 
 import com.sri.panther.paintCommon.Book;
 import com.sri.panther.paintCommon.Constant;
 import com.sri.panther.paintCommon.GO.Evidence;
 import com.sri.panther.paintCommon.GO.EvidenceSpecifier;
+import com.sri.panther.paintCommon.util.StringUtils;
 import com.sri.panther.paintCommon.util.Utils;
 import com.sri.panther.paintServer.database.DataIO;
 import com.sri.panther.paintServer.database.DataServer;
@@ -323,7 +339,15 @@ public class BookUtil {
     
     private static  String getNodeInfo(String book, String uplVersion, String searchType) {
         DataIO dataIO = new DataIO(ConfigFile.getProperty(ConfigFile.KEY_DB_JDBC_DBSID));
-        HashMap<String, Node> nodeLookup = dataIO.getNodeInfo(book, uplVersion);
+        HashMap<String, Node> nodeLookup = null;
+        try {
+            StringBuffer eb = new StringBuffer();
+            StringBuffer paintErrBuf = new StringBuffer();
+            nodeLookup = dataIO.getNodeInfo(book, uplVersion, eb, paintErrBuf);
+        }
+        catch(Exception e) {
+            
+        }
          try {
             DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
             DocumentBuilder builder = factory.newDocumentBuilder();
@@ -668,7 +692,7 @@ public class BookUtil {
     }
     
     private static Element createPAINTnodesInfo(HashMap<String, Node> nodeLookup, Document doc) {
-        if (null == nodeLookup || null == null) {
+        if (null == nodeLookup || doc == null) {
             return null;
         }
         Element nodeList = doc.createElement(ELEMENT_NODE_LIST);
@@ -731,11 +755,11 @@ public class BookUtil {
                                 }
                             }
                         }                        
-                        edu.usc.ksom.pm.panther.paintCommon.Evidence e = a.getEvidence();
-                        if (null != e) {
+                        HashSet<String> evSet = a.getEvidenceCodeSet();
+                        if (null != evSet && 0 != evSet.size()) {
                             Element eEvidence = doc.createElement(ELEMENT_ANNOTATION_EVIDENCE);
                             eAnnotation.appendChild(eEvidence);
-                            addTextElement(doc, eEvidence, ELEMENT_ANNOTATION_EVIDENCE_CODE, e.getEvidenceCode());
+                            addTextElement(doc, eEvidence, ELEMENT_ANNOTATION_EVIDENCE_CODE, StringUtils.listToString(evSet, Constant.STR_EMPTY, Constant.STR_COMMA));
                         }
                         
 

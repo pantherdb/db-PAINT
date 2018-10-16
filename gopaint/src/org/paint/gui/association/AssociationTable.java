@@ -1,5 +1,5 @@
 /**
- *  Copyright 2016 University Of Southern California
+ *  Copyright 2018 niversity Of Southern California
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -143,9 +143,9 @@ public class AssociationTable extends JTable implements
 				} else if (col_name.equals(AssociationTableModel.COL_NAME_DELETE)) {
 					col_width = fm.stringWidth(col_name) + insets.left + insets.right + 2;
 				} else if (col_name.equals(AssociationTableModel.REFERENCE_COL_NAME)) {
-					col_width = fm.stringWidth("PUBMED:0000000000") + insets.left + insets.right + 2;
+					col_width = (fm.stringWidth("PUBMED:0000000000") + insets.left + insets.right + 2) * 2;
 				} else if (col_name.equals(AssociationTableModel.WITH_COL_NAME)) {
-					col_width = fm.stringWidth("XXXX0000000000") + insets.left + insets.right + 2;
+					col_width = (fm.stringWidth("XXXX0000000000") + insets.left + insets.right + 2) * 2;
 				}else if (col_name.equals(AssociationTableModel.COL_NAME_QUALIFIER_NOT) ||
                                           col_name.equals(AssociationTableModel.COL_NAME_QUALIFIER_COLOCALIZES_WITH) ||
                                           col_name.equals(AssociationTableModel.COL_NAME_QUALIFIER_CONTRIBUTES_TO)) {
@@ -196,48 +196,35 @@ public class AssociationTable extends JTable implements
                 HTMLUtil.bringUpInBrowser(PaintManager.inst().getBrowserLauncher(), URL_LINK_PREFIX_AMIGO + a.getGoTerm());
                 return;
             }
+            if (associationModel.REFERENCE_COL_NAME.equals(columnName)) {
+                Annotation a = associationModel.getAnnotation(row);
+                if (null == a) {
+                    return;
+                }
+                ArrayList<String> links = associationModel.getLinksForReferenceCol(a);
+                BrowserLauncher bl = PaintManager.inst().getBrowserLauncher();
+                if (null != links) {      
+                    for (String link: links) {
+                        HTMLUtil.bringUpInBrowser(bl, link);
+                    }  
+                }
+            }
             if (associationModel.WITH_COL_NAME.equals(columnName)) {
                 Annotation a = associationModel.getAnnotation(row);
                 if (null == a) {
                     return;
                 }
-                AnnotationDetail ad = a.getAnnotationDetail();
-                ArrayList<String> links = new ArrayList<String>();
-                HashSet<Annotation> withs = ad.getWithAnnotSet();
-                if (null != withs) {
-                    for (Annotation with : withs) {
-                        if ((Evidence.CODE_IKR.equals(a.getEvidence().getEvidenceCode()) || Evidence.CODE_IRD.equals(a.getEvidence().getEvidenceCode())) && with == a) {
-                            continue;
-                        }
-                        links.add(URL_LINK_PREFIX_PANTREE_NODE + with.getAnnotationDetail().getAnnotatedNode().getStaticInfo().getPublicId());
-                    }
-                }            
-                
-                HashSet<Node> nodes = ad.getWithNodeSet();
-                if (null != nodes) {
-                    for (Node n: nodes) {
-                        links.add(URL_LINK_PREFIX_PANTREE_NODE + n.getStaticInfo().getPublicId());
-                    }
+                ArrayList<String> links = associationModel.getLinksForWithCol(a);
+                BrowserLauncher bl = PaintManager.inst().getBrowserLauncher();
+                if (null != links) {      
+                    for (String link: links) {
+                        HTMLUtil.bringUpInBrowser(bl, link);
+                    }  
                 }                
-                
-                HashSet<DBReference> otherSet = ad.getWithOtherSet();
-                if (null != otherSet) {
-                    for (DBReference dbRef: otherSet) {
-                        if (true == DBReference.TYPE_PMID.equals(dbRef.getEvidenceType())) {
-                            links.add(URL_LINK_PREFIX_PMID + dbRef.getEvidenceValue());
-                        }
-                    }
-                }
 
                 
-                BrowserLauncher bl = PaintManager.inst().getBrowserLauncher();
-                for (String link: links) {
-                    HTMLUtil.bringUpInBrowser(bl, link);
-                }
-                return;
-                
             }
-            if (false == isCellEditable(row, column)) {
+            if (false == associationModel.isCellEditable(row, column)) {
                 return;
             }
 

@@ -134,6 +134,11 @@ public class Evidence implements Serializable {
         expSet.add("IMP");
         expSet.add("IGI");
         expSet.add("IEP");
+        expSet.add("HTP");
+        expSet.add("HDA");  
+        expSet.add("HMP");  
+        expSet.add("HGI");
+        expSet.add("HEP");          
         return expSet;
     }
     

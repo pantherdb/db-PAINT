@@ -1,5 +1,5 @@
 /**
- *  Copyright 2016 University Of Southern California
+ *  Copyright 2018 University Of Southern California
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -24,10 +24,7 @@ import java.util.Set;
 
 
 
-/**
- *
- * @author muruganu
- */
+
 public class GOTermHelper implements Serializable{
     
     // Until there is real data, just use the accessions

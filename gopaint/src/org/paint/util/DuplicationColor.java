@@ -12,7 +12,7 @@ public class DuplicationColor {
 	private static Logger log = Logger.getLogger(DuplicationColor.class);
 	private int color_index;
 
-	public DuplicationColor() {
+	private DuplicationColor() {
 		color_index = 0;
 		// may need to add more colors for large families...
 		pastelColors.add(Color.white);
@@ -75,6 +75,10 @@ public class DuplicationColor {
 		}
 		return dup_color;
 	}
+        
+        public List<Color> getPastelColors() {
+            return pastelColors;
+        }
 
 	public Color getDupColor(int dupColorIndex) {
 		return pastelColors.get(dupColorIndex);

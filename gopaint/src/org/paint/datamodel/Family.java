@@ -15,6 +15,7 @@
  */
 package org.paint.datamodel;
 
+import edu.usc.ksom.pm.panther.paintCommon.DataTransferObj;
 import edu.usc.ksom.pm.panther.paintCommon.MSA;
 import edu.usc.ksom.pm.panther.paintCommon.Node;
 import edu.usc.ksom.pm.panther.paintCommon.SaveBookInfo;
@@ -50,6 +51,7 @@ public class Family implements Serializable {
     private String[] wts_content;
 //	private String[] txt_content;
     private HashMap<String, Node> nodeLookup;
+    private StringBuffer nodeInfoBuf;
 
     private String familyID;
     private String name;
@@ -97,6 +99,8 @@ public class Family implements Serializable {
             this.familyID = null;
         }
         nodeLookup = nodesWorker.nodeLookup;
+        nodeInfoBuf = nodesWorker.errorBuf;
+        
         if (null == nodeLookup) {
             this.familyID = null;
         }
@@ -180,6 +184,10 @@ public class Family implements Serializable {
 
     public HashMap<String, Node> getNodeLookup() {
         return nodeLookup;
+    }
+
+    public StringBuffer getNodeInfoBuf() {
+        return nodeInfoBuf;
     }
 
 //	public void setTreeStrings(String[] treeStrings) {
@@ -299,6 +307,7 @@ public class Family implements Serializable {
 
         private final String familyId;
         public HashMap<String, Node> nodeLookup = null;
+        public StringBuffer errorBuf = null;
 
         LoadTreeNodes(String familyId) {
             this.familyId = familyId;
@@ -308,7 +317,10 @@ public class Family implements Serializable {
         public void run() {
             java.text.SimpleDateFormat df = new java.text.SimpleDateFormat("hh:mm:ss:SSS");
             System.out.println("Start of get nodes execution for " + familyId + " at " + df.format(new java.util.Date(System.currentTimeMillis())));             
-            nodeLookup = PantherServer.inst().getNodes(Preferences.inst().getPantherURL(), familyId);
+            DataTransferObj dto = PantherServer.inst().getNodes(Preferences.inst().getPantherURL(), familyId);
+            nodeLookup = (HashMap<String, Node>)dto.getObj();
+            errorBuf = dto.getMsg();
+//            System.out.println(errorBuf);
 //            try {
 //                FileInputStream fin = new FileInputStream("C:\\Temp\\new_paint\\" + familyId + ".ser");
 //                ObjectInputStream ois = new ObjectInputStream(fin);

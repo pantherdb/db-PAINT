@@ -1,7 +1,17 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
+/**
+ * Copyright 2018 University Of Southern California
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not
+ * use this file except in compliance with the License. You may obtain a copy of
+ * the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations under
+ * the License.
  */
 package org.paint.gui.matrix;
 
@@ -12,10 +22,13 @@ import edu.usc.ksom.pm.panther.paintCommon.GOTermHelper;
 import edu.usc.ksom.pm.panther.paintCommon.Node;
 import edu.usc.ksom.pm.panther.paintCommon.NodeVariableInfo;
 import edu.usc.ksom.pm.panther.paintCommon.Qualifier;
-import com.sri.panther.paintCommon.util.QualifierDif;
+import edu.usc.ksom.pm.panther.paintCommon.QualifierDif;;
 import edu.usc.ksom.pm.panther.paint.annotation.AnnotationForTerm;
 import edu.usc.ksom.pm.panther.paint.matrix.TermAncestor;
 import edu.usc.ksom.pm.panther.paint.matrix.TermToAssociation;
+import edu.usc.ksom.pm.panther.paint.annotation.AnnotQualifierGroup;
+import edu.usc.ksom.pm.panther.paint.annotation.QualifierAnnotRltn;
+import edu.usc.ksom.pm.panther.paintCommon.Evidence;
 import java.awt.Color;
 import java.awt.FontMetrics;
 import java.awt.Graphics;
@@ -39,7 +52,9 @@ import java.awt.event.MouseEvent;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 import javax.swing.Icon;
@@ -70,6 +85,13 @@ public class AnnotationTransferHndlr extends TransferHandler {
     private Set<GeneNode> visitedNodes;
 
     public static final DataFlavor FLAVOR_MATRIX_TRANSFER_INFO = new DataFlavor(MatrixTransferInfo.class, "MatrixTransferInfo");
+    
+    public static final String REMOVE_MSG_PART_1 = "Annotation to node ";
+    public static final String REMOVE_MSG_PART_2 = " for term ";
+    public static final String REMOVE_MSG_PART_3 = " (";
+    public static final String REMOVE_MSG_PART_4 = ") will be removed.\n";
+    
+    public static final String MORE_SPECIFIC_DESCENDENT_ANNOTATION = "More specific descendent annotation";    
 
     public AnnotationTransferHndlr() {
         super();
@@ -109,10 +131,11 @@ public class AnnotationTransferHndlr extends TransferHandler {
                     because = PaintAction.inst().isValidTerm((MatrixTransferInfo) support.getTransferable().getTransferData(FLAVOR_MATRIX_TRANSFER_INFO), node);
                     if (null != because) {
                         canImport = false;
-                    }
-                    if (null != because) {
                         System.out.println(because);
                     }
+//                    if (null != because) {
+//                        System.out.println(because);
+//                    }
                 } catch (UnsupportedFlavorException e) {
                     canImport = false;
                 } catch (IOException e) {
@@ -272,60 +295,39 @@ public class AnnotationTransferHndlr extends TransferHandler {
             }
         }
         
-        
-        HashSet<Qualifier> applicableQset = new HashSet<Qualifier>();
-        HashSet<Annotation> annotSet = AnnotationUtil.getAnnotationsForTerm(gNode, annotTerm);
-        if (null == annotSet) {
+        ArrayList<AnnotationForTerm> annotTermList = AnnotationUtil.getAnnotsAndApplicableQls(gNode, annotTerm);
+        if (null == annotTermList) {
             return false;
         }
         
-        if (false == AnnotationUtil.qualifiersMatch(annotSet)) {
+        HashSet<Annotation> annotSet = null;
+        HashSet<Qualifier> applicableQset = null;        
+        QualifierAnnotRltn qar = null;
+        AnnotQualifierGroup aqg = new AnnotQualifierGroup(annotTermList);
+        HashMap<HashSet<Qualifier>, HashSet<Annotation>> groups = aqg.getQualifierAnnotLookup();
+        if (null == groups || 0 == groups.size()) {
             return false;
         }
         
-        for (Annotation a: annotSet) {
-            QualifierDif.addIfNotPresent(applicableQset, a.getQualifierSet());
+        // Need to determine list of annotations the curator wants to use
+
+        if (1 != groups.size()) {
+            AnnotationQualifierDlg qualifierDlg = new AnnotationQualifierDlg(GUIManager.getManager().getFrame(), aqg);
+            qar = qualifierDlg.getAnnotationSet();
+            if (true == qualifierDlg.didUserSubmitForm()) {
+                annotSet = qar.getAnnotSet();
+                applicableQset = qar.getqSet();
+            } else {
+                return false;
+            }
         }
-        
-//        boolean applicableQSetNegative = false;
-//        if (applicableQset.isEmpty()) {
-//            applicableQset = null;
-//        }
-//        if (null != applicableQset) {
-//            if (QualifierDif.containsNegative(applicableQset)) {
-//                applicableQSetNegative  = true;
-//            }
-//        }
-//
-//        
-//        HashSet qSet = null;
-//        AnnotationForTerm aft = new AnnotationForTerm(selectedNodeFromMatrix, annotTerm, PaintManager.inst().goTermHelper());
-//        boolean clickedCellHasAnnot = aft.annotationExists();
-//        if (true == clickedCellHasAnnot) {
-//            qSet = aft.getQset();
-//        }
-//        boolean qsetNegative = false;
-//        if (null != qSet) {
-//            if (QualifierDif.containsNegative(qSet)) {
-//                qsetNegative = true;
-//            }
-//        }
-//        
-//        if (applicableQSetNegative != qsetNegative && true == clickedCellHasAnnot) {
-//            if (false == qsetNegative) {
-//                int dialogResult = JOptionPane.showConfirmDialog(GUIManager.getManager().getFrame(), "Found 'NOT' qualifier from other sequences providing evidence.  'NOT' qualifier will be removed", "Positive and Negative Qualfiers", JOptionPane.YES_NO_CANCEL_OPTION, JOptionPane.WARNING_MESSAGE);
-//                if(dialogResult != JOptionPane.YES_OPTION) {
-//                    return false;
-//                }
-//                // Remove NOT qualifier
-//                for (Iterator<Qualifier> iter = applicableQset.iterator(); iter.hasNext();) {
-//                    Qualifier q = iter.next();
-//                    if (true == q.isNot()) {
-//                        iter.remove();
-//                    }
-//                }
-//            }
-//        }
+        else {
+            for (HashSet<Qualifier> qset: groups.keySet()) {
+                applicableQset = qset;
+                annotSet = groups.get(applicableQset);
+                break;
+            }
+        }
         PaintManager pm = PaintManager.inst();
         ArrayList<GeneNode> nodesProvidingEvidence = new ArrayList<GeneNode>();
         for (Annotation a: annotSet) {
@@ -337,6 +339,11 @@ public class AnnotationTransferHndlr extends TransferHandler {
         
         ArrayList<GeneNode> allDescendents = new ArrayList<GeneNode>();
         GeneNodeUtil.allNonPrunedDescendents(gNode, allDescendents);
+        
+        if (false == handleAnnotsToMoreSpecificTerms(annotTerm, allDescendents)) {
+            return false;
+        }
+        
         ArrayList<GeneNode> nodesToBeAnnotated = (ArrayList<GeneNode>)allDescendents.clone();
         nodesToBeAnnotated.removeAll(nodesProvidingEvidence);
         PaintAction.inst().addAnnotationAndPropagate(annotTerm, gNode, nodesToBeAnnotated, nodesProvidingEvidence, annotSet, applicableQset);
@@ -346,140 +353,251 @@ public class AnnotationTransferHndlr extends TransferHandler {
         return true;
     }
     
-    
 
     
-    public HashSet<Annotation> getApplicableAnnotations(GeneNode gNode, GeneNode selectedNodeFromMatrix, GOTerm term,  HashSet<Qualifier> applicableQset) {
-        HashSet<Annotation> annotSet = new HashSet<Annotation>();        
+    private boolean handleAnnotsToMoreSpecificTerms(GOTerm term, List<GeneNode> descList) {
+        // Get ancestors for term with same aspect
         GOTermHelper gth = PaintManager.inst().goTermHelper();
-        AnnotationForTerm compAFT = new AnnotationForTerm(selectedNodeFromMatrix, term, gth);
-        if (false == compAFT.annotationExists()) {
-            return null;
+        ArrayList<GOTerm> ancestors = gth.getAncestors(term);
+        if (null == ancestors || 0 == ancestors.size()) {
+            return true;
         }
-        boolean isNeg = QualifierDif.containsNegative(compAFT.getQset());
-        ArrayList<GeneNode> desc = new ArrayList<GeneNode>();
-        GeneNodeUtil.allNonPrunedDescendents(gNode, desc);
-        List<GeneNode> leaves = GeneNodeUtil.getAllLeaves(desc);
-
-
-
-        for (GeneNode leaf: leaves) {
-            AnnotationForTerm aft = new AnnotationForTerm(leaf, term, gth);
-            if (false == aft.annotationExists()) {
+        Iterator<GOTerm> iter = ancestors.iterator();
+        while (iter.hasNext()) {
+            GOTerm curTerm = iter.next();
+            String aspect = curTerm.getAspect();
+            if (null != aspect && false == aspect.equals(term.getAspect())) {
+                iter.remove();
+            }
+        }
+        
+        // Get annotations to descendants and add to remove list, if necessary
+        HashSet<Annotation> removeDescSet = new HashSet<Annotation>();
+        StringBuffer removeBuffer = new StringBuffer();
+        for (GeneNode node: descList) {
+            Node n = node.getNode();
+            NodeVariableInfo nvi = n.getVariableInfo();
+            if (null == nvi) {
                 continue;
             }
-            // Qualifiers have to match i.e. both have to be positive or both have to have a NOT.
-            if (isNeg != QualifierDif.containsNegative(aft.getQset())) {
+            ArrayList<Annotation> annotList = nvi.getGoAnnotationList();
+            if (null ==  annotList) {
                 continue;
             }
-            if (null != aft.getAnnotSet()) {
-                annotSet.addAll(aft.getAnnotSet());
-                QualifierDif.addIfNotPresent(applicableQset, aft.getQset());
-            }            
-        }
-        if (false == annotSet.isEmpty()) {
-            return annotSet;
-        }
-
-        return null;
-    }
-
-    public boolean importDataOld(TransferHandler.TransferSupport support) {
-
-        MatrixTransferInfo mti = null;
-        GeneNode selectedNodeFromMatrix;
-        TreePanel treePanel = null;
-
-        try {
-            mti = (MatrixTransferInfo) support.getTransferable().getTransferData(FLAVOR_MATRIX_TRANSFER_INFO);
-            selectedNodeFromMatrix = mti.getMatrixClickedNode();
-        } catch (UnsupportedFlavorException e) {
-            return false;
-        } catch (IOException e) {
-            return false;
-        }
-        if (support.getComponent() instanceof TreePanel) {
-            treePanel = (TreePanel) support.getComponent();
-        } else {
-            return false;
-        }
-        if (null == mti) {
-
-            return false;
-        }
-        TermToAssociation toa = mti.getTermAncestor().getTermToAssociation();
-        Point p = support.getDropLocation().getDropPoint();
-        GeneNode gNode = treePanel.getClickedInNodeArea(p);
-        
-        GOTerm annotTerm = toa.getTerm();
-        ArrayList<Association> applicableAsnList = getPotentialAssociations(gNode, annotTerm);
-        if (null == applicableAsnList) {
-            return false;
-        }
-        
-        // Import annotations
-        System.out.println("Going to import annotations");        
-        PaintManager pm = PaintManager.inst();
-        
-        // Determine if node that was dragged from matrix is providing evidence.  Also get list of nodes providing evidence for later use
-        Annotation annotFromMatrixNode = null;
-        HashSet<Qualifier> qualifierSet = null;
-        ArrayList<GeneNode> nodesProvidingEvidence = new ArrayList<GeneNode>();
-        for (Association asn: applicableAsnList) {
-            if (selectedNodeFromMatrix.getNode().equals(asn.getNode())) {
-                annotFromMatrixNode = asn.getAnnotation();
-                qualifierSet = annotFromMatrixNode.getQualifierSet();
-            }
-            nodesProvidingEvidence.add(pm.getGeneByPTNId(asn.getNode().getStaticInfo().getPublicId()));
-        }
-        
-        // Qualifiers that are going to be used for the newly created annotation
-        HashSet<Qualifier> qSetForAnnot  = null;
-        
-        // User selected a node that has been annotated to the term. Just use qualifiers from this annotation 
-        // If user selected a node that is not annotated to the term or to a more specific child term, go through list of nodes that can provide evidence.  User gets to choose
-        // list of positive qualifiers for annotating node.  Negative qualifiers are not used.
-        if (null != annotFromMatrixNode) {
-            if (null != qualifierSet) {
-                qSetForAnnot = (HashSet<Qualifier>)qualifierSet.clone();
-            }
-        }
-        else {
-            // Get list of positive qualifiers from nodes providing evidence
-            HashSet<Qualifier> otherQualifiers = new HashSet<Qualifier>();
-            for (Association asn: applicableAsnList) {
-                HashSet<Qualifier> curQualifierSet = asn.getAnnotation().getQualifierSet();
-                if (null != curQualifierSet) {
-                    for (Qualifier q: curQualifierSet) {
-                        if (true == q.isNot()) {
-                            continue;
-                        }
-                        QualifierDif.addIfNotPresent(otherQualifiers, q);
+            for (Annotation annot: annotList) {
+                String code = annot.getSingleEvidenceCodeFromSet();
+                if (null == code) {
+                    continue;
+                }
+                if (code.equals(Evidence.CODE_IBD) || code.equals(Evidence.CODE_IKR) || code.equals(Evidence.CODE_IRD)) {
+                    String goTerm = annot.getGoTerm();
+                    GOTerm curTerm = gth.getTerm(goTerm);
+                    if (true == ancestors.contains(curTerm) || true == curTerm.equals(term)) {
+                        removeDescSet.add(annot);
+                        removeBuffer.append(REMOVE_MSG_PART_1 + n.getStaticInfo().getPublicId() + REMOVE_MSG_PART_2 + goTerm + REMOVE_MSG_PART_3 + curTerm.getName() + REMOVE_MSG_PART_4);
                     }
                 }
-            }
-            if (0 < otherQualifiers.size()) {
-                AnnotationQualifierDlg qualifierDlg = new AnnotationQualifierDlg(GUIManager.getManager().getFrame(), otherQualifiers);
-                HashSet<Qualifier> results = qualifierDlg.getQualifiers();
-                if (true == qualifierDlg.didUserSubmitForm()) {
-                    qSetForAnnot = results;
-                }
                 else {
-                    return false;
+                    continue;
                 }
             }
         }
+        if (true == removeDescSet.isEmpty()) {
+            return true;
+        }
+        
+        int dialogResult = JOptionPane.showConfirmDialog(GUIManager.getManager().getFrame(), removeBuffer.toString(), MORE_SPECIFIC_DESCENDENT_ANNOTATION, JOptionPane.YES_NO_CANCEL_OPTION, JOptionPane.WARNING_MESSAGE);
+        if (dialogResult != JOptionPane.YES_OPTION) {
+            return false;
+        }
+        
+        for (Annotation annot: removeDescSet) {
+            Node node = annot.getAnnotationDetail().getAnnotatedNode();
+            GeneNode gn = PaintManager.inst().getGeneByPTNId(node.getStaticInfo().getPublicId());
+            AnnotationUtil.deleteAnnotation(gn, annot);
+        }
+        
+        return true;
         
 
-        ArrayList<GeneNode> allDescendents = new ArrayList<GeneNode>();
-        GeneNodeUtil.allNonPrunedDescendents(gNode, allDescendents);
-        ArrayList<GeneNode> nodesToBeAnnotated = (ArrayList<GeneNode>)allDescendents.clone();
-        nodesToBeAnnotated.removeAll(nodesProvidingEvidence);
-        PaintAction.inst().addAnnotationAndPropagateOld(annotTerm, gNode, nodesToBeAnnotated, nodesProvidingEvidence, qSetForAnnot);
-        clearVisitedNodes(treePanel);
 
-        return true;
     }
+    
+//    public boolean checkAncestorAnnots(GeneNode gNode) {
+//        // For NOT IBD annotation, ensure parent annotation is not less specific.  If it is, it already includes annotation user wants to create
+//        HashSet<Annotation> removeAncSet = new HashSet<Annotation>();
+//
+//            ArrayList<GeneNode> ancestorList = new ArrayList<GeneNode>();
+//            GeneNodeUtil.getAncestors(gNode, ancestorList);
+//            
+//            
+//            for (GeneNode node: ancestorList) {
+//                Node n = node.getNode();
+//                NodeVariableInfo nvi = n.getVariableInfo();
+//                if (null == nvi) {
+//                    continue;
+//                }
+//                ArrayList<Annotation> annotList = nvi.getGoAnnotationList();
+//                if (null ==  annotList) {
+//                    continue;
+//                }
+//                for (Annotation annot: annotList) {
+//                    String code = annot.getSingleEvidenceCodeFromSet();
+//                    if (null == code) {
+//                        continue;
+//                    }
+//                    if (code.equals(Evidence.CODE_IBD) || code.equals(Evidence.CODE_IKR) || code.equals(Evidence.CODE_IRD)) {
+//                        String goTerm = annot.getGoTerm();
+//                        GOTerm curTerm = gth.getTerm(goTerm);
+//                        if (true == ancestors.contains(curTerm)) {
+//                            removeAncSet.add(annot);
+//                            removeBuffer.append(REMOVE_MSG_PART_1 + n.getStaticInfo().getPublicId() + REMOVE_MSG_PART_2 + goTerm + REMOVE_MSG_PART_3 + curTerm.getName() + REMOVE_MSG_PART_4);                        
+//                        }
+//                    }
+//                    else {
+//                        continue;
+//                    }
+//                }
+//            }            
+//            
+//            
+//       
+//    }
+    
+    
+
+    
+//    public HashSet<Annotation> getApplicableAnnotations(GeneNode gNode, GeneNode selectedNodeFromMatrix, GOTerm term,  HashSet<Qualifier> applicableQset) {
+//        HashSet<Annotation> annotSet = new HashSet<Annotation>();        
+//        GOTermHelper gth = PaintManager.inst().goTermHelper();
+//        AnnotationForTerm compAFT = new AnnotationForTerm(selectedNodeFromMatrix, term, gth);
+//        if (false == compAFT.annotationExists()) {
+//            return null;
+//        }
+//        boolean isNeg = QualifierDif.containsNegative(compAFT.getQset());
+//        ArrayList<GeneNode> desc = new ArrayList<GeneNode>();
+//        GeneNodeUtil.allNonPrunedDescendents(gNode, desc);
+//        List<GeneNode> leaves = GeneNodeUtil.getAllLeaves(desc);
+//
+//
+//
+//        for (GeneNode leaf: leaves) {
+//            AnnotationForTerm aft = new AnnotationForTerm(leaf, term, gth);
+//            if (false == aft.annotationExists()) {
+//                continue;
+//            }
+//            // Qualifiers have to match i.e. both have to be positive or both have to have a NOT.
+//            if (isNeg != QualifierDif.containsNegative(aft.getQset())) {
+//                continue;
+//            }
+//            if (null != aft.getAnnotSet()) {
+//                annotSet.addAll(aft.getAnnotSet());
+//                QualifierDif.addIfNotPresent(applicableQset, aft.getQset());
+//            }            
+//        }
+//        if (false == annotSet.isEmpty()) {
+//            return annotSet;
+//        }
+//
+//        return null;
+//    }
+
+//    public boolean importDataOld(TransferHandler.TransferSupport support) {
+//
+//        MatrixTransferInfo mti = null;
+//        GeneNode selectedNodeFromMatrix;
+//        TreePanel treePanel = null;
+//
+//        try {
+//            mti = (MatrixTransferInfo) support.getTransferable().getTransferData(FLAVOR_MATRIX_TRANSFER_INFO);
+//            selectedNodeFromMatrix = mti.getMatrixClickedNode();
+//        } catch (UnsupportedFlavorException e) {
+//            return false;
+//        } catch (IOException e) {
+//            return false;
+//        }
+//        if (support.getComponent() instanceof TreePanel) {
+//            treePanel = (TreePanel) support.getComponent();
+//        } else {
+//            return false;
+//        }
+//        if (null == mti) {
+//
+//            return false;
+//        }
+//        TermToAssociation toa = mti.getTermAncestor().getTermToAssociation();
+//        Point p = support.getDropLocation().getDropPoint();
+//        GeneNode gNode = treePanel.getClickedInNodeArea(p);
+//        
+//        GOTerm annotTerm = toa.getTerm();
+//        ArrayList<Association> applicableAsnList = getPotentialAssociations(gNode, annotTerm);
+//        if (null == applicableAsnList) {
+//            return false;
+//        }
+//        
+//        // Import annotations
+//        System.out.println("Going to import annotations");        
+//        PaintManager pm = PaintManager.inst();
+//        
+//        // Determine if node that was dragged from matrix is providing evidence.  Also get list of nodes providing evidence for later use
+//        Annotation annotFromMatrixNode = null;
+//        HashSet<Qualifier> qualifierSet = null;
+//        ArrayList<GeneNode> nodesProvidingEvidence = new ArrayList<GeneNode>();
+//        for (Association asn: applicableAsnList) {
+//            if (selectedNodeFromMatrix.getNode().equals(asn.getNode())) {
+//                annotFromMatrixNode = asn.getAnnotation();
+//                qualifierSet = annotFromMatrixNode.getQualifierSet();
+//            }
+//            nodesProvidingEvidence.add(pm.getGeneByPTNId(asn.getNode().getStaticInfo().getPublicId()));
+//        }
+//        
+//        // Qualifiers that are going to be used for the newly created annotation
+//        HashSet<Qualifier> qSetForAnnot  = null;
+//        
+//        // User selected a node that has been annotated to the term. Just use qualifiers from this annotation 
+//        // If user selected a node that is not annotated to the term or to a more specific child term, go through list of nodes that can provide evidence.  User gets to choose
+//        // list of positive qualifiers for annotating node.  Negative qualifiers are not used.
+//        if (null != annotFromMatrixNode) {
+//            if (null != qualifierSet) {
+//                qSetForAnnot = (HashSet<Qualifier>)qualifierSet.clone();
+//            }
+//        }
+//        else {
+//            // Get list of positive qualifiers from nodes providing evidence
+//            HashSet<Qualifier> otherQualifiers = new HashSet<Qualifier>();
+//            for (Association asn: applicableAsnList) {
+//                HashSet<Qualifier> curQualifierSet = asn.getAnnotation().getQualifierSet();
+//                if (null != curQualifierSet) {
+//                    for (Qualifier q: curQualifierSet) {
+//                        if (true == q.isNot()) {
+//                            continue;
+//                        }
+//                        QualifierDif.addIfNotPresent(otherQualifiers, q);
+//                    }
+//                }
+//            }
+//            if (0 < otherQualifiers.size()) {
+//                AnnotationQualifierDlg qualifierDlg = new AnnotationQualifierDlg(GUIManager.getManager().getFrame(), otherQualifiers);
+//                HashSet<Qualifier> results = qualifierDlg.getQualifiers();
+//                if (true == qualifierDlg.didUserSubmitForm()) {
+//                    qSetForAnnot = results;
+//                }
+//                else {
+//                    return false;
+//                }
+//            }
+//        }
+//        
+//
+//        ArrayList<GeneNode> allDescendents = new ArrayList<GeneNode>();
+//        GeneNodeUtil.allNonPrunedDescendents(gNode, allDescendents);
+//        ArrayList<GeneNode> nodesToBeAnnotated = (ArrayList<GeneNode>)allDescendents.clone();
+//        nodesToBeAnnotated.removeAll(nodesProvidingEvidence);
+//        PaintAction.inst().addAnnotationAndPropagateOld(annotTerm, gNode, nodesToBeAnnotated, nodesProvidingEvidence, qSetForAnnot);
+//        clearVisitedNodes(treePanel);
+//
+//        return true;
+//    }
     
 //    private ArrayList<Annotation> getApplicableAssociation(ArrayList<Association> asnList) {
 //        if (null == asnList || 0 == asnList.size()) {
@@ -690,53 +808,53 @@ public class AnnotationTransferHndlr extends TransferHandler {
 		}
 	}
         
-        private ArrayList<Association> getPotentialAssociations(GeneNode gNode, GOTerm annotTerm) {
-            ArrayList<Association> annotToTermList = new ArrayList<Association>();
-            ArrayList<Association> annotToChildTermList = new ArrayList<Association>();
-            GOTermHelper gth = PaintManager.inst().goTermHelper();               
-            ArrayList<GeneNode> allDescendents = new ArrayList<GeneNode>();
-            GeneNodeUtil.allNonPrunedDescendents(gNode, allDescendents);
-            List<GeneNode> leafDescendents = GeneNodeUtil.getAllLeaves(allDescendents);
-            for (GeneNode gLeaf: leafDescendents) {
-                Node leaf = gLeaf.getNode();
-                NodeVariableInfo nvi = leaf.getVariableInfo();
-                if (null ==  nvi) {
-                    continue;
-                }
-                ArrayList<Annotation> goAnnotList = nvi.getGoAnnotationList();
-                if (null == goAnnotList) {
-                    continue;
-                }
-                for (Annotation annot: goAnnotList) {
-                    if (false == annot.getEvidence().isExperimental()) {
-                        continue;
-                    }
-                    String termAcc = annot.getGoTerm();
-                    GOTerm term = gth.getTerm(termAcc);
-                    if (term.equals(annotTerm)) {
-                        Association a = new Association();
-                        a.setAnnotation(annot);
-                        a.setNode(leaf);
-                        annotToTermList.add(a);
-                        continue;
-                    }
-                    if (gth.getAncestors(term).contains(annotTerm)) {
-                        Association a = new Association();
-                        a.setAnnotation(annot);
-                        a.setNode(leaf);
-                        annotToChildTermList.add(a);
-                        continue;
-                    }
-                }
-            }
-            if (false == annotToTermList.isEmpty()) {
-                return annotToTermList;
-            }
-            if (false == annotToChildTermList.isEmpty()) {
-                return annotToChildTermList;
-            }
-            return null;
-        }
+//        private ArrayList<Association> getPotentialAssociations(GeneNode gNode, GOTerm annotTerm) {
+//            ArrayList<Association> annotToTermList = new ArrayList<Association>();
+//            ArrayList<Association> annotToChildTermList = new ArrayList<Association>();
+//            GOTermHelper gth = PaintManager.inst().goTermHelper();               
+//            ArrayList<GeneNode> allDescendents = new ArrayList<GeneNode>();
+//            GeneNodeUtil.allNonPrunedDescendents(gNode, allDescendents);
+//            List<GeneNode> leafDescendents = GeneNodeUtil.getAllLeaves(allDescendents);
+//            for (GeneNode gLeaf: leafDescendents) {
+//                Node leaf = gLeaf.getNode();
+//                NodeVariableInfo nvi = leaf.getVariableInfo();
+//                if (null ==  nvi) {
+//                    continue;
+//                }
+//                ArrayList<Annotation> goAnnotList = nvi.getGoAnnotationList();
+//                if (null == goAnnotList) {
+//                    continue;
+//                }
+//                for (Annotation annot: goAnnotList) {
+//                    if (false == annot.isExperimental()) {
+//                        continue;
+//                    }
+//                    String termAcc = annot.getGoTerm();
+//                    GOTerm term = gth.getTerm(termAcc);
+//                    if (term.equals(annotTerm)) {
+//                        Association a = new Association();
+//                        a.setAnnotation(annot);
+//                        a.setNode(leaf);
+//                        annotToTermList.add(a);
+//                        continue;
+//                    }
+//                    if (gth.getAncestors(term).contains(annotTerm)) {
+//                        Association a = new Association();
+//                        a.setAnnotation(annot);
+//                        a.setNode(leaf);
+//                        annotToChildTermList.add(a);
+//                        continue;
+//                    }
+//                }
+//            }
+//            if (false == annotToTermList.isEmpty()) {
+//                return annotToTermList;
+//            }
+//            if (false == annotToChildTermList.isEmpty()) {
+//                return annotToChildTermList;
+//            }
+//            return null;
+//        }
 }
 
         

@@ -31,6 +31,7 @@ public class NodeStaticInfo implements Serializable {
     private String definition;
     private String orthoMCL;
     private String shortOrg;
+    private String speciesConversion;
     private ArrayList<String> geneName;
     private ArrayList<String> geneSymbol;
 
@@ -119,6 +120,14 @@ public class NodeStaticInfo implements Serializable {
             this.geneSymbol = new ArrayList<String>(1);
         }
         this.geneSymbol.add(geneSymbol);
+    }
+
+    public String getSpeciesConversion() {
+        return speciesConversion;
+    }
+
+    public void setSpeciesConversion(String speciesConversion) {
+        this.speciesConversion = speciesConversion;
     }
 
 }

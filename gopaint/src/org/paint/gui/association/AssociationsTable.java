@@ -202,79 +202,80 @@ AspectChangeListener
 
 	/* MouseListener methods */
 	public void mouseClicked(MouseEvent event) {
-		Point point = event.getPoint();
-		int row = rowAtPoint(point);
-		if (row >= 0 && row <= assoc_model.getRowCount()) {
-			int column = columnAtPoint(point);
-			if (HyperlinkLabel.class == getModel().getColumnClass(column)) {
-				Evidence evi = ((AssociationsTableModel) getModel()).getEvidenceForRow(row);
-				DBXref xref = evi.getDbxref();
-				String text = HTMLUtil.getURL(xref.getDb_name(), xref.getAccession(), false);
-				HTMLUtil.bringUpInBrowser(text);
-			}
-			else if (Evidence.class == getModel().getColumnClass(column)) {
-				// this event is handled on mouse press, not click (so menu will disappear)
-			} else if (Boolean.class == getModel().getColumnClass(column)) {
-				Evidence evi = ((AssociationsTableModel) getModel()).getEvidenceForRow(row);
-				Boolean value = (Boolean) getModel().getValueAt(row, column);
-				boolean deletable = value.booleanValue();
-				Association assoc = evi.getAssociation();
-				/*
-				 * Removing of annotations is only permitted for ancestral nodes
-				 * that have been directly annotated to that term by the curator,
-				 * so check first before deleting a term
-				 */
-				if (deletable && assoc.isMRC()) {
-					PaintAction.inst().removeAssociation(GO_Util.inst().getGeneNode(assoc.getGene_product()), assoc.getTerm());
-					Term deleted_term = assoc.getTerm();
-					assoc_model.fireTableDataChanged();
-					/**
-					 * Now unselect this term, if it was selected.
-					 */
-					List<Term> terms = EventManager.inst().getCurrentTermSelection();
-					if (terms != null && terms.contains(deleted_term)) {
-						terms.remove(deleted_term);
-						TermSelectEvent term_event = new TermSelectEvent (this, terms);
-						EventManager.inst().fireTermEvent(term_event);
-					}
-					// Notify listeners that the gene data has changed too
-					EventManager.inst().fireAnnotationChangeEvent(new AnnotationChangeEvent(node));
-				} else if (deletable && assoc.isDirectNot()) {
-					PaintAction.inst().unNot (evi, node, true);
-					EventManager.inst().fireAnnotationChangeEvent(new AnnotationChangeEvent(node));
-				}
-			} else if (Association.class == getModel().getColumnClass(column)) {
-				Association assoc = (Association) getModel().getValueAt(row, column);
-				Term term = assoc.getTerm();
-				String text = HTMLUtil.getURL("AMIGO", term.getAcc(), true);
-				HTMLUtil.bringUpInBrowser(text);
-			} else if (HashSet.class == getModel().getColumnClass(column)) {
-				Evidence evi = ((AssociationsTableModel) getModel()).getEvidenceForRow(row);
-				Set<DBXref> withs = evi.getWiths();
-				if (withs != null && withs.size() == 1) {
-					DBXref xref = withs.iterator().next();
-					String text = HTMLUtil.getURL(xref.getDb_name(), xref.getAccession(), true);
-					HTMLUtil.bringUpInBrowser(text);
-				}
-//				ListSelectionModel lsm = this.getSelectionModel();
-//				int minRow = lsm.getMinSelectionIndex();
-//				int maxRow = lsm.getMaxSelectionIndex();
-//				ArrayList<Term> selectTerms = new ArrayList<Term> ();
-//				if (minRow >= 0 && maxRow >= 0) {
-//					for (row = minRow; row <= maxRow; ++row) {
-//						if (lsm.isSelectedIndex(row)) {
-//							Evidence evi = ((AssociationsTableModel) getModel()).getEvidenceForRow(row);
-//							Term term = evi.getAssociation().getTerm();
-//							if (term != null) {
-//								selectTerms.add(term);
-//							}
-//						}
+            return;
+//		Point point = event.getPoint();
+//		int row = rowAtPoint(point);
+//		if (row >= 0 && row <= assoc_model.getRowCount()) {
+//			int column = columnAtPoint(point);
+//			if (HyperlinkLabel.class == getModel().getColumnClass(column)) {
+//				Evidence evi = ((AssociationsTableModel) getModel()).getEvidenceForRow(row);
+//				DBXref xref = evi.getDbxref();
+//				String text = HTMLUtil.getURL(xref.getDb_name(), xref.getAccession(), false);
+//				HTMLUtil.bringUpInBrowser(text);
+//			}
+//			else if (Evidence.class == getModel().getColumnClass(column)) {
+//				// this event is handled on mouse press, not click (so menu will disappear)
+//			} else if (Boolean.class == getModel().getColumnClass(column)) {
+//				Evidence evi = ((AssociationsTableModel) getModel()).getEvidenceForRow(row);
+//				Boolean value = (Boolean) getModel().getValueAt(row, column);
+//				boolean deletable = value.booleanValue();
+//				Association assoc = evi.getAssociation();
+//				/*
+//				 * Removing of annotations is only permitted for ancestral nodes
+//				 * that have been directly annotated to that term by the curator,
+//				 * so check first before deleting a term
+//				 */
+//				if (deletable && assoc.isMRC()) {
+//					PaintAction.inst().removeAssociation(GO_Util.inst().getGeneNode(assoc.getGene_product()), assoc.getTerm());
+//					Term deleted_term = assoc.getTerm();
+//					assoc_model.fireTableDataChanged();
+//					/**
+//					 * Now unselect this term, if it was selected.
+//					 */
+//					List<Term> terms = EventManager.inst().getCurrentTermSelection();
+//					if (terms != null && terms.contains(deleted_term)) {
+//						terms.remove(deleted_term);
+//						TermSelectEvent term_event = new TermSelectEvent (this, terms);
+//						EventManager.inst().fireTermEvent(term_event);
 //					}
+//					// Notify listeners that the gene data has changed too
+//					EventManager.inst().fireAnnotationChangeEvent(new AnnotationChangeEvent(node));
+//				} else if (deletable && assoc.isDirectNot()) {
+//					PaintAction.inst().unNot (evi, node, true);
+//					EventManager.inst().fireAnnotationChangeEvent(new AnnotationChangeEvent(node));
 //				}
-//				TermSelectEvent term_event = new TermSelectEvent (this, selectTerms);
-//				EventManager.inst().fireTermEvent(term_event);				
-			}
-		}
+//			} else if (Association.class == getModel().getColumnClass(column)) {
+//				Association assoc = (Association) getModel().getValueAt(row, column);
+//				Term term = assoc.getTerm();
+//				String text = HTMLUtil.getURL("AMIGO", term.getAcc(), true);
+//				HTMLUtil.bringUpInBrowser(text);
+//			} else if (HashSet.class == getModel().getColumnClass(column)) {
+//				Evidence evi = ((AssociationsTableModel) getModel()).getEvidenceForRow(row);
+//				Set<DBXref> withs = evi.getWiths();
+//				if (withs != null && withs.size() == 1) {
+//					DBXref xref = withs.iterator().next();
+//					String text = HTMLUtil.getURL(xref.getDb_name(), xref.getAccession(), true);
+//					HTMLUtil.bringUpInBrowser(text);
+//				}
+////				ListSelectionModel lsm = this.getSelectionModel();
+////				int minRow = lsm.getMinSelectionIndex();
+////				int maxRow = lsm.getMaxSelectionIndex();
+////				ArrayList<Term> selectTerms = new ArrayList<Term> ();
+////				if (minRow >= 0 && maxRow >= 0) {
+////					for (row = minRow; row <= maxRow; ++row) {
+////						if (lsm.isSelectedIndex(row)) {
+////							Evidence evi = ((AssociationsTableModel) getModel()).getEvidenceForRow(row);
+////							Term term = evi.getAssociation().getTerm();
+////							if (term != null) {
+////								selectTerms.add(term);
+////							}
+////						}
+////					}
+////				}
+////				TermSelectEvent term_event = new TermSelectEvent (this, selectTerms);
+////				EventManager.inst().fireTermEvent(term_event);				
+//			}
+//		}
 	}
 
 	public void mouseEntered(MouseEvent arg0) {

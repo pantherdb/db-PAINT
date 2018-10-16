@@ -1,6 +1,6 @@
 /* 
  * 
- * Copyright (c) 2010, Regents of the University of California 
+ * Copyright (c) 2017, Regents of the University of California 
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
@@ -76,6 +76,7 @@ public class FileMenu extends JMenu implements AnnotationChangeListener, FamilyC
     protected JMenuItem updateCommentItem;
     protected JMenuItem updateFamilyNameItem;
     protected JMenuItem saveDBItem;
+    protected JMenuItem viewOmittedAnnotInfoItem;
 
     private static final String MENU_ITEM_LOGIN = "Login";
     private static final String MENU_ITEM_LOGOFF = "Logoff";
@@ -84,6 +85,7 @@ public class FileMenu extends JMenu implements AnnotationChangeListener, FamilyC
     private static final String MENU_ITEM_UPDATE_COMMENT = "Update comment...";
     private static final String MENU_ITEM_UPDATE_NAME_FAMILY = "Name Family...";
     private static final String MENU_ITEM_SAVE_TO_DB = "Save to database...";
+    private static final String MENU_ITEM_VIEW_ANNOT_INFO = "View omitted annotation information";
 
     private static List<FileMenu> instances = new ArrayList<FileMenu>();
 
@@ -129,10 +131,15 @@ public class FileMenu extends JMenu implements AnnotationChangeListener, FamilyC
         
         saveDBItem = new JMenuItem(MENU_ITEM_SAVE_TO_DB);
         saveDBItem.addActionListener(new SaveBookActionListener());
-        this.add(saveDBItem);
+        add(saveDBItem);
         saveDBItem.setEnabled(false);
 
         this.addSeparator();
+        
+        viewOmittedAnnotInfoItem = new JMenuItem(MENU_ITEM_VIEW_ANNOT_INFO);
+        viewOmittedAnnotInfoItem.addActionListener(new ViewOmittedAnnotActionListener());
+        add(viewOmittedAnnotInfoItem);
+        viewOmittedAnnotInfoItem.setEnabled(false);
 
                 // Add save functon later on if required
 //		saveFileLocalItem = new JMenuItem(save_annots);
@@ -150,6 +157,7 @@ public class FileMenu extends JMenu implements AnnotationChangeListener, FamilyC
         saveDBItem.setEnabled(DirtyIndicator.inst().bookUpdated());
         updateCommentItem.setEnabled(DirtyIndicator.inst().bookUpdated());
         updateFamilyNameItem.setEnabled(DirtyIndicator.inst().bookUpdated());
+        viewOmittedAnnotInfoItem.setEnabled(DirtyIndicator.inst().bookUpdated());
 //		openDBItem.setEnabled(InternetChecker.getInstance().isConnectionPresent(true));
 //
 //		boolean family_loaded = DirtyIndicator.inst().familyLoaded();
@@ -171,6 +179,7 @@ public class FileMenu extends JMenu implements AnnotationChangeListener, FamilyC
         this.updateCommentItem.setEnabled(true);
         this.updateFamilyNameItem.setEnabled(true);
         this.saveDBItem.setEnabled(true);
+        this.viewOmittedAnnotInfoItem.setEnabled(true);
     }
 
     private class LoginActionListener implements ActionListener {
@@ -276,6 +285,7 @@ public class FileMenu extends JMenu implements AnnotationChangeListener, FamilyC
             saveDBItem.setEnabled(false);
             updateCommentItem.setEnabled(false);
             updateFamilyNameItem.setEnabled(false);
+            viewOmittedAnnotInfoItem.setEnabled(false);
         }
     }
     
@@ -315,6 +325,27 @@ public class FileMenu extends JMenu implements AnnotationChangeListener, FamilyC
     
     private static final String LINE_BREAK = "\\\\n";
     private static final String LINE_SEPARATOR_SYSTEM_PROPERY = System.getProperty("line.separator");
+    private static final String STR_EMPTY = "";
+    
+    private class ViewOmittedAnnotActionListener implements ActionListener{
+        public void actionPerformed(ActionEvent e) {
+            PaintManager pm = PaintManager.inst();            
+            StringBuffer errorBuf = pm.getFamily().getNodeInfoBuf();
+            if (null == errorBuf) {
+                errorBuf = new StringBuffer(STR_EMPTY);
+            }
+            String info = errorBuf.toString().replaceAll(LINE_BREAK, LINE_SEPARATOR_SYSTEM_PROPERY);
+            JTextArea ta = new JTextArea(20, 100);
+            if (null != info) {
+               ta.setText(info);
+            }
+            ta.setEditable(false);
+            ta.setWrapStyleWord(true);
+            ta.setLineWrap(true);
+            ta.setCaretPosition(0);
+            JOptionPane.showMessageDialog(GUIManager.getManager().getFrame(), new JScrollPane(ta), "Information about omitted annotations", JOptionPane.INFORMATION_MESSAGE);
+        }
+    }
     
     private class UpdateCommentsActionListener implements ActionListener {
 
@@ -474,78 +505,40 @@ public class FileMenu extends JMenu implements AnnotationChangeListener, FamilyC
      * Opens book from database
      *
      */
-    private class OpenFromDBActionListener implements ActionListener {
-
-        public void actionPerformed(ActionEvent e) {
-            SwingWorker<Void, Void> worker = new SwingWorker<Void, Void>() {
-                protected Void doInBackground() throws Exception {
-                    // If document has been updated, attempt to save before opening/locking another
-                    boolean proceed = true;
-                    if (DirtyIndicator.inst().bookUpdated()) {
-                        proceed = DirtyIndicator.inst().runDirtyDialog("opening a new family?");
-                    }
-                    if (proceed) {
-                        if (!LoginUtil.getLoggedIn()) {
-                            if (!LoginUtil.login()) {
-                                return null;
-                            }
-                        }
-
-                        NewFamily dlg = new NewFamily(GUIManager.getManager().getFrame());
-                        String familyID = dlg.display();
-                        if (familyID != null) {
-							// Open book for user
-                            //							PaintManager.inst().closeCurrent();
-                            PaintManager.inst().openNewFamily(familyID);
-                            
-                            
-                            updateMenus();
-                        }
-                    }
-                    return null;
-                }
-            };
-            worker.execute();
-        }
-    }
-
-    /**
-     * Class declaration
-     *
-     *
-     * @author
-     * @version %I%, %G%
-     */
-    private class OpenFromFileActionListener implements ActionListener {
-
-        public void actionPerformed(ActionEvent e) {
-            SwingWorker<Void, Void> worker = new SwingWorker<Void, Void>() {
-                protected Void doInBackground() throws Exception {
-                    // If document has been updated, attempt to save before opening/locking another
-                    boolean proceed = true;
-                    if (DirtyIndicator.inst().isPainted()) {
-                        proceed = DirtyIndicator.inst().runDirtyDialog("opening a family?");
-                    }
-                    if (proceed) {
-                        if (!LoginUtil.getLoggedIn()) {
-                            LoginUtil.login();
-                        }
-                        ActiveFamily dlg = new ActiveFamily(GUIManager.getManager().getFrame());
-                        File f = dlg.getSelectedFile(false, FileNameGenerator.PAINT_SUFFIX);
-                        if ((null != f) && (f.isFile())) {
-                            String full_file_name = f.getCanonicalPath();
-                            String familyID = full_file_name.substring(full_file_name.lastIndexOf('/') + 1, full_file_name.lastIndexOf('.'));
-
-                            PaintManager.inst().openNewFamily(familyID);
-                            updateMenus();
-                        }
-                    }
-                    return null;
-                }
-            };
-            worker.execute();
-        }
-    }
+//    private class OpenFromDBActionListener implements ActionListener {
+//
+//        public void actionPerformed(ActionEvent e) {
+//            SwingWorker<Void, Void> worker = new SwingWorker<Void, Void>() {
+//                protected Void doInBackground() throws Exception {
+//                    // If document has been updated, attempt to save before opening/locking another
+//                    boolean proceed = true;
+//                    if (DirtyIndicator.inst().bookUpdated()) {
+//                        proceed = DirtyIndicator.inst().runDirtyDialog("opening a new family?");
+//                    }
+//                    if (proceed) {
+//                        if (!LoginUtil.getLoggedIn()) {
+//                            if (!LoginUtil.login()) {
+//                                return null;
+//                            }
+//                        }
+//
+//                        NewFamily dlg = new NewFamily(GUIManager.getManager().getFrame());
+//                        String familyID = dlg.display();
+//                        if (familyID != null) {
+//							// Open book for user
+//                            //							PaintManager.inst().closeCurrent();
+//                            PaintManager.inst().openNewFamily(familyID);
+//                            
+//                            
+//                            updateMenus();
+//                        }
+//                    }
+//                    return null;
+//                }
+//            };
+//            worker.execute();
+//        }
+//    }
 
     /**
      * Class declaration
@@ -554,31 +547,69 @@ public class FileMenu extends JMenu implements AnnotationChangeListener, FamilyC
      * @author
      * @version %I%, %G%
      */
-    private class EditURLActionListener implements ActionListener {
+//    private class OpenFromFileActionListener implements ActionListener {
+//
+//        public void actionPerformed(ActionEvent e) {
+//            SwingWorker<Void, Void> worker = new SwingWorker<Void, Void>() {
+//                protected Void doInBackground() throws Exception {
+//                    // If document has been updated, attempt to save before opening/locking another
+//                    boolean proceed = true;
+//                    if (DirtyIndicator.inst().isPainted()) {
+//                        proceed = DirtyIndicator.inst().runDirtyDialog("opening a family?");
+//                    }
+//                    if (proceed) {
+//                        if (!LoginUtil.getLoggedIn()) {
+//                            LoginUtil.login();
+//                        }
+//                        ActiveFamily dlg = new ActiveFamily(GUIManager.getManager().getFrame());
+//                        File f = dlg.getSelectedFile(false, FileNameGenerator.PAINT_SUFFIX);
+//                        if ((null != f) && (f.isFile())) {
+//                            String full_file_name = f.getCanonicalPath();
+//                            String familyID = full_file_name.substring(full_file_name.lastIndexOf('/') + 1, full_file_name.lastIndexOf('.'));
+//
+//                            PaintManager.inst().openNewFamily(familyID);
+//                            updateMenus();
+//                        }
+//                    }
+//                    return null;
+//                }
+//            };
+//            worker.execute();
+//        }
+//    }
 
-        /**
-         * Method declaration
-         *
-         *
-         * @param e
-         *
-         * @see
-         */
-        public void actionPerformed(ActionEvent e) {
-            // If document has been updated, attempt to save before changing upl version
-            if (DirtyIndicator.inst().runDirtyDialog("Family has been modified, save changes?")) {
-                if (!LoginUtil.getLoggedIn()) {
-                    LoginUtil.login();
-                }
-
-                if (!LoginUtil.getLoggedIn()) {
-                    return;
-                }
-                PantherURLSelectionDlg dlg = new PantherURLSelectionDlg(GUIManager.getManager().getFrame());
-                dlg.display();
-            }
-        }
-    }
+    /**
+     * Class declaration
+     *
+     *
+     * @author
+     * @version %I%, %G%
+     */
+//    private class EditURLActionListener implements ActionListener {
+//
+//        /**
+//         * Method declaration
+//         *
+//         *
+//         * @param e
+//         *
+//         * @see
+//         */
+//        public void actionPerformed(ActionEvent e) {
+//            // If document has been updated, attempt to save before changing upl version
+//            if (DirtyIndicator.inst().runDirtyDialog("Family has been modified, save changes?")) {
+//                if (!LoginUtil.getLoggedIn()) {
+//                    LoginUtil.login();
+//                }
+//
+//                if (!LoginUtil.getLoggedIn()) {
+//                    return;
+//                }
+//                PantherURLSelectionDlg dlg = new PantherURLSelectionDlg(GUIManager.getManager().getFrame());
+//                dlg.display();
+//            }
+//        }
+//    }
 
     @Override
     public void handleAnnotationChangeEvent(AnnotationChangeEvent event) {

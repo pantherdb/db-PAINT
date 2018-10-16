@@ -15,15 +15,15 @@
  */
 package org.paint.dialog;
 
-//import com.sri.panther.paint.config.UserSettings;
-//import com.sri.panther.paint.dataAdapter.DocumentServer;
 import com.sri.panther.paintCommon.Book;
 import com.sri.panther.paintCommon.Constant;
 import com.sri.panther.paintCommon.User;
 
 import java.awt.BorderLayout;
 import java.awt.Component;
+import java.awt.ComponentOrientation;
 import java.awt.Dimension;
+import java.awt.FlowLayout;
 import java.awt.Frame;
 import java.awt.GridLayout;
 import java.awt.Point;
@@ -33,6 +33,7 @@ import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashSet;
 
 import java.util.Vector;
@@ -54,7 +55,6 @@ import javax.swing.event.ChangeListener;
 import javax.swing.event.TableModelEvent;
 import javax.swing.table.AbstractTableModel;
 import javax.swing.table.TableCellRenderer;
-import javax.swing.table.TableColumn;
 import javax.swing.table.TableModel;
 import org.paint.dataadapter.PantherServer;
 import org.paint.main.PaintManager;
@@ -78,7 +78,10 @@ public class ManageBooksDlg extends JDialog {
     public JRadioButton proteinIdentifierBtn;
     public JRadioButton definitionBtn;
     public JRadioButton getAllBooksBtn;
+    public JRadioButton getBookByIdBtn;
     public JRadioButton getAllUncurtedBtn;
+    public JRadioButton getRequirePaintReviewBtn;
+    public JRadioButton getBooksByPTNBtn;
 
     public JTable searchBooksTable;
     public JTable myBooksTable;
@@ -122,7 +125,10 @@ public class ManageBooksDlg extends JDialog {
         "Protein Identifier";
     public static final String LABEL_SEARCH_DEFINITION = "Definition (partial def supported)";
     public static final String LABEL_GET_FULL_LIST = "Get list of all books";
+    public static final String LABEL_GET_BOOK_BY_ID = "Get book by id";
     public static final String LABEL_GET_UNCURATED_LIST = "Get unlocked and non-manually curated books";
+    public static final String LABEL_GET_REQUIRE_PAINT_REVIEW_LIST = "Get books marked as require PAINT review";
+    public static final String LABEL_GET_BOOK_BY_PTN = "Get book by PTN";    
     public static final String LABEL_TITLE = "Manage Books";
         
 
@@ -131,16 +137,18 @@ public class ManageBooksDlg extends JDialog {
     private static final String COLUMN_NAME_BOOK_ID = "Book Id";
     private static final String COLUMN_NAME_NAME = "Name";
     private static final String COLUMN_NAME_CURATION_STATUS = "Curation status";
-    private static final String COLUMN_NAME_EXP_EVDNCE = "Experimental Evidence";
+    private static final String COLUMN_NAME_EXP_EVDNCE = "Experimental";
+    private static final String COLUMN_NAME_ORG = "Organism";
+    private static final String COLUMN_NUM_LEAVES = "# leaves";
     private static final String COLUMN_NAME_LOCKED_BY = "Locked by";
-    private static final String COLUMN_NAME_EMAIL = "Email";
+    private static final String COLUMN_NAME_DATE = "Last Status Change";
     private static final String COLUMN_NAME_OPEN = "Open";
     private static final String COLUMN_NAME_LOCK_UNLOCK = "Lock/UnLock";
     private static final String COLUMN_NAME_UNLOCK = "Unlock";
     private static final String[] COLUMN_NAMES_SEARCH =
-    { COLUMN_NAME_BOOK_ID, COLUMN_NAME_NAME, COLUMN_NAME_CURATION_STATUS, COLUMN_NAME_EXP_EVDNCE, COLUMN_NAME_LOCKED_BY, COLUMN_NAME_EMAIL, COLUMN_NAME_OPEN,  COLUMN_NAME_LOCK_UNLOCK};
+    { COLUMN_NAME_BOOK_ID, COLUMN_NAME_NAME, COLUMN_NAME_CURATION_STATUS, COLUMN_NAME_DATE, COLUMN_NAME_EXP_EVDNCE, COLUMN_NAME_ORG, COLUMN_NUM_LEAVES, COLUMN_NAME_OPEN,  COLUMN_NAME_LOCK_UNLOCK, COLUMN_NAME_LOCKED_BY};
     
-    public static final Class[] COLUMN_TYPES_SEARCH = {String.class, String.class, String.class, Boolean.class, String.class,  String.class, JButton.class, Boolean.class};
+    public static final Class[] COLUMN_TYPES_SEARCH = {String.class, String.class, String.class, Date.class, Boolean.class, String.class, String.class, JButton.class, Boolean.class, String.class};
 
 
     
@@ -150,7 +158,7 @@ public class ManageBooksDlg extends JDialog {
     private static final String JLABEL_MY_BOOKS_RETRIEVING_BOOKS = "Retrieving books...";
     private static final String JLABEL_MY_BOOKS_SELECT_BOOKS_TO_UNLOCK = "Select books to unlock";
     
-    
+    public static final String[] ORG_LIST_SPECIAL = {"HUMAN", "MOUSE", "DROME", "CAEEL", "YEAST", "ARATH"};
     
     boolean DEBUG = true;
     protected String servletUrl;
@@ -185,7 +193,7 @@ public class ManageBooksDlg extends JDialog {
         setContentPane(mainPanel);
         Rectangle r = frame.getBounds();
 
-        setBounds(r.x + r.width / 2, r.y + r.height / 2, 850, 700);
+        setBounds(r.x + r.width / 2, r.y + r.height / 2, 1000, 800);
         pack();
         setLocationRelativeTo(frame);
 
@@ -212,23 +220,32 @@ public class ManageBooksDlg extends JDialog {
         searchPanel = new JPanel();
 
         // Search Term panel
-        searchPanel.setLayout(new BorderLayout());
+        searchPanel.setLayout(new BoxLayout(searchPanel, BoxLayout.PAGE_AXIS));
         JPanel searchTermPanel = new JPanel();
+        searchTermPanel.setLayout(new FlowLayout(FlowLayout.LEFT));
+        searchTermPanel.setComponentOrientation(ComponentOrientation.LEFT_TO_RIGHT);
         searchTermPanel.add(new JLabel(LABEL_SEARCH));
-        searchTerm = new JTextField(20);
+        searchTerm = new JTextField(40);
         searchTermPanel.add(searchTerm);
 
 
         // Search Type panel
-        JPanel searchTypePanel = new JPanel(new GridLayout(0, 1));
+        GridLayout gl = new GridLayout(0, 2, 0, 0);
+        gl.setVgap(0);
+        gl.setHgap(0);        
+        JPanel searchTypePanel = new JPanel(gl);
+        searchTypePanel.setComponentOrientation(ComponentOrientation.LEFT_TO_RIGHT);
         geneSymbolBtn = new JRadioButton(LABEL_SEARCH_GENE_SYMBOL);
         geneSymbolBtn.setSelected(true);
         geneIdentifierBtn = new JRadioButton(LABEL_SEARCH_GENE_IDENTIFIER);
-        proteinIdentifierBtn =
-                new JRadioButton(LABEL_SEARCH_PROTEIN_IDENTIFIER);
+        proteinIdentifierBtn = new JRadioButton(LABEL_SEARCH_PROTEIN_IDENTIFIER);
         definitionBtn = new JRadioButton(LABEL_SEARCH_DEFINITION);
         getAllBooksBtn = new JRadioButton(LABEL_GET_FULL_LIST);
+        getBookByIdBtn = new JRadioButton(LABEL_GET_BOOK_BY_ID);
         getAllUncurtedBtn = new JRadioButton(LABEL_GET_UNCURATED_LIST);
+        getRequirePaintReviewBtn = new JRadioButton(LABEL_GET_REQUIRE_PAINT_REVIEW_LIST);        
+        getBooksByPTNBtn = new JRadioButton(LABEL_GET_BOOK_BY_PTN);        
+        
 
         ButtonGroup bg = new ButtonGroup();
         bg.add(geneSymbolBtn);
@@ -236,29 +253,37 @@ public class ManageBooksDlg extends JDialog {
         bg.add(proteinIdentifierBtn);
         bg.add(definitionBtn);
         bg.add(getAllBooksBtn);
+        bg.add(getBookByIdBtn);
         bg.add(getAllUncurtedBtn);
+        bg.add(getRequirePaintReviewBtn);
+        bg.add(getBooksByPTNBtn);        
         searchTypePanel.add(geneSymbolBtn);
         searchTypePanel.add(geneIdentifierBtn);
         searchTypePanel.add(proteinIdentifierBtn);
         searchTypePanel.add(definitionBtn);
         searchTypePanel.add(getAllBooksBtn);
+        searchTypePanel.add(getBookByIdBtn);
         searchTypePanel.add(getAllUncurtedBtn);
-        double maxWidth = 0;
-        double maxHeight = 0;
-        maxWidth += geneSymbolBtn.getPreferredSize().getWidth();
-        maxWidth += geneIdentifierBtn.getPreferredSize().getWidth();
-        maxWidth += proteinIdentifierBtn.getPreferredSize().getWidth();
-        maxHeight += geneSymbolBtn.getPreferredSize().getHeight();
-        maxHeight += geneIdentifierBtn.getPreferredSize().getHeight();
-        maxHeight += proteinIdentifierBtn.getPreferredSize().getHeight();
-        maxHeight += definitionBtn.getPreferredSize().getHeight();
-        maxHeight += getAllBooksBtn.getPreferredSize().getHeight();
-        maxHeight += getAllUncurtedBtn.getPreferredSize().getHeight();
-        Dimension maxSize = new Dimension();
-        maxSize.setSize(maxWidth, maxHeight);
-        searchTypePanel.setMaximumSize(maxSize);
+        searchTypePanel.add(getRequirePaintReviewBtn);
+        searchTypePanel.add(getBooksByPTNBtn);        
+//        double maxWidth = 0;
+//        double maxHeight = 0;
+//        maxWidth += geneSymbolBtn.getPreferredSize().getWidth();
+//        maxWidth += geneIdentifierBtn.getPreferredSize().getWidth();
+//        maxWidth += proteinIdentifierBtn.getPreferredSize().getWidth();
+//        maxHeight += geneSymbolBtn.getPreferredSize().getHeight();
+//        maxHeight += geneIdentifierBtn.getPreferredSize().getHeight();
+//        maxHeight += proteinIdentifierBtn.getPreferredSize().getHeight();
+//        maxHeight += definitionBtn.getPreferredSize().getHeight();
+//        maxHeight += getAllBooksBtn.getPreferredSize().getHeight();
+//        maxHeight += getBookByIdBtn.getPreferredSize().getHeight();
+//        maxHeight += getAllUncurtedBtn.getPreferredSize().getHeight();
+//        maxHeight += getRequirePaintReviewBtn.getPreferredSize().getHeight();        
+//        Dimension maxSize = new Dimension();
+//        maxSize.setSize(maxWidth, maxHeight);
+        //searchTypePanel.setMaximumSize(maxSize);
         JPanel centerPanel = new JPanel();
-        centerPanel.setLayout(new BoxLayout(centerPanel, BoxLayout.Y_AXIS));
+        centerPanel.setLayout(new BoxLayout(centerPanel, BoxLayout.PAGE_AXIS));
         centerPanel.add(searchTypePanel);
 
 
@@ -269,9 +294,9 @@ public class ManageBooksDlg extends JDialog {
         submitPanel.add(submitBtn);
 
 
-        searchPanel.add(searchTermPanel, BorderLayout.NORTH);
-        searchPanel.add(centerPanel, BorderLayout.CENTER);
-        searchPanel.add(submitPanel, BorderLayout.SOUTH);
+        searchPanel.add(searchTermPanel);
+        searchPanel.add(centerPanel);
+        searchPanel.add(submitPanel);
     }
     
     
@@ -288,8 +313,7 @@ public class ManageBooksDlg extends JDialog {
         myBooksTable = new JTable(new MyBooksTableModel(new ArrayList<Book>(), COLUMN_NAMES_MY_BOOKS, COLUMN_TYPES_MY_BOOKS));
         myBooksTable.setDefaultRenderer(JButton.class, new ButtonCellRenderer(BUTTON_LABEL_VIEW));
         myBooksTable.addMouseListener(new LaunchBtnMouseAdapter(myBooksTable));
-        myBooksTable.setPreferredScrollableViewportSize(new Dimension(700,
-                                                                          70));
+        myBooksTable.setPreferredScrollableViewportSize(new Dimension(750, 90));
         JScrollPane myBooksScrollPane = new JScrollPane(myBooksTable);
         myBooksPanel.add(myBooksScrollPane);
         
@@ -429,7 +453,7 @@ public class ManageBooksDlg extends JDialog {
         searchBooksTable.setModel(sbtm);
         TableModelEvent le = new TableModelEvent(sbtm);
         sbtm.fireTableChanged(le);
-        adjustColumnWidths(searchBooksTable);
+//        adjustColumnWidths(searchBooksTable);
 
 //        UnlockedBookTableModel ubtm =
 //            new UnlockedBookTableModel(unlockedBooks, COLUMN_NAMES_UNLOCKED, COLUMN_TYPES_UNLOCKED);
@@ -440,18 +464,18 @@ public class ManageBooksDlg extends JDialog {
 
     }
     
-    protected void adjustColumnWidths(JTable table) {
-        int numRows = table.getRowCount();
-        if (0 == numRows) {
-            return;
-        }
-        TableColumn column = table.getColumnModel().getColumn(1);
-        if (null == column) {
-            return;
-        }
-        int width = column.getPreferredWidth();
-        column.setPreferredWidth(width * 3);
-    }
+//    protected void adjustColumnWidths(JTable table) {
+//        int numRows = table.getRowCount();
+//        if (0 == numRows) {
+//            return;
+//        }
+//        TableColumn column = table.getColumnModel().getColumn(1);
+//        if (null == column) {
+//            return;
+//        }
+//        int width = column.getPreferredWidth();
+//        column.setPreferredWidth(width * 3);
+//    }
 
 //    DefaultTableCellRenderer disabledRenderer =
 //        new DefaultTableCellRenderer() {
@@ -479,10 +503,12 @@ public class ManageBooksDlg extends JDialog {
 
 
         searchBooksTable = new JTable(new SearchBookTableModel(new ArrayList<Book>(), COLUMN_NAMES_SEARCH, COLUMN_TYPES_SEARCH));
-        searchBooksTable.setPreferredScrollableViewportSize(new Dimension(700,
-                                                                          70));
-        searchBooksTable.setDefaultRenderer(JButton.class, new ButtonCellRenderer(BUTTON_LABEL_VIEW));
-        searchBooksTable.addMouseListener(new LaunchBtnMouseAdapter(searchBooksTable));
+        searchBooksTable.setDefaultRenderer(JButton.class, new ButtonCellRenderer(BUTTON_LABEL_VIEW));    
+        searchBooksTable.addMouseListener(new LaunchBtnMouseAdapter(searchBooksTable));        
+        searchBooksTable.setPreferredScrollableViewportSize(new Dimension(750,
+                                                                          90));
+
+
         JScrollPane lockedScrollPane = new JScrollPane(searchBooksTable);
         //lockedBooksTable.setFillsViewportHeight(true);
 
@@ -520,7 +546,7 @@ public class ManageBooksDlg extends JDialog {
 
         booksPanel = new JPanel();
         booksPanel.setLayout(new BorderLayout());
-        booksPanel.add(containerPanel, BorderLayout.WEST);
+        booksPanel.add(containerPanel, BorderLayout.CENTER);
 
         JButton lockUnlockBooks = new JButton("Lock or Unlock selected Books");
         lockUnlockBooks.addActionListener(new LockUnlockSelectedBooksActionListener());
@@ -711,6 +737,14 @@ public class ManageBooksDlg extends JDialog {
                 return false;
             }
             
+            if (COLUMN_NAME_ORG.equals(header)) {
+                return false;
+            }
+            
+            if (COLUMN_NUM_LEAVES.equals(header)) {
+                return false;
+            }
+            
             Book aBook = data.get(rowIndex);
             User u = aBook.getLockedBy();
             if (null == u) {
@@ -740,6 +774,26 @@ public class ManageBooksDlg extends JDialog {
                 }
                 return Boolean.valueOf(false);   
             }
+            else if (COLUMN_NAME_ORG.equals(header)) {
+                HashSet<String> orgSet = aBook.getOrgSet();
+                if (null == orgSet || 0 == orgSet.size()) {
+                    return Constant.STR_EMPTY;
+                } 
+                StringBuffer sb = new StringBuffer();
+                for (String org: ORG_LIST_SPECIAL) {
+                    if (true == orgSet.contains(org)) {
+                        if (0 != sb.length()) {
+                            sb.append(Constant.STR_COMMA);
+                            sb.append(Constant.STR_SPACE);
+                        }
+                        sb.append(org);
+                    }
+                }
+                return sb.toString();
+            }
+            else if (COLUMN_NUM_LEAVES.equals(header)) {
+                return Integer.toString(aBook.getNumLeaves());
+            }
             else if (COLUMN_NAME_CURATION_STATUS.equals(header)) {
                 return aBook.getCurationStatusString(aBook.getCurationStatus());              
             }
@@ -751,13 +805,8 @@ public class ManageBooksDlg extends JDialog {
                 
                 return u.getFirstName();
             }
-            else if (COLUMN_NAME_EMAIL.equals(header)) {
-                User u = aBook.getLockedBy();
-                if (null == u) {
-                    return Constant.STR_EMPTY;
-                }
-                
-                return u.getEmail();
+            else if (COLUMN_NAME_DATE.equals(header)) {
+                return aBook.getCurationStatusUpdateDate();
             }
             else if (COLUMN_NAME_OPEN.equals(header)) {
                 return Constant.STR_EMPTY;
@@ -934,7 +983,8 @@ public class ManageBooksDlg extends JDialog {
             String searchStr = ManageBooksDlg.this.searchTerm.getText();
             if ((null == searchStr || 0 == searchStr.length()) &&
                  false == ManageBooksDlg.this.getAllBooksBtn.isSelected() &&
-                 false == ManageBooksDlg.this.getAllUncurtedBtn.isSelected()) {
+                 false == ManageBooksDlg.this.getAllUncurtedBtn.isSelected() &&
+                 false == ManageBooksDlg.this.getRequirePaintReviewBtn.isSelected()   ) {
                 JOptionPane.showMessageDialog(ManageBooksDlg.this.frame,
                                               MSG_PLEASE_ENTER_SEARCH_TERM,
                                               MSG_HEADER_SEARCH_BOOKS,
@@ -961,14 +1011,22 @@ public class ManageBooksDlg extends JDialog {
             else if(ManageBooksDlg.this.definitionBtn.isSelected()) {
                 infoFromServer = PantherServer.inst().searchDefinition(servletUrl, sendInfo, null, null); 
             }
+            else if (ManageBooksDlg.this.getBookByIdBtn.isSelected()) {
+                infoFromServer = PantherServer.inst().searchBookId(servletUrl, sendInfo, null, null); 
+            }
+            else if (ManageBooksDlg.this.getBooksByPTNBtn.isSelected()) {
+                infoFromServer = PantherServer.inst().searchBookPTN(servletUrl, sendInfo, null, null); 
+            }            
             else if(ManageBooksDlg.this.getAllBooksBtn.isSelected()) {
                 
                 infoFromServer = PantherServer.inst().searchAllBooks(servletUrl, sendInfo, null, null); 
             }
-            else {
+            else if (ManageBooksDlg.this.getAllUncurtedBtn.isSelected()) {
                 infoFromServer = PantherServer.inst().searchUncuratedBooks(servletUrl, sendInfo, null, null); 
             }
-            
+            else if (ManageBooksDlg.this.getRequirePaintReviewBtn.isSelected()) {
+                infoFromServer = PantherServer.inst().searchRequirePaintReviewUnlocked(servletUrl, sendInfo, null, null); 
+            }
             
 
             if (null == infoFromServer){
@@ -1002,6 +1060,9 @@ public class ManageBooksDlg extends JDialog {
             }
             else if(ManageBooksDlg.this.definitionBtn.isSelected()) {
                 lastValidSearchBtn = ManageBooksDlg.this.definitionBtn;
+            }
+            else if (ManageBooksDlg.this.getBookByIdBtn.isSelected()) {
+                lastValidSearchBtn = ManageBooksDlg.this.getBookByIdBtn;
             }
             else if (ManageBooksDlg.this.getAllBooksBtn.isSelected()) {
                 lastValidSearchBtn = ManageBooksDlg.this.getAllBooksBtn;
@@ -1333,6 +1394,9 @@ public class ManageBooksDlg extends JDialog {
         else if(definitionBtn.equals(lastValidSearchBtn)) {
             infoFromServer = PantherServer.inst().searchDefinition(servletUrl, sendInfo, null, null); 
         }
+        else if(getBookByIdBtn.equals(lastValidSearchBtn)) {
+            infoFromServer = PantherServer.inst().searchBookId(servletUrl, sendInfo, null, null); 
+        }        
         else {
             
             infoFromServer = PantherServer.inst().searchAllBooks(servletUrl, sendInfo, null, null); 

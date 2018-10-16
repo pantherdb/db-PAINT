@@ -20,15 +20,20 @@
 
 package org.paint.gui.familytree;
 
+import edu.usc.ksom.pm.panther.paintCommon.Node;
+import edu.usc.ksom.pm.panther.paintCommon.NodeStaticInfo;
 import java.awt.Color;
 import java.io.Serializable;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.Vector;
 
 import org.apache.log4j.Logger;
@@ -46,7 +51,7 @@ public class TreeModel implements Serializable {
 	 */
 	private static final long serialVersionUID = 1L;
 
-	private static Logger log = Logger.getLogger("GeneTreeModel.class");
+	private static Logger log = Logger.getLogger(TreeModel.class);
 
 	private GeneNode root = null;
 	private GeneNode currentRoot = null;
@@ -61,6 +66,15 @@ public class TreeModel implements Serializable {
 	private Map<GeneNode, Integer> descendent_count;
 	private int species_count;
 	private Map<GeneNode, Integer> species_index;
+        
+        
+        private TreeColorSchema treeColorSchema = Preferences.inst().getColorSchema();
+        public static final Set<String>  SPECIES_CLASSIFICATION =  new HashSet<String>(Arrays.asList("BACTERIA", "ARCHEA", "FUNGUS", "PLANTS"));
+        
+        public  enum TreeColorSchema  {
+            DUPLICATION,
+            SPECIES_CLS;
+        }
 
 	/**
 	 * Constructor declaration
@@ -90,7 +104,7 @@ public class TreeModel implements Serializable {
 
 		setSubtreeColor(root, Color.BLACK);
 
-		log.info("There are " + allNodes.size() + " nodes in the " + PaintManager.inst().getFamily().getFamilyID() + " tree");
+		log.info("There are " + allNodes.size() + " nodes in " + PaintManager.inst().getFamily().getFamilyID() + " tree");
 	}
 
 	// Distance methods
@@ -403,6 +417,7 @@ public class TreeModel implements Serializable {
 		addChildNodesInOrder(currentRoot, currentNodes);
 		setTerminusNodes();
 		DuplicationColor.inst().initColorIndex();
+                setSpeciesClassification();
 		setDupColorIndex(currentRoot, 0);
 		if (notify) {
 			NodeReorderEvent event = new NodeReorderEvent(this);
@@ -410,6 +425,25 @@ public class TreeModel implements Serializable {
 			EventManager.inst().fireNodeReorderEvent(event);
 		}
 	}
+        
+    private void setSpeciesClassification() {
+        for (GeneNode leaf : terminusNodes) {
+            setSpeciesClassification(leaf, leaf);
+        }
+    }
+
+    private void setSpeciesClassification(GeneNode leaf, GeneNode current) {
+        if (null == current) {
+            return;
+        }
+        Node n = current.getNode();
+        if (n != null) {
+            NodeStaticInfo nsi = n.getStaticInfo();
+            if (null != nsi) {
+               leaf.setSpeciesClassification(nsi.getSpeciesConversion());
+            }
+        }
+    }
 
 	private void setDupColorIndex(GeneNode node, int color_index) {
 		node.setDupColorIndex(color_index);
@@ -739,4 +773,16 @@ public class TreeModel implements Serializable {
         public int getNumNodes() {
             return allNodes.size();
         }
+
+    public TreeColorSchema getTreeColorSchema() {
+        return treeColorSchema;
+    }
+
+    public void setTreeColorSchema(TreeColorSchema treeColorSchema) {
+        this.treeColorSchema = treeColorSchema;
+        Preferences.inst().setTreeColorSchema(treeColorSchema);
+    }
+        
+        
+        
 }

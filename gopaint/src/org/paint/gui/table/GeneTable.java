@@ -133,7 +133,7 @@ AspectChangeListener {
 	 */
 	public void mouseClicked(MouseEvent e) {
 		int modifiers = e.getModifiers();
-                System.out.println("Mouse click event modifiers  " + modifiers);
+//                System.out.println("Mouse click event modifiers  " + modifiers);
 		Point p = e.getPoint();
 		int clickRow = rowAtPoint(p);
 		int clickCol = columnAtPoint(p);
@@ -141,7 +141,7 @@ AspectChangeListener {
 		GeneTableModel grid = (GeneTableModel) this.getModel();
 		grid.getNode(clickRow).setSelected(true);
                 if (SwingUtilities.isLeftMouseButton(e) || false == (SwingUtilities.isRightMouseButton(e) || e.isControlDown())) {
-                    System.out.println("Left click");                    
+//                    System.out.println("Left click");                    
 //		if ((modifiers & InputEvent.BUTTON1_MASK) != 0 &&
 //				(modifiers      & InputEvent.BUTTON3_MASK) == 0) {
 

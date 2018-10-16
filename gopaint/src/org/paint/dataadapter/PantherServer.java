@@ -1,5 +1,5 @@
 /**
- *  Copyright 2017 University Of Southern California
+ *  Copyright 2018 University Of Southern California
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -18,9 +18,9 @@ package org.paint.dataadapter;
 
 import com.sri.panther.paintCommon.Book;
 import com.sri.panther.paintCommon.FixedInfo;
+import edu.usc.ksom.pm.panther.paintCommon.DataTransferObj;
 import edu.usc.ksom.pm.panther.paintCommon.GOTermHelper;
 import edu.usc.ksom.pm.panther.paintCommon.MSA;
-import edu.usc.ksom.pm.panther.paintCommon.Node;
 import com.sri.panther.paintCommon.RawComponentContainer;
 import edu.usc.ksom.pm.panther.paintCommon.SaveBookInfo;
 import edu.usc.ksom.pm.panther.paintCommon.TaxonomyHelper;
@@ -34,7 +34,6 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLConnection;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Vector;
 import java.util.zip.GZIPInputStream;
@@ -71,12 +70,15 @@ public class PantherServer {
     public static final String REQUEST_SEARCH_GENE_EXT_ID = "searchGeneExtId";
     public static final String REQUEST_SEARCH_PROTEIN_EXT_ID = "searchProteinExtId";
     public static final String REQUEST_SEARCH_DEFINITION = "searchDefinition";
+    public static final String REQUEST_SEARCH_BOOK_ID = "searchBookId";
+    public static final String REQUEST_SEARCH_BOOK_PTN = "searchBookPTN";
     public static final String REQUEST_SEARCH_ALL_BOOKS = "allBooks";
     public static final String REQUEST_LOCK_BOOKS = "LockBooks";
     public static final String REQUEST_UNLOCK_BOOKS = "UnlockBooks";
     public static final String REQUEST_LOCK_UNLOCK_BOOKS = "LockUnLockBooks";
     public static final String REQUEST_MY_BOOKS = "MyBooks";
     public static final String REQUEST_SEARCH_UNCURATED_BOOKS = "uncuratedBooks";
+    public static final String REQUEST_SEARCH_REQUIRE_PAINT_REVIEW_UNLOCKED = "requirePaintReviewUnlocked";
 
     public static final String REQUEST_OPEN_BOOK = "OpenBook";
 //	public static final String REQUEST_OPEN_BOOK_FOR_GO_USER = "openBookForGOUsr";
@@ -178,6 +180,25 @@ public class PantherServer {
 		return doSearch(servletURL, REQUEST_SEARCH_DEFINITION,
 				sendInfo, sessionIdName, sessionIdValue);
 	}
+	public ArrayList<Book> searchBookId(String servletURL, Object sendInfo,
+			String sessionIdName,
+			String sessionIdValue) {
+		return doSearch(servletURL, REQUEST_SEARCH_BOOK_ID,
+				sendInfo, sessionIdName, sessionIdValue);
+	}        
+	public ArrayList<Book> searchBookPTN(String servletURL, Object sendInfo,
+			String sessionIdName,
+			String sessionIdValue) {
+		return doSearch(servletURL, REQUEST_SEARCH_BOOK_PTN,
+				sendInfo, sessionIdName, sessionIdValue);
+	}
+        
+        public ArrayList<Book> searchRequirePaintReviewUnlocked(String servletURL, Object sendInfo,
+			String sessionIdName,
+			String sessionIdValue) {
+		return doSearch(servletURL, REQUEST_SEARCH_REQUIRE_PAINT_REVIEW_UNLOCKED,
+				sendInfo, sessionIdName, sessionIdValue);
+	}
 
 	public ArrayList<Book> searchAllBooks(String servletURL, Object sendInfo,
 			String sessionIdName,
@@ -200,182 +221,174 @@ public class PantherServer {
                             sendInfo, sessionIdName, sessionIdValue);
     }
     
-      public String lockAndUnLockBooks(String servletURL, String actionRequest, Object sendInfo,
-                                             String sessionIdName,
-                                             String sessionIdValue) {
-          Object serverOutput = sendAndReceiveZip(servletURL, actionRequest, sendInfo, sessionIdName, sessionIdValue);
+    public String lockAndUnLockBooks(String servletURL, String actionRequest, Object sendInfo,
+            String sessionIdName,
+            String sessionIdValue) {
+        Object serverOutput = sendAndReceiveZip(servletURL, actionRequest, sendInfo, sessionIdName, sessionIdValue);
 
-          if (null == serverOutput) {
-              return SERVER_ERROR;
-          }
-          TransferInfo ti = (TransferInfo) ((Vector) serverOutput).elementAt(0);
-          return ti.getInfo();
-      }    
+        if (null == serverOutput) {
+            return SERVER_ERROR;
+        }
+        TransferInfo ti = (TransferInfo) ((Vector) serverOutput).elementAt(0);
+        return ti.getInfo();
+    }
 
-        public String unlockBooks(String servletURL, Object sendInfo,
-                                               String sessionIdName,
-                                               String sessionIdValue) {
-            return lockAndUnLockBooks(servletURL, REQUEST_UNLOCK_BOOKS, sendInfo, sessionIdName, sessionIdValue);
-        }        
+    public String unlockBooks(String servletURL, Object sendInfo,
+            String sessionIdName,
+            String sessionIdValue) {
+        return lockAndUnLockBooks(servletURL, REQUEST_UNLOCK_BOOKS, sendInfo, sessionIdName, sessionIdValue);
+    }
 
-	private void fireProgressChange(String message, int percentageDone, ProgressEvent.Status status) {
+    private void fireProgressChange(String message, int percentageDone, ProgressEvent.Status status) {
 //		ProgressEvent event = new ProgressEvent(PantherServer.class, message, percentageDone, status);
 //		EventManager.inst().fireProgressEvent(event);
-	}
+    }
 
-	private void fireProgressChange(String message, int percentageDone) {
+    private void fireProgressChange(String message, int percentageDone) {
 //		fireProgressChange(message, percentageDone, ProgressEvent.Status.RUNNING);
-	}
+    }
 
-	private ArrayList<Book> doSearch(String servletURL, String actionRequest, Object sendInfo, String sessionIdName, String sessionIdValue) {
-		Vector info = (Vector)sendAndReceiveZip(servletURL, actionRequest, sendInfo, sessionIdName, sessionIdValue);
-                if (null == info || 2 < info.size()) {
-                    return null;
-                }
-                return (ArrayList<Book>)info.get(1);
+    private ArrayList<Book> doSearch(String servletURL, String actionRequest, Object sendInfo, String sessionIdName, String sessionIdValue) {
+        Vector info = (Vector) sendAndReceiveZip(servletURL, actionRequest, sendInfo, sessionIdName, sessionIdValue);
+        if (null == info || 2 < info.size()) {
+            return null;
+        }
+        return (ArrayList<Book>) info.get(1);
 
-	}
+    }
 
-	public String getServerStatus() {
-		return server_status;
-	}
+    public String getServerStatus() {
+        return server_status;
+    }
 
-	public static void setServerStatus(String serverStatus) {
-		server_status = serverStatus;
-	}
+    public static void setServerStatus(String serverStatus) {
+        server_status = serverStatus;
+    }
         
-	protected Object sendAndReceiveZip(String completeServletPath, Object sendInfo, String sessionIdName, String sessionIdValue) {
-		String message = null;
-		Object            outputFromServlet = null;
-		try{
+    protected Object sendAndReceiveZip(String completeServletPath, Object sendInfo, String sessionIdName, String sessionIdValue) {
+        String message = null;
+        Object outputFromServlet = null;
+        try {
 
-			String progressMessage = "Fetching zip data";
-			fireProgressChange(progressMessage, 0, ProgressEvent.Status.START);
+            String progressMessage = "Fetching zip data";
+            fireProgressChange(progressMessage, 0, ProgressEvent.Status.START);
 
-			// connect to the servlet
-			URL                     servlet =
-				new URL(completeServletPath);
-			java.net.URLConnection  servletConnection = servlet.openConnection();
+            // connect to the servlet
+            URL servlet
+                    = new URL(completeServletPath);
+            java.net.URLConnection servletConnection = servlet.openConnection();
 
-			servletConnection.setRequestProperty(SERVLET_CONNECTION_CONTENT_TYPE, SERVLET_CONNECTION_OBJECT_TYPE_JAVA);
+            servletConnection.setRequestProperty(SERVLET_CONNECTION_CONTENT_TYPE, SERVLET_CONNECTION_OBJECT_TYPE_JAVA);
 
-			// Set the session id, if necessary
-			if ((null != sessionIdName) && (null != sessionIdValue)){
-				servletConnection.setRequestProperty(SERVLET_REQUEST_PROPERTY_COOKIE, sessionIdName + "=".concat(sessionIdValue));
-			}
+            // Set the session id, if necessary
+            if ((null != sessionIdName) && (null != sessionIdValue)) {
+                servletConnection.setRequestProperty(SERVLET_REQUEST_PROPERTY_COOKIE, sessionIdName + "=".concat(sessionIdValue));
+            }
 
-			// Connection should ignore caches if any
-			servletConnection.setUseCaches(false);
+            // Connection should ignore caches if any
+            servletConnection.setUseCaches(false);
 
-			// Indicate sending and receiving information from the server
-			servletConnection.setDoInput(true);
-			servletConnection.setDoOutput(true);
-			ObjectOutputStream  objectOutputStream = new ObjectOutputStream(new GZIPOutputStream(servletConnection.getOutputStream()));
-			fireProgressChange(progressMessage, 50);
+            // Indicate sending and receiving information from the server
+            servletConnection.setDoInput(true);
+            servletConnection.setDoOutput(true);
+            ObjectOutputStream objectOutputStream = new ObjectOutputStream(new GZIPOutputStream(servletConnection.getOutputStream()));
+            fireProgressChange(progressMessage, 50);
 
-			objectOutputStream.writeObject(sendInfo);
-			objectOutputStream.flush();
-			objectOutputStream.close();
-			ObjectInputStream servletOutput = new ObjectInputStream(new GZIPInputStream(servletConnection.getInputStream()));
-			outputFromServlet = servletOutput.readObject();
-			fireProgressChange(progressMessage, 100, ProgressEvent.Status.END);
+            objectOutputStream.writeObject(sendInfo);
+            objectOutputStream.flush();
+            objectOutputStream.close();
+            ObjectInputStream servletOutput = new ObjectInputStream(new GZIPInputStream(servletConnection.getInputStream()));
+            outputFromServlet = servletOutput.readObject();
+            fireProgressChange(progressMessage, 100, ProgressEvent.Status.END);
 
-			servletOutput.close();
-			return outputFromServlet;
-		}
-		catch (MalformedURLException muex){
-			message = ("MalformedURLException " + muex.getMessage()
-					+ " has been returned while sending and receiving information from server");
-			System.out.println(message);
-			muex.printStackTrace();
-		}
-		catch (IOException ioex){
-			message = ("IOException " + ioex.getMessage()
-					+ " has been returned while sending and receiving information from server");
-			System.out.println(message);
-		}
-		catch (Exception e){
-			message = ("Exception " + e.getMessage()
-					+ " has been returned while sending and receiving information from server");
-			System.out.println(message);
-		}      
-		if (message != null) {
-			// Oh dear
-			EventManager.inst().fireProgressEvent(new ProgressEvent(this, message, 0, ProgressEvent.Status.FAIL));
-		}
-		return outputFromServlet;			
-	}
-        
+            servletOutput.close();
+            return outputFromServlet;
+        } catch (MalformedURLException muex) {
+            message = ("MalformedURLException " + muex.getMessage()
+                    + " has been returned while sending and receiving information from server");
+            System.out.println(message);
+            muex.printStackTrace();
+        } catch (IOException ioex) {
+            message = ("IOException " + ioex.getMessage()
+                    + " has been returned while sending and receiving information from server");
+            System.out.println(message);
+        } catch (Exception e) {
+            message = ("Exception " + e.getMessage()
+                    + " has been returned while sending and receiving information from server");
+            System.out.println(message);
+        }
+        if (message != null) {
+            // Oh dear
+            EventManager.inst().fireProgressEvent(new ProgressEvent(this, message, 0, ProgressEvent.Status.FAIL));
+        }
+        return outputFromServlet;
+    }
 
+    protected Object sendAndReceiveZip(String servletURL, String actionRequest, Object sendInfo, String sessionIdName, String sessionIdValue) {
+        String message = null;
+        Object outputFromServlet = null;
+        try {
 
-	protected Object sendAndReceiveZip(String servletURL, String actionRequest, Object sendInfo, String sessionIdName, String sessionIdValue) {
-		String message = null;
-		Object            outputFromServlet = null;
-		try{
+            String progressMessage = "Fetching zip data";
+            fireProgressChange(progressMessage, 0, ProgressEvent.Status.START);
 
-			String progressMessage = "Fetching zip data";
-			fireProgressChange(progressMessage, 0, ProgressEvent.Status.START);
+            // connect to the servlet
+            URL servlet
+                    = new URL(servletURL + SERVLET_PATH + actionRequest);
+            java.net.URLConnection servletConnection = servlet.openConnection();
 
-			// connect to the servlet
-			URL                     servlet =
-				new URL(servletURL +  SERVLET_PATH + actionRequest);
-			java.net.URLConnection  servletConnection = servlet.openConnection();
+            servletConnection.setRequestProperty(SERVLET_CONNECTION_CONTENT_TYPE, SERVLET_CONNECTION_OBJECT_TYPE_JAVA);
 
-			servletConnection.setRequestProperty(SERVLET_CONNECTION_CONTENT_TYPE, SERVLET_CONNECTION_OBJECT_TYPE_JAVA);
+            // Set the session id, if necessary
+            if ((null != sessionIdName) && (null != sessionIdValue)) {
+                servletConnection.setRequestProperty(SERVLET_REQUEST_PROPERTY_COOKIE, sessionIdName + "=".concat(sessionIdValue));
+            }
 
-			// Set the session id, if necessary
-			if ((null != sessionIdName) && (null != sessionIdValue)){
-				servletConnection.setRequestProperty(SERVLET_REQUEST_PROPERTY_COOKIE, sessionIdName + "=".concat(sessionIdValue));
-			}
+            // Connection should ignore caches if any
+            servletConnection.setUseCaches(false);
+            servletConnection.setRequestProperty("Accept-Encoding", "gzip");        // Indicate we are accepting gzip format
 
-			// Connection should ignore caches if any
-			servletConnection.setUseCaches(false);
-                        servletConnection.setRequestProperty("Accept-Encoding", "gzip");        // Indicate we are accepting gzip format
+            // Indicate sending and receiving information from the server
+            servletConnection.setDoInput(true);
+            servletConnection.setDoOutput(true);
+            ObjectOutputStream objectOutputStream = new ObjectOutputStream(new GZIPOutputStream(servletConnection.getOutputStream()));
+            fireProgressChange(progressMessage, 50);
 
-			// Indicate sending and receiving information from the server
-			servletConnection.setDoInput(true);
-			servletConnection.setDoOutput(true);
-			ObjectOutputStream  objectOutputStream = new ObjectOutputStream(new GZIPOutputStream(servletConnection.getOutputStream()));
-			fireProgressChange(progressMessage, 50);
-
-			objectOutputStream.writeObject(sendInfo);
-			objectOutputStream.flush();
-			objectOutputStream.close();
-			ObjectInputStream servletOutput = new ObjectInputStream(new GZIPInputStream(servletConnection.getInputStream()));
-                        System.out.println("Received object from server for action request " + actionRequest);
-                        System.out.println("Going to start reading the object");
+            objectOutputStream.writeObject(sendInfo);
+            objectOutputStream.flush();
+            objectOutputStream.close();
+            ObjectInputStream servletOutput = new ObjectInputStream(new GZIPInputStream(servletConnection.getInputStream()));
+            System.out.println("Received object from server for action request " + actionRequest);
+            System.out.println("Going to start reading the object");
 //                        System.out.println("Number of bytes available for reading " + servletOutput.available());
-			outputFromServlet = servletOutput.readObject();
-                        System.out.println("Finished reading the object from the server");
-			fireProgressChange(progressMessage, 100, ProgressEvent.Status.END);
+            outputFromServlet = servletOutput.readObject();
+            System.out.println("Finished reading the object from the server");
+            fireProgressChange(progressMessage, 100, ProgressEvent.Status.END);
 
-			servletOutput.close();
-			return outputFromServlet;
-		}
-		catch (MalformedURLException muex){
-			message = ("MalformedURLException " + muex.getMessage()
-					+ " has been returned while sending and receiving information from server");
-			System.out.println(message);
-			muex.printStackTrace();
-		}
-		catch (IOException ioex){
-			message = ("IOException " + ioex.getMessage()
-					+ " has been returned while sending and receiving information from server");
-			System.out.println(message);
-                        ioex.printStackTrace();
-		}
-		catch (Exception e){
-			message = ("Exception " + e.getMessage()
-					+ " has been returned while sending and receiving information from server");
-			System.out.println(message);
-                        e.printStackTrace();
-		}      
-		if (message != null) {
-			// Oh dear
-			EventManager.inst().fireProgressEvent(new ProgressEvent(this, message, 0, ProgressEvent.Status.FAIL));
-		}
-		return outputFromServlet;			
-	}
+            servletOutput.close();
+            return outputFromServlet;
+        } catch (MalformedURLException muex) {
+            message = ("MalformedURLException " + muex.getMessage()
+                    + " has been returned while sending and receiving information from server");
+            System.out.println(message);
+            muex.printStackTrace();
+        } catch (IOException ioex) {
+            message = ("IOException " + ioex.getMessage()
+                    + " has been returned while sending and receiving information from server");
+            System.out.println(message);
+            ioex.printStackTrace();
+        } catch (Exception e) {
+            message = ("Exception " + e.getMessage()
+                    + " has been returned while sending and receiving information from server");
+            System.out.println(message);
+            e.printStackTrace();
+        }
+        if (message != null) {
+            // Oh dear
+            EventManager.inst().fireProgressEvent(new ProgressEvent(this, message, 0, ProgressEvent.Status.FAIL));
+        }
+        return outputFromServlet;
+    }
 
 	/**
 	 * Method declaration
@@ -465,13 +478,13 @@ public class PantherServer {
             return (String[])serverOutput;
         }
         
-        public HashMap<String, Node> getNodes(String serverPath, String bookId) {
+        public DataTransferObj getNodes(String serverPath, String bookId) {
             server_status = "";
             Object serverOutput = sendAndReceiveZip(serverPath, ACTION_GET_NODES, bookId, null, null);
             if (null == serverOutput) {
                 System.out.println("Nodes information from server is null");
             }
-            return (HashMap<String, Node>)serverOutput;
+            return (DataTransferObj)serverOutput;
         }
         
         public String saveBook(String serverPath, SaveBookInfo sbi) {

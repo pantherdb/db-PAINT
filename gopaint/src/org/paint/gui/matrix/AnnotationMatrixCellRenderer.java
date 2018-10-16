@@ -28,6 +28,9 @@ public class AnnotationMatrixCellRenderer extends JLabel implements TableCellRen
     public static final String STR_BRACKET_START = "(";
     public static final String STR_BRACKET_END = ")";
     public static final String STR_COMMA = ",";
+    public static final String STR_ROW = "Row ";
+    public static final String STR_COL = " Col ";
+    public static final String STR_SPACE = " ";
     
     private static final Color PAINT_COLOR_EXP = Preferences.inst().getExpPaintColor();//new Color(16, 128, 64);
 //    private static final Color curatedPaintColor = new Color(255, 127, 0);
@@ -41,6 +44,8 @@ public class AnnotationMatrixCellRenderer extends JLabel implements TableCellRen
     Color backgroundColor;
     String label;
     GeneNode node;
+    int row;
+    int column;
     
     public AnnotationMatrixCellRenderer() {
 		setText("");
@@ -61,10 +66,18 @@ public class AnnotationMatrixCellRenderer extends JLabel implements TableCellRen
         backgroundColor = null;
         label = null;
         node = null;
+        this.row = row;
+        this.column = column;
                 
         AnnotationMatrix annot_table = (AnnotationMatrix) table;
         AnnotationMatrixModel model = (AnnotationMatrixModel) table.getModel();
         nodeInfo = (NodeInfoForMatrix) value;
+        if (null == nodeInfo) {
+            System.out.println("Could not find cell Renderer component for row " + row + " column " + column);
+            Exception e = new Exception();
+            e.printStackTrace();
+            return null;
+        }
         node = nodeInfo.getgNode();
         if (node.isSelected() || annot_table.getSelectedColumn() == column) {
             selected = true;
@@ -86,32 +99,32 @@ public class AnnotationMatrixCellRenderer extends JLabel implements TableCellRen
         }
         // Handle no annotations
         if (false == nodeInfo.isExpBackground() && false == nodeInfo.isNonExpBackground()) {
-            String tooltip = nodeInfo.getgTerm().getName();
+            String tooltip = nodeInfo.getgTerm().getName() + STR_BRACKET_START + nodeInfo.getgTerm().getAcc() + STR_BRACKET_END;
             if (null == tooltip || tooltip.isEmpty()) {
                 tooltip = nodeInfo.getgTerm().getAcc();
             }
-            setToolTipText(tooltip);
+            setToolTipText(STR_ROW + (this.row + 1)  + STR_COL + (this.column + 1) + STR_SPACE + tooltip);
             return this;
         }
         else if (true == nodeInfo.isExpBackground()) {
             // Experimental evidence
             backgroundColor = PAINT_COLOR_EXP;
-            String termStr = nodeInfo.getgTerm().getName();
+            String termStr = nodeInfo.getgTerm().getName() + STR_BRACKET_START + nodeInfo.getgTerm().getAcc() + STR_BRACKET_END;
             if (null == termStr || termStr.isEmpty()) {
                 termStr = nodeInfo.getgTerm().getAcc();
             }
-            setToolTipText(node.getNodeLabel() + "(" + node.getNode().getStaticInfo().getNodeAcc() + " " +  node.getNode().getStaticInfo().getPublicId() + ") " + termStr + " " + getQualifierString(nodeInfo.getqSet()));
+            setToolTipText(STR_ROW + (this.row + 1)  + STR_COL + (this.column + 1) + STR_SPACE + node.getNodeLabel() + STR_BRACKET_START + node.getNode().getStaticInfo().getNodeAcc() + STR_SPACE +  node.getNode().getStaticInfo().getPublicId() + STR_BRACKET_END + STR_SPACE + termStr + STR_SPACE + getQualifierString(nodeInfo.getqSet()));
             return this;
             
         }
         else if (false == nodeInfo.isExpBackground() && true == nodeInfo.isNonExpBackground()) {
             backgroundColor = PAINT_COLOR_INFER;
         
-            String termStr = nodeInfo.getgTerm().getName();
+            String termStr = nodeInfo.getgTerm().getName() + STR_BRACKET_START + nodeInfo.getgTerm().getAcc() + STR_BRACKET_END;
             if (null == termStr || termStr.isEmpty()) {
                 termStr = nodeInfo.getgTerm().getAcc();
             }
-            setToolTipText(node.getNodeLabel() + "(" + node.getNode().getStaticInfo().getNodeAcc() + " " +  node.getNode().getStaticInfo().getPublicId() + ") " + termStr + " " + getQualifierString(nodeInfo.getNonQset()));
+            setToolTipText(STR_ROW + (this.row + 1) + STR_COL + (this.column + 1) + STR_SPACE + node.getNodeLabel() + STR_BRACKET_START + node.getNode().getStaticInfo().getNodeAcc() + STR_SPACE +  node.getNode().getStaticInfo().getPublicId() + STR_BRACKET_END + STR_SPACE + termStr + STR_SPACE + getQualifierString(nodeInfo.getNonQset()));
             return this;
         }
         return this;

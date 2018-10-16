@@ -1,5 +1,5 @@
 /**
- *  Copyright 2016 University Of Southern California
+ *  Copyright 2017 University Of Southern California
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -23,10 +23,82 @@ import java.util.Set;
 
 public class AnnotationDetail implements Serializable {
     private Node annotatedNode;
+
+    private HashSet<WithEvidence> withEvidenceAnnotSet;
+    private HashSet<WithEvidence> withEvidenceNodeSet;
+    private HashSet<WithEvidence> withEvidenceDBRefSet;    
+    
+    
+//    private HashSet<WithEvidence> withSet;
+    
+    
+    public void addWithEvidence(WithEvidence we) {
+        if (null == we) {
+            return;
+        }
+        IWith with = we.getWith();
+        if (with instanceof Annotation) {
+            if (null == withEvidenceAnnotSet) {
+                withEvidenceAnnotSet = new HashSet<WithEvidence>();
+                withEvidenceAnnotSet.add(we);
+                return;
+            }
+            boolean found = false;
+            for (WithEvidence cur: withEvidenceAnnotSet) {
+                if (true == cur.equals(we)) {
+                    found = true;
+                    break;
+                }
+            }
+            if (false == found) {
+                withEvidenceAnnotSet.add(we);
+            }
+            return;
+        }
+        else if (with instanceof DBReference) {
+            if (null ==  withEvidenceDBRefSet) {
+                withEvidenceDBRefSet = new HashSet<WithEvidence>();
+                withEvidenceDBRefSet.add(we);
+                return;
+            }
+            boolean found = false;
+            for (WithEvidence cur: withEvidenceDBRefSet) {
+                if (true == cur.equals(we)) {
+                    found = true;
+                    break;
+                }
+            }
+            if (false == found) {
+                withEvidenceDBRefSet.add(we);
+            }
+            return;
+        }
+        else if (with instanceof Node) {
+            if (null == withEvidenceNodeSet) {
+                withEvidenceNodeSet = new HashSet<WithEvidence>();
+                withEvidenceNodeSet.add(we);
+                return;
+            }
+            boolean found = false;
+            for (WithEvidence cur: withEvidenceNodeSet) {
+                if (true == cur.equals(we)) {
+                    found = true;
+                    break;
+                }
+            }
+            if (false == found) {
+                withEvidenceNodeSet.add(we);
+            }
+        }
+    }
+    
+
     
     private HashSet<Annotation> withAnnotSet;
     private HashSet<Node> withNodeSet;      // PANTHER node     // IKR, IRD
     private HashSet<DBReference> withOtherSet;          // PMID, etc
+
+
     
     // Qualifier value calculated as follows:
     // First go through items from inheritedQualifierLookup
@@ -105,10 +177,32 @@ public class AnnotationDetail implements Serializable {
             }
         }
     }
-
-    public HashSet<Annotation> getWithAnnotSet() {
-        return withAnnotSet;
+    
+    public HashSet<WithEvidence> getWithEvidenceSet() {
+        HashSet<WithEvidence> withEvSet = new HashSet<WithEvidence>();
+        if (null != withEvidenceAnnotSet) {
+            withEvSet.addAll(withEvidenceAnnotSet);
+        }
+        if (null != withEvidenceNodeSet) {
+            withEvSet.addAll(withEvidenceNodeSet);
+        }
+        if (null != withEvidenceDBRefSet) {
+            withEvSet.addAll(withEvidenceDBRefSet);
+        }        
+        if (withEvSet.isEmpty()) {
+            return null;
+        }
+        return withEvSet;
     }
+//    
+//    public void setWithEvidenceSet(HashSet<WithEvidence> withEvidenceSet) {
+//        this.withSet = withEvidenceSet;
+//    }
+    
+
+//    public HashSet<Annotation> getWithAnnotSet() {
+//        return withAnnotSet;
+//    }
 
     public void setWithAnnotSet(HashSet<Annotation> withAnnotSet) {
         this.withAnnotSet = withAnnotSet;
@@ -124,9 +218,9 @@ public class AnnotationDetail implements Serializable {
         withAnnotSet.add(a);
     }
 
-    public HashSet<Node> getWithNodeSet() {
-        return withNodeSet;
-    }
+//    public HashSet<Node> getWithNodeSet() {
+//        return withNodeSet;
+//    }
 
     public void setWithNodeSet(HashSet<Node> withNodeSet) {
         this.withNodeSet = withNodeSet;
@@ -142,9 +236,9 @@ public class AnnotationDetail implements Serializable {
         withNodeSet.add(n);
     }
 
-    public HashSet<DBReference> getWithOtherSet() {
-        return withOtherSet;
-    }
+//    public HashSet<DBReference> getWithOtherSet() {
+//        return withOtherSet;
+//    }
 
     public void setWithOtherSet(HashSet<DBReference> withOtherSet) {
         this.withOtherSet = withOtherSet;
@@ -218,11 +312,16 @@ public class AnnotationDetail implements Serializable {
     // Use Annotation class to remove with annotation.  This will handle the qualifiers
     protected Annotation removeWithAnnotation(Annotation with) {
         Annotation removedAnnot = null;
-        if (null != withAnnotSet) {
-            if (true == withAnnotSet.remove(with)) {
-                removedAnnot = with;
+        if (null != withEvidenceAnnotSet) {
+            for (Iterator<WithEvidence> weIter = withEvidenceAnnotSet.iterator();  weIter.hasNext();) {
+                Annotation a = (Annotation)weIter.next().getWith();
+                if (with == a) {
+                    removedAnnot = a;
+                    weIter.remove();
+                }
             }
-            if (withAnnotSet.isEmpty()) {
+            
+            if (withEvidenceAnnotSet.isEmpty()) {
                 withAnnotSet = null;
             }
         }
@@ -259,6 +358,83 @@ public class AnnotationDetail implements Serializable {
         }        
         
         return returnAnnot;
+    } 
+
+    public HashSet<WithEvidence> getWithEvidenceAnnotSet() {
+        return withEvidenceAnnotSet;
+    }
+
+    public void setWithEvidenceAnnotSet(HashSet<WithEvidence> withEvidenceAnnotSet) {
+        this.withEvidenceAnnotSet = withEvidenceAnnotSet;
+    }
+    
+    public HashSet<Annotation> getWithAnnotSet() {
+        if (null == withEvidenceAnnotSet) {
+            return null;
+        }
+        HashSet<Annotation> rtnSet = new HashSet<Annotation>();
+        for (WithEvidence we: withEvidenceAnnotSet) {
+            rtnSet.add((Annotation)we.getWith());
+        }
+        return rtnSet;
+    }
+
+    public HashSet<WithEvidence> getWithEvidenceNodeSet() {
+        return withEvidenceNodeSet;
+    }
+
+    public void setWithEvidenceNodeSet(HashSet<WithEvidence> withEvidenceNodeSet) {
+        this.withEvidenceNodeSet = withEvidenceNodeSet;
+    }
+    
+    public HashSet<Node> getWithNodeSet() {
+        if (null == withEvidenceNodeSet) {
+            return null;
+        }
+        HashSet<Node> rtnSet = new HashSet<Node>();
+        for (WithEvidence we: withEvidenceNodeSet) {
+            rtnSet.add((Node)we.getWith());
+        }
+        return rtnSet;        
+    }
+
+    public HashSet<WithEvidence> getWithEvidenceDBRefSet() {
+        return withEvidenceDBRefSet;
+    }
+
+    public void setWithEvidenceDBRefSet(HashSet<WithEvidence> withEvidenceDBRefSet) {
+        this.withEvidenceDBRefSet = withEvidenceDBRefSet;
+    }
+    
+    
+    public HashSet<DBReference> getWithOtherSet() {
+        if (null == withEvidenceDBRefSet) {
+            return null;
+        }
+        HashSet<DBReference> rtnSet = new HashSet<DBReference>();
+        for (WithEvidence we: withEvidenceDBRefSet) {
+            rtnSet.add((DBReference)we.getWith());
+        }
+        return rtnSet;        
+    }
+    
+    public HashSet<String> getEvidenceCodes() {
+        HashSet<String> rtnCodes = new HashSet<String>();
+        addEvidenceCode(rtnCodes, withEvidenceAnnotSet);
+        addEvidenceCode(rtnCodes, withEvidenceNodeSet);
+        addEvidenceCode(rtnCodes, withEvidenceDBRefSet);        
+        return rtnCodes;
+    }
+    
+    private static void addEvidenceCode(HashSet<String> codeSet, HashSet<WithEvidence> evdnceSet) {
+        if (null == codeSet || null == evdnceSet) {
+            return;
+        }
+        for (WithEvidence we: evdnceSet) {
+            if (null != we.getEvidenceCode()) {
+                codeSet.add(we.getEvidenceCode());
+            }
+        }
     } 
     
     

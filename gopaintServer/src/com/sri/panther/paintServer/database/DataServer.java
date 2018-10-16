@@ -160,13 +160,14 @@ public class DataServer{
   
 
   
-  protected static final String CURATION_STATUS_CHECKOUT = "panther_check_out";
+    protected static final String CURATION_STATUS_CHECKOUT = "panther_check_out";
     protected static final String CURATION_STATUS_NOT_CURATED = "panther_not_curated";
-    protected static final String CURATION_STATUS_AUTOMATICALLY_CURATED = "panther_automatically_curated";   
-  protected static final String CURATION_STATUS_MANUALLY_CURATED = "panther_manually_curated";
+    protected static final String CURATION_STATUS_AUTOMATICALLY_CURATED = "panther_automatically_curated";
+    protected static final String CURATION_STATUS_MANUALLY_CURATED = "panther_manually_curated";
     protected static final String CURATION_STATUS_REVIEWED = "panther_curation_reviewed";
     protected static final String CURATION_STATUS_QAED = "panther_curation_QAed";
-  protected static final String CURATION_STATUS_PARTIALLY_CURATED = "panther_partially_curated";
+    protected static final String CURATION_STATUS_PARTIALLY_CURATED = "panther_partially_curated";
+    protected static final String CURATION_STATUS_REQUIRE_PAINT_REVIEW = "go_require_paint_review";
   
   protected static final String LEVEL_FAMILY = "_famLevel";
   protected static final String LEVEL_SUBFAMILY = "_subfamLevel";
@@ -11968,6 +11969,9 @@ public class DataServer{
       else if (true == curationStatusId.equals(ConfigFile.getProperty(CURATION_STATUS_PARTIALLY_CURATED))) {
           return Book.CURATION_STATUS_PARTIALLY_CURATED;
       }
+      else if (true == curationStatusId.equals(ConfigFile.getProperty(CURATION_STATUS_REQUIRE_PAINT_REVIEW))) {
+          return Book.CURATION_STATUS_REQUIRE_PAINT_REVIEW;
+      }      
       return Book.CURATION_STATUS_UNKNOWN;
       
   }
@@ -12935,6 +12939,143 @@ public class DataServer{
           System.out.println(treeStr[i]);
       }
   }
+//    Hashtable<String, Hashtable<String, Evidence>> annotationsTbl = ds.getAnnotations("PTHR10024", "13");
+//
+//    Enumeration <String> ids = annotationsTbl.keys();
+//    while (ids.hasMoreElements()) {
+//        String id = ids.nextElement();
+//        System.out.println("Processing id " + id);
+//        Hashtable<String, Evidence> evidenceTbl = annotationsTbl.get(id);
+//        Enumeration <Evidence> evidenceEnum = evidenceTbl.elements();
+//        while (evidenceEnum.hasMoreElements()) {
+//            Evidence e = evidenceEnum.nextElement();
+//            System.out.println(e.getAccession() + " " + e.getType());
+//        }
+//    }
+//  ds.getAllBooks("11");
+//  Hashtable annotTbl = ds.getAnnotations("PTHR10000", "11");
+//  ds.formatAnnotIdForTbl(annotTbl);
+//  Vector<Annotation> annotList = ds.getAnnotationsForBook("11", "PTHR10003");
+//  for (int i = 0; i < annotList.size(); i++) {
+//      Annotation a = annotList.get(i);
+//      System.out.println(a.getAnnotId() + " " + a.getNodeId() + " " + a.getClsId() + " " + a.getAnnotTypeId());
+//  }
+//  System.out.println(ds.getNotQualifierId().intValue());
+  
+//  DataServer ds = new DataServer("dev_3_panther_upl");
+//  Vector books = new Vector(2);
+//  books.add("PTHR10000");
+//  books.add("PTHR10010");
+//  Vector ids = ds.getClsIdsForBooksToLock("8", books);
+//  if (null != ids) {
+//    for (int i = 0; i < ids.size(); i++) {
+//      System.out.println((String)ids.elementAt(i));
+//    }
+//  }
+//   Vector books = new Vector();
+//   books.add("PTHR10000");
+//   books.add("PTHR10010");
+    
+
+
+//    DataServer ds = new DataServer("dev_3_panther_upl");
+//    Vector v = ds.searchBooksByGeneSymbol("YW", "8");
+//    ds.searchBooksByGenePrimaryExtAcc("ENTREZ|419190|CHICK", "8");
+//      Vector v = ds.searchBooksByProteinPrimaryExtId("9LS3", "8");
+//      Vector v = ds.searchBooksByDefinition("phos", "9");
+//      if (null != v) {
+//          for (int i = 0; i < v.size(); i++) {
+//              System.out.println(((Book)v.elementAt(i)).getId());
+//          }
+//      }
+
+//    PANTHERTree theTREE = ds.getPANTHERTree("11", "PTHR10003");
+
+//    Hashtable identTbl = ds.getIdentifiers("PTHR10000", "3, 12", "11");
+//    if (null != identTbl) {
+//        System.out.println("Here");
+//    }
+
+//    Hashtable clsInfo = ds.getAnnotations("PTHR10003", "11");
+//    if (null != clsInfo) {
+//        System.out.println("Here");
+//    }
+
+//    Vector v = (Vector)ds.getClsHierarchyData("11", true);
+//    Classification root = Classification.parseClassificationData(v);
+//    System.out.println("Num in vector is " + v.size() + " " + root.getName());
+//    for (int i = 0; i < v.size(); i++)  {
+//      System.out.println((String)v.elementAt(i));
+//    }
+//    
+//    
+//    Hashtable<String, Integer> accClsId = (Hashtable<String, Integer>) ds.getClsHierarchyData("11",false);
+//      System.out.println("Num in hash is " + accClsId.size());
+//    Enumeration <String> accEnum = accClsId.keys();
+//    while (accEnum.hasMoreElements()) {
+//        String acc = accEnum.nextElement();
+//        System.out.println(acc + " " + accClsId.get(acc));
+//    }
+    
+    
+//    String treeStr[] = ds.getTree("PTHR10000", "11");
+//    if (null != treeStr) {
+//      for (int j = 0; j < treeStr.length; j++) {
+//        System.out.print(treeStr[j]);
+//      }
+//    }
+//    
+//
+    Vector<String[]> v =  ds.getAttrTableAndSfInfo("PTHR10000", "14",  "10001", "sim1001","bla bla");
+    String s[] = v.get(ds.INDEX_ATTR_METHOD_ATTR_TBL);
+    if (null != s) {
+      for (int i = 0; i < s.length; i++) {
+        System.out.print(s[i]);
+      }
+    }
+    ds.getAnnotations("PTHR10000", "14");
+    
+    
+//    System.out.println("Attr table for PTHR23422");
+//    String s[] = ds.getAttrTable("PTHR23422", "8",  "4");
+//    if (null != s) {
+//      for (int i = 0; i < s.length; i++) {
+//        System.out.print(s[i]);
+//      }
+//    }
+
+
+//    Hashtable<String, Vector<Evidence>> goAnnotTbl = ds.getGOAnnotation("PTHR10000", "10");
+//    System.out.println("Done");
+
+    // getPreviousSfNameCat("2", "CF10001", "MF,BP");
+    // String famName = getFamilyName("CF10000", "2");
+    // System.out.println(famName);
+    // System.out.println(famid);
+    // initCatLookup();
+    // if (null != clsTypeIdToCatId) {
+    // Enumeration clsTypes = clsTypeIdToCatId.keys();
+    // while (clsTypes.hasMoreElements()) {
+    // String key = (String)clsTypes.nextElement();
+    // Hashtable current = (Hashtable)clsTypeIdToCatId.get(key);
+    // Enumeration accs = current.keys();
+    // while (accs.hasMoreElements()) {
+    // String accession = (String)accs.nextElement();
+    // System.out.println(accession + " " + current.get(accession));
+    // }
+    // }
+    // }
+    // getClsLookup();
+    // getClsHierarchyData("1");
+    // String[] tree = DataServer.getTree("CF11775", "1");
+    // if (null == tree) {
+    // System.out.println("No tree has been returned");
+    // }
+    // else {
+    // for (int i = 0; i < tree.length; i++) {
+    // System.out.println(tree[i]);
+    // }
+    // }
 
   }
 

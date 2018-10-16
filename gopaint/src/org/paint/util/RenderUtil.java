@@ -181,14 +181,14 @@ public class RenderUtil {
 //                                System.out.println("This is null");
 //                            }
                             if (true == go_aspect.equals(gth.getTerm(annot.getGoTerm()).getAspect())) {
-                                if (true == annot.getEvidence().isExperimental()) {
+                                if (true == annot.isExperimental()) {
                                     foundExp = true;
                                     break;
                                 }
                                 else {
                                     foundNonExp = true;
                                 }
-                                String code = annot.getEvidence().getEvidenceCode();
+                                String code = annot.getSingleEvidenceCodeFromSet();
                                 if (true == Evidence.CODE_IBD.equals(code) || true == Evidence.CODE_IKR.equals(code) || true == Evidence.CODE_IRD.equals(code)) {
                                     foundCurated = true;
                                 }

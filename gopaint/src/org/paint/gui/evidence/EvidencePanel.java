@@ -1,6 +1,6 @@
 /* 
  * 
- * Copyright (c) 2010, Regents of the University of California 
+ * Copyright (c) 2018, Regents of the University of California 
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
@@ -27,7 +27,7 @@ import edu.usc.ksom.pm.panther.paintCommon.GOTerm;
 import edu.usc.ksom.pm.panther.paintCommon.GOTermHelper;
 import edu.usc.ksom.pm.panther.paintCommon.Node;
 import edu.usc.ksom.pm.panther.paintCommon.Qualifier;
-import com.sri.panther.paintCommon.util.QualifierDif;
+import edu.usc.ksom.pm.panther.paintCommon.QualifierDif;;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Component;
@@ -347,13 +347,13 @@ public class EvidencePanel  extends AbstractPaintGUIComponent implements
             String publicId = a.getAnnotationDetail().getAnnotatedNode().getStaticInfo().getPublicId();
 
             GeneNode gn = pm.getGeneByPTNId(publicId);
-            if (true == Evidence.CODE_IBD.equals(a.getEvidence().getEvidenceCode()) && false == GeneNodeUtil.isTermValidForNode(gn, term.getAcc())) {
+            if (true == Evidence.CODE_IBD.equals(a.getSingleEvidenceCodeFromSet()) && false == GeneNodeUtil.isTermValidForNode(gn, term.getAcc())) {
                 if (0 != warningBuf.length()) {
                     warningBuf.append(Constant.STR_NEWLINE);
                 }
                 warningBuf.append(gn.getNodeLabel() + publicId + " annotated to term " + term.getName() + Constant.STR_BRACKET_ROUND_OPEN + term.getAcc() + Constant.STR_BRACKET_ROUND_CLOSE + " violates taxonomy constraint");
             }            
-            sb.append(gn.getNodeLabel() + publicId + Constant.STR_TAB + a.getEvidence().getEvidenceCode() + Constant.STR_TAB + term.getName() + Constant.STR_BRACKET_ROUND_OPEN + term.getAcc() + Constant.STR_BRACKET_ROUND_CLOSE);
+            sb.append(gn.getNodeLabel() + publicId + Constant.STR_TAB + a.getSingleEvidenceCodeFromSet() + Constant.STR_TAB + term.getName() + Constant.STR_BRACKET_ROUND_OPEN + term.getAcc() + Constant.STR_BRACKET_ROUND_CLOSE);
             if (true == QualifierDif.containsNegative(a.getQualifierSet())) {
                 sb.append(Constant.STR_TAB);
                 sb.append(Qualifier.QUALIFIER_NOT);

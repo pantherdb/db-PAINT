@@ -1,5 +1,5 @@
 /**
- *  Copyright 2016 University Of Southern California
+ *  Copyright 2018 University Of Southern California
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -15,13 +15,13 @@
  */
 package edu.usc.ksom.pm.panther.paint.annotation;
 
-import com.sri.panther.paintCommon.util.QualifierDif;
 import edu.usc.ksom.pm.panther.paintCommon.Annotation;
 import edu.usc.ksom.pm.panther.paintCommon.GOTerm;
 import edu.usc.ksom.pm.panther.paintCommon.GOTermHelper;
 import edu.usc.ksom.pm.panther.paintCommon.Node;
 import edu.usc.ksom.pm.panther.paintCommon.NodeVariableInfo;
 import edu.usc.ksom.pm.panther.paintCommon.Qualifier;
+import edu.usc.ksom.pm.panther.paintCommon.QualifierDif;
 import java.util.ArrayList;
 import java.util.HashSet;
 import org.paint.datamodel.GeneNode;
@@ -60,6 +60,9 @@ public class AnnotationForTerm {
         HashSet<Annotation> handledSet = new HashSet<Annotation>();
         ArrayList<GOTerm> notAncestors = gth.getAncestors(gTerm);
         for (Annotation a: annotList) {
+            if (false == a.isExperimental()) {
+                continue;
+            }
             boolean not = QualifierDif.containsNegative(a.getQualifierSet());
             if (false == not) {
                 continue;
@@ -68,10 +71,6 @@ public class AnnotationForTerm {
             String curTerm = a.getGoTerm();
             GOTerm cGOTerm = gth.getTerm(curTerm);            
             if (notAncestors.contains(cGOTerm) || cGOTerm.equals(gTerm)) {
-                boolean experimental = a.getEvidence().isExperimental();
-                if (false == experimental) {
-                    continue;
-                }
                 annotSet.add(a);
                 QualifierDif.addIfNotPresent(qSet, a.getQualifierSet());                       
             }       
@@ -79,10 +78,10 @@ public class AnnotationForTerm {
 
         // Then the others
         for (Annotation a: annotList) {
-            if (handledSet.contains(a)) {
+            if (false == a.isExperimental()) {
                 continue;
             }
-            if (false == a.getEvidence().isExperimental()) {
+            if (handledSet.contains(a)) {
                 continue;
             }
             String curTerm = a.getGoTerm();
@@ -90,7 +89,14 @@ public class AnnotationForTerm {
             ArrayList<GOTerm> ancestors = gth.getAncestors(cGOTerm);
             if (ancestors.contains(gTerm) || cGOTerm.equals(gTerm)) {
                 annotSet.add(a);
-                QualifierDif.addIfNotPresent(qSet, a.getQualifierSet());                                     
+                HashSet<Qualifier> curSet = a.getQualifierSet();
+                if (null != curSet) {
+                    for (Qualifier q: curSet) {
+                        if (true == gth.isQualifierValidForTerm(gTerm, q)) {
+                            QualifierDif.addIfNotPresent(qSet, q);  
+                        }
+                    }
+                }
             }       
         }
         if (qSet.isEmpty()) {

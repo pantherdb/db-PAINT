@@ -1,3 +1,18 @@
+/**
+ * Copyright 2018 University Of Southern California
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not
+ * use this file except in compliance with the License. You may obtain a copy of
+ * the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations under
+ * the License.
+ */
 package com.usc.panther.paintServer.webservices;
 
 import com.sri.panther.paintServer.util.ConfigFile;
@@ -47,6 +62,9 @@ public class WSConstants {
     public static final String SEARCH_TYPE_FAMILY_STRUCTURE_DIRECT_ANNOTATIONS = "SEARCH_TYPE_FAMILY_STRUCTURE_DIRECT_ANNOTATIONS";
     public static final String SEARCH_TYPE_FAMILY_STRUCTURE_ALL_ANNOTATIONS = "SEARCH_TYPE_FAMILY_STRUCTURE_ALL_ANNOTATIONS";    
     public static final String SEARCH_TYPE_FAMILY_COMMENT = "SEARCH_TYPE_FAMILY_COMMENT";
+    public static final String SEARCH_TYPE_FAMILY_ANNOTATION_INFO = "SEARCH_TYPE_FAMILY_ANNOTATION_INFO";
+    public static final String SEARCH_TYPE_AGG_FAMILY_ANNOTATION_INFO = "SEARCH_TYPE_AGG_FAMILY_ANNOTATION_INFO";
+    public static final String SEARCH_TYPE_FAMILY_EVIDENCE_INFO = "SEARCH_TYPE_FAMILY_OTHER_EVIDENCE";
     
     public static final String SEARCH_TYPE_TREE = "SEARCH_TYPE_TREE";
     public static final String SEARCH_TYPE_MSA_INFO = "SEARCH_TYPE_MSA_INFO";

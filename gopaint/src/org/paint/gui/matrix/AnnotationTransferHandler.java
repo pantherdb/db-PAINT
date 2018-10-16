@@ -88,68 +88,69 @@ public class AnnotationTransferHandler extends TransferHandler {
 
 	@Override
 	public boolean canImport(TransferHandler.TransferSupport support) {
-		boolean canImport = false;
-		String because = null;
-		TreePanel tree = null;
-
-		if (support.isDrop() 
-				&& support.isDataFlavorSupported(TERM_FLAVOR) 
-				&& support.getComponent() instanceof TreePanel) {
-			canImport = true;
-			tree = (TreePanel) support.getComponent();
-		}			
-
-		GeneNode node = null;
-		if (canImport && tree != null) {
-			Point p = support.getDropLocation().getDropPoint();
-			if (!tree.pointInNode(p)) {
-				canImport = false;
-			}
-			node = tree.getClickedInNodeArea(p);
-			if (node != null) {
-				if (node.isLeaf()) {
-					canImport = false;
-				}
-				else {
-					try {
-						because = PaintAction.inst().isValidTerm((Term)support.getTransferable().getTransferData(TERM_FLAVOR), node);
-						if (because != null)  {
-							canImport = false;
-						}
-					} catch (UnsupportedFlavorException e) {
-						canImport = false;
-					} catch (IOException e) {
-						canImport = false;
-					}
-				}
-			}
-		}
-		clearVisitedNodes(tree);
-
-		if (tree != null) {
-			String drop_label = null;
-			if (node != null) {
-				visitedNodes.add(node);
-				if (canImport) {
-					node.setDropColor(Color.BLACK);
-					drop_label = node.getDatabaseID();
-				}
-				else {
-					node.setDropColor(Color.RED);
-					if (because != null)
-						drop_label = node.getDatabaseID() + " " + because;
-				}
-				tree.repaint();
-			}
-
-			Point dropPoint = support.getDropLocation().getDropPoint();
-			dropPoint.x += 10;
-			dropPoint.y += 2;
-
-			tree.setDropInfo(node, dropPoint, drop_label);
-		}
-
-		return canImport;
+            return false;
+//		boolean canImport = false;
+//		String because = null;
+//		TreePanel tree = null;
+//
+//		if (support.isDrop() 
+//				&& support.isDataFlavorSupported(TERM_FLAVOR) 
+//				&& support.getComponent() instanceof TreePanel) {
+//			canImport = true;
+//			tree = (TreePanel) support.getComponent();
+//		}			
+//
+//		GeneNode node = null;
+//		if (canImport && tree != null) {
+//			Point p = support.getDropLocation().getDropPoint();
+//			if (!tree.pointInNode(p)) {
+//				canImport = false;
+//			}
+//			node = tree.getClickedInNodeArea(p);
+//			if (node != null) {
+//				if (node.isLeaf()) {
+//					canImport = false;
+//				}
+//				else {
+//					try {
+//						because = PaintAction.inst().isValidTerm((Term)support.getTransferable().getTransferData(TERM_FLAVOR), node);
+//						if (because != null)  {
+//							canImport = false;
+//						}
+//					} catch (UnsupportedFlavorException e) {
+//						canImport = false;
+//					} catch (IOException e) {
+//						canImport = false;
+//					}
+//				}
+//			}
+//		}
+//		clearVisitedNodes(tree);
+//
+//		if (tree != null) {
+//			String drop_label = null;
+//			if (node != null) {
+//				visitedNodes.add(node);
+//				if (canImport) {
+//					node.setDropColor(Color.BLACK);
+//					drop_label = node.getDatabaseID();
+//				}
+//				else {
+//					node.setDropColor(Color.RED);
+//					if (because != null)
+//						drop_label = node.getDatabaseID() + " " + because;
+//				}
+//				tree.repaint();
+//			}
+//
+//			Point dropPoint = support.getDropLocation().getDropPoint();
+//			dropPoint.x += 10;
+//			dropPoint.y += 2;
+//
+//			tree.setDropInfo(node, dropPoint, drop_label);
+//		}
+//
+//		return canImport;
 	}
 
 	private void clearVisitedNodes(TreePanel tree) {
@@ -232,31 +233,32 @@ public class AnnotationTransferHandler extends TransferHandler {
 
 	@Override
 	public boolean importData(TransferHandler.TransferSupport support) {
-		Term term = null;
-		TreePanel tree = null;
-		try {
-			term = (Term)support.getTransferable().getTransferData(TERM_FLAVOR);
-		} catch (UnsupportedFlavorException e) {
-			return false;
-		} catch (IOException e) {
-			return false;
-		}
-		if (support.getComponent() instanceof TreePanel) {
-			tree = (TreePanel) support.getComponent();
-		}
-		Point p = support.getDropLocation().getDropPoint();
-		GeneNode node = tree.getClickedInNodeArea(p);
-
-		PaintAction.inst().propagateAssociation(node, term); 
-
-		clearVisitedNodes(tree);
-
-		List<LinkedObject> terms = new LinkedList<LinkedObject>();
-		LinkDatabase goRoot = PaintManager.inst().getGoRoot().getLinkDatabase();
-		LinkedObject oboTerm = (LinkedObject) GO_Util.inst().getObject(goRoot, term.getAcc());
-		terms.add(oboTerm);
-
-		return true;
+            return true;
+//		Term term = null;
+//		TreePanel tree = null;
+//		try {
+//			term = (Term)support.getTransferable().getTransferData(TERM_FLAVOR);
+//		} catch (UnsupportedFlavorException e) {
+//			return false;
+//		} catch (IOException e) {
+//			return false;
+//		}
+//		if (support.getComponent() instanceof TreePanel) {
+//			tree = (TreePanel) support.getComponent();
+//		}
+//		Point p = support.getDropLocation().getDropPoint();
+//		GeneNode node = tree.getClickedInNodeArea(p);
+//
+//		PaintAction.inst().propagateAssociation(node, term); 
+//
+//		clearVisitedNodes(tree);
+//
+//		List<LinkedObject> terms = new LinkedList<LinkedObject>();
+//		LinkDatabase goRoot = PaintManager.inst().getGoRoot().getLinkDatabase();
+//		LinkedObject oboTerm = (LinkedObject) GO_Util.inst().getObject(goRoot, term.getAcc());
+//		terms.add(oboTerm);
+//
+//		return true;
 	}
 
 	class AnnotationTransferable implements Transferable {

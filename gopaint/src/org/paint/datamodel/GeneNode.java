@@ -58,6 +58,9 @@ import edu.usc.ksom.pm.panther.paintCommon.GOTermHelper;
 import edu.usc.ksom.pm.panther.paintCommon.Node;
 import edu.usc.ksom.pm.panther.paintCommon.NodeStaticInfo;
 import edu.usc.ksom.pm.panther.paintCommon.NodeVariableInfo;
+import org.paint.gui.familytree.TreeModel;
+import org.paint.gui.familytree.TreeModel.TreeColorSchema;
+import org.paint.util.SpeciesClsColor;
 import org.paint.util.AnnotationUtil;
 
 public class GeneNode {
@@ -76,6 +79,7 @@ public class GeneNode {
 
     private static final String NODE_TYPE_DUPLICATION = "1>0";
     private static final String NODE_TYPE_HORIZONTAL_TRANSFER = "0>0";
+    private static final String STR_UNDERSCORE = "_";
 
     //Attributes
     private GeneNode parent = null;
@@ -132,6 +136,7 @@ public class GeneNode {
 
     private int depthInTree;
     private int dupColorIndex;
+    private String speciesClassification;
 
     private double sequenceWt = 0;
     private String hmm_seq;
@@ -192,7 +197,7 @@ public class GeneNode {
                 log.debug("Changing seq_id from " + this.seq_id + " to " + acc);
             }
             this.seq_id = acc;
-            PaintManager.inst().indexBySeqID(this);
+//            PaintManager.inst().indexBySeqID(this);
         }
     }
 
@@ -200,7 +205,7 @@ public class GeneNode {
         if (name != null && name.length() > 0 && id != null && id.length() > 0) {
             this.db = GO_Util.inst().dbNameHack(name);
             this.db_id = id;
-            PaintManager.inst().indexByDBID(this);
+//            PaintManager.inst().indexByDBID(this);
         }
     }
 
@@ -418,7 +423,13 @@ public class GeneNode {
                 s = "XXX-" + s;
                 g.setColor(Preferences.inst().getBackgroundColor());
             } else {
-                g.setColor(DuplicationColor.inst().getDupColor(getDupColorIndex()));
+                TreeColorSchema tcs = PaintManager.inst().getTree().getTreeModel().getTreeColorSchema();
+                if (TreeColorSchema.DUPLICATION == tcs) {
+                    g.setColor(DuplicationColor.inst().getDupColor(getDupColorIndex()));
+                }
+                else {
+                    g.setColor(SpeciesClsColor.getInst().getColorForSpecies(speciesClassification));
+                }
             }
             g.fillRect(x, p.y - GLYPH_RADIUS, viewport.width, GLYPH_DIAMETER * 2);
 
@@ -543,6 +554,41 @@ public class GeneNode {
         }
         return s;
     }
+    
+    public String getNodeLabelWithPTN() {
+        String s = null;
+        NodeStaticInfo nsi = node.getStaticInfo();
+        if (isLeaf()) {    
+            ArrayList<String> geneSymbols = nsi.getGeneSymbol();
+            if (null != geneSymbols && 0 < geneSymbols.size()) {
+                s = geneSymbols.get(0);
+            }
+            else {
+                String longGeneName = nsi.getLongGeneName();
+                if (null != longGeneName) {
+                    s = getGeneId();
+                }
+            }
+
+            String sp = takeFive();
+            if (sp.length() <= 5 && sp.length() > 0) {
+                s = takeFive() + STR_UNDERSCORE + s;
+            }
+        } else {
+            if (getSpeciesLabel().length() > 0) {
+                s = getSpeciesLabel() + STR_UNDERSCORE;
+            } else {
+                s = Constant.STR_EMPTY;
+            }
+        }
+        if (null == s) {
+            s = getDatabaseID();
+        }
+        if (s.isEmpty() || s.endsWith(STR_UNDERSCORE)) {
+            return s + nsi.getPublicId();
+        }
+        return s + STR_UNDERSCORE + nsi.getPublicId();
+    }    
 
     public void setNodeArea(double x, double y, double w, double h) {
         int x_spot = (int) Math.round(x);
@@ -581,6 +627,9 @@ public class GeneNode {
     }
     
     public String getSpecies() {
+            if (null != species && TreeModel.SPECIES_CLASSIFICATION.contains(species.toUpperCase())) {
+                System.out.println("HERE - Found " + species);
+            }        
         return species;
     }
     
@@ -602,6 +651,9 @@ public class GeneNode {
     public void addSpeciesLabel(String species) {
         species.trim();
         if (species != null && species.length() > 0) {
+            if (TreeModel.SPECIES_CLASSIFICATION.contains(species.toUpperCase())) {
+                System.out.println("HERE - Found " + species);
+            }
             if (species_labels == null) {
                 species_labels = new ArrayList<String>();
             }
@@ -1118,7 +1170,7 @@ public class GeneNode {
                 if (db == null || (db != null && db.length() == 0)) {
                     db = GOConstants.PANTHER_DB;
                     db_id = persistantNodeID;
-                    PaintManager.inst().indexByDBID(this);
+//                    PaintManager.inst().indexByDBID(this);
                 }
             } else {
                 if (this.persistantNodeID != null && (this.persistantNodeID.length() > 0)) {
@@ -1166,6 +1218,14 @@ public class GeneNode {
 
     public void setDupColorIndex(int sfColorIndex) {
         this.dupColorIndex = sfColorIndex;
+    }
+
+    public String getSpeciesClassification() {
+        return speciesClassification;
+    }
+
+    public void setSpeciesClassification(String speciesClassification) {
+        this.speciesClassification = speciesClassification;
     }
 
     public Node getNode() {

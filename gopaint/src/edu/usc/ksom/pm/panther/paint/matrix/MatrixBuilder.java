@@ -1,5 +1,5 @@
 /**
- *  Copyright 2016 University Of Southern California
+ *  Copyright 2018 University Of Southern California
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -18,6 +18,7 @@ package edu.usc.ksom.pm.panther.paint.matrix;
 import edu.usc.ksom.pm.panther.paintCommon.GOTermHelper;
 import java.util.ArrayList;
 import java.util.List;
+import org.paint.datamodel.Family;
 import org.paint.datamodel.GeneNode;
 import org.paint.gui.familytree.TreeModel;
 import org.paint.main.PaintManager;
@@ -39,10 +40,36 @@ public class MatrixBuilder {
         if (null == termAncestorList) {
             termAncestorList = new ArrayList<TermAncestor>();
         }
-        MatrixInfo mi = new MatrixInfo(gth, nodes, termAncestorList);
+        String familyId = null;
+        Family fam = pm.getFamily();
+        if (null != fam) {
+            familyId = fam.getFamilyID();
+        }
+        MatrixInfo mi = new MatrixInfo(gth, nodes, termAncestorList, familyId);
+//        System.out.println("Calculated matrix");
+        outputInfo(mi);
+        // Reorder according to previous ordering if possible
+        MatrixInfo previousMi = pm.getMatrixInnfo();
+        if (null == previousMi) {
+            pm.setMatrixInfo(mi);
+            return mi;
+        }
+        String previousFamId = previousMi.getFamilyId();
+        if (null != previousFamId && previousFamId.equals(familyId)) {
+//            System.out.println("Previous matrix");
+//            outputInfo(mi);            
+            MatrixInfo.reorderMatrix(previousMi, mi);
+//            System.out.println("after reorder matrix");
+//            outputInfo(mi);            
+        }
+        pm.setMatrixInfo(mi);
+        return mi;
+    }
+    
 
     
-        return mi;
+    public static void outputInfo(MatrixInfo mi) {
+//        mi.printInfo();
     }
     
 

@@ -1,12 +1,21 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
+/**
+ *  Copyright 2018 University Of Southern California
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing,
+ *  software distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
  */
-package com.sri.panther.paintCommon.util;
+package edu.usc.ksom.pm.panther.paintCommon;
 
 
-import edu.usc.ksom.pm.panther.paintCommon.Qualifier;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
@@ -17,14 +26,19 @@ import java.util.Set;
  */
 public class QualifierDif {
     public static final int QUALIFIERS_SAME = 0;
-    public static final int QUALIFIERS_DIFFERENT_WITHOUT_NOT = 1;
-    public static final int QUALIFIERS_DIFFERENT_ALL_NOT = 2;
-    public static final int QUALIFIERS_DIFFERENT_WITH_NOT_AND_OTHERS = 3;
+    public static final int QUALIFIERS_DIFFERENT = 1;
+//    public static final int QUALIFIERS_DIFFERENT_WITHOUT_NOT = 2;
+//    public static final int QUALIFIERS_DIFFERENT_ALL_NOT = 3;
+//    public static final int QUALIFIERS_DIFFERENT_WITH_NOT_AND_OTHERS = 4;
     
     private int difference;
     private HashSet<Qualifier> differentSet;
     
     public QualifierDif(HashSet<Qualifier> set1, HashSet<Qualifier> set2) {
+        if ((null == set1 && (null != set2 && 0 != set2.size())) || (null == set2 && (null != set1 && 0 != set1.size())) ) {
+            difference = QUALIFIERS_DIFFERENT;
+            return;
+        }
         // Empty or null
         if ((null == set1 && null == set2) || (null == set1 && 0 == set2.size()) || (0 == set1.size() && null == set2) ||(0 == set1.size() && 0 == set2.size())) {
             difference = QUALIFIERS_SAME;
@@ -46,15 +60,8 @@ public class QualifierDif {
             difference = QUALIFIERS_SAME;
             return;
         }
-        differentSet = new HashSet<Qualifier>();
         
-        for (Qualifier q: set1) {
-            addIfNotPresent(differentSet, q);
-        }
-        for (Qualifier q: set2) {
-            addIfNotPresent(differentSet, q);
-        }        
-        difference = calculateDifference();
+        difference = QUALIFIERS_DIFFERENT;
 
     }
 
@@ -115,14 +122,7 @@ public class QualifierDif {
         if (null == differentSet || 0 == differentSet.size()) {
             return QUALIFIERS_SAME;
         }
-        if (allPositive(differentSet)) {
-            return QUALIFIERS_DIFFERENT_WITHOUT_NOT;
-           
-        }
-            if (allNot(differentSet)) {
-                return QUALIFIERS_DIFFERENT_ALL_NOT;
-            }
-            return QUALIFIERS_DIFFERENT_WITH_NOT_AND_OTHERS;
+       return QUALIFIERS_DIFFERENT;
     }
     
     
@@ -171,6 +171,9 @@ public class QualifierDif {
     }
     
     public static Qualifier find(HashSet<Qualifier> set, Qualifier q) {
+        if (null == set || null == q) {
+            return null;
+        }
         String qText = q.getText();
         for (Qualifier listQualifier: set) {
             String curText = listQualifier.getText();
@@ -290,7 +293,7 @@ public class QualifierDif {
         return null;
     } 
     
-    public static boolean allQualifiersSame(HashSet<Qualifier> set1, HashSet<Qualifier> set2) {
+    public static boolean allQualifiersSame(Set<Qualifier> set1, Set<Qualifier> set2) {
         // Empty or null
         if ((null == set1 && null == set2) || ((null != set1 && 0 == set1.size()) && (null != set2 && 0 == set2.size()))) {
             return true;
@@ -299,7 +302,10 @@ public class QualifierDif {
         // Only one is null, then size of other should be zero
         if ((null == set1 && (null != set2 && 0 != set2.size())) || (null != set1 && (set1.size() != 0 && null == set2))) {
             return false;
-        }
+        }      
+        if ((null == set1 && (null != set2 && 0 == set2.size())) || (null != set1 && (set1.size() == 0 && null == set2))) {
+            return true;
+        }        
         
         // Sizes do not match
         if (set1.size() != set2.size()) {
@@ -307,7 +313,8 @@ public class QualifierDif {
         }
         
         // Handle case where there are duplicates
-        HashSet<Qualifier> copy2 = (HashSet<Qualifier>)set2.clone();
+        HashSet<Qualifier> copy2 = new HashSet<Qualifier>();
+        copy2.addAll(set2);
         for (Qualifier q1: set1) {
             boolean found = false;
             for (Iterator<Qualifier> q2Iter = copy2.iterator(); q2Iter.hasNext();) {

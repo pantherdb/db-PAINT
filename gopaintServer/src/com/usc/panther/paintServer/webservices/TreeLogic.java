@@ -1,3 +1,18 @@
+/**
+ *  Copyright 2018 University Of Southern California
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing,
+ *  software distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ */
 package com.usc.panther.paintServer.webservices;
 
 import com.sri.panther.paintCommon.util.Utils;
@@ -6,9 +21,9 @@ import com.sri.panther.paintServer.database.DataServer;
 import com.sri.panther.paintServer.database.DataServerManager;
 import com.sri.panther.paintServer.servlet.Client2Servlet;
 import com.sri.panther.paintServer.util.ConfigFile;
+import edu.usc.ksom.pm.panther.paintCommon.AnnotationNode;
 import edu.usc.ksom.pm.panther.paintCommon.Node;
 import java.util.HashMap;
-
 import java.util.Hashtable;
 import java.util.StringTokenizer;
 import java.util.Vector;
@@ -20,7 +35,7 @@ public class TreeLogic {
     protected AnnotationNode root;
     protected Hashtable<String, AnnotationNode> idToNodeTbl = new Hashtable<String, AnnotationNode>();
     public static final String ERROR_MSG_DATA_FOR_NON_AN =
-        "Found data for non-existant annotation node ";
+        "Found data for non-existent annotation node ";
     //public static final String UPL_VERSION = ConfigFile.getProperty("cls_version_sid");
     protected static final String DELIM_SEMI_COLON = ";";
     protected static final String DELIM_BRACKET_OPEN = "(";

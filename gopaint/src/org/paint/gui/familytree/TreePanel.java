@@ -100,7 +100,7 @@ TermSelectionListener,
 TermAncestorSelectionListener,
 AnnotationChangeListener, 
 AspectChangeListener, 
-AnnotationDragListener {
+AnnotationDragListener{
 	/**
 	 * 
 	 */
@@ -157,6 +157,7 @@ AnnotationDragListener {
                 manager.registerTermAncestorListener(this);
 		manager.registerCurationColorListener(this);
 
+
 		ToolTipManager.sharedInstance().registerComponent(this);
 	}
 
@@ -189,6 +190,14 @@ AnnotationDragListener {
 		} else
 			return null;
 	}
+        
+        public void updateColoring(TreeModel.TreeColorSchema colSchema) {
+            if (null == tree) {
+                return;
+            }
+            tree.setTreeColorSchema(colSchema);
+            repaint();
+        }
 
 	public void scaleTree(double scale){
 		if (tree != null) {
@@ -1098,7 +1107,7 @@ AnnotationDragListener {
 	public void handleCurationColorEvent(CurationColorEvent e) {
 		repaint();
 	}
-
+        
 	public boolean pointInNode(Point p) {
 		GeneNode current_root = getCurrentRoot();
 		if (null == getClicked(current_root, p)){

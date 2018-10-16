@@ -18,8 +18,10 @@ package com.sri.panther.paintCommon.util;
 
 
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Enumeration;
 import java.util.Hashtable;
+import java.util.Iterator;
 import java.util.Vector;
 
 import org.apache.log4j.Logger;
@@ -110,35 +112,59 @@ public class StringUtils {
 		returnList.addElement(toRemoveTbl);
 		return returnList;
 	}
+        
+        
+    public static String listToString(Collection<String> c, String wrapper, String delim) {
+        if (null == c || c.isEmpty() || null == wrapper || null == delim) {
+            return null;
+        }
+        StringBuilder sb = new StringBuilder();
+        int size = c.size();
+        int counter = 0;
+        Iterator<String> iter = c.iterator();
+        while (iter.hasNext() && counter < size - 1) {
+            // add each item in the Vector to the SB with wrapper and delimiter                
+            sb.append(wrapper);
+            sb.append(iter.next());
+            sb.append(wrapper);
+            sb.append(delim);
+            counter++;
+        }
+        // add last item in the Vector to the SB with wrapper but no delimiter
+        sb.append(wrapper);
+        sb.append(iter.next());
+        sb.append(wrapper);
+        return sb.toString();
+    }
 
 
 
-	/**
-	 * transform a Vector of Strings into a delimiter-separated list in a String
-	 *
-	 * @param list -- the Vector of Strings
-	 * @param wrapper -- enclose each element in a pair of these characters (ie, single quotes)
-	 * @param delim -- the list delimiter (ie, comma)
-	 * @return the delimiter-separated String
-	 */
-	public static String listToString(Vector list, String wrapper, String delim){
-		int           size = list.size();
-		StringBuffer  selection = new StringBuffer();
-
-		// add each item in the Vector to the SB with wrapper and delimiter
-		for (int i = 0; i < size - 1; i++){
-			selection.append(wrapper);
-			selection.append((String) list.elementAt(i));
-			selection.append(wrapper);
-			selection.append(delim);
-		}
-
-		// add last item in the Vector to the SB with wrapper but no delimiter
-		selection.append(wrapper);
-		selection.append((String) list.elementAt(size - 1));
-		selection.append(wrapper);
-		return selection.toString();
-	}
+//	/**
+//	 * transform a Vector of Strings into a delimiter-separated list in a String
+//	 *
+//	 * @param list -- the Vector of Strings
+//	 * @param wrapper -- enclose each element in a pair of these characters (ie, single quotes)
+//	 * @param delim -- the list delimiter (ie, comma)
+//	 * @return the delimiter-separated String
+//	 */
+//	public static String listToString(Vector list, String wrapper, String delim){
+//		int           size = list.size();
+//		StringBuffer  selection = new StringBuffer();
+//
+//		// add each item in the Vector to the SB with wrapper and delimiter
+//		for (int i = 0; i < size - 1; i++){
+//			selection.append(wrapper);
+//			selection.append((String) list.elementAt(i));
+//			selection.append(wrapper);
+//			selection.append(delim);
+//		}
+//
+//		// add last item in the Vector to the SB with wrapper but no delimiter
+//		selection.append(wrapper);
+//		selection.append((String) list.elementAt(size - 1));
+//		selection.append(wrapper);
+//		return selection.toString();
+//	}
 
 
 

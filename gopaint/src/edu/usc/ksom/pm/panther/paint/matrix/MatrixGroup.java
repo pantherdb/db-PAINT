@@ -1,5 +1,5 @@
 /**
- *  Copyright 2016 University Of Southern California
+ *  Copyright 2018 University Of Southern California
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -24,10 +24,7 @@ import java.util.Iterator;
 import org.paint.datamodel.Association;
 import org.paint.main.PaintManager;
 
-/**
- *
- * @author muruganu
- */
+
 public class MatrixGroup implements Comparable<MatrixGroup> {
     private ArrayList<TermAncestor> items = new ArrayList<TermAncestor>();
     GOTermHelper gth;
@@ -75,7 +72,7 @@ public class MatrixGroup implements Comparable<MatrixGroup> {
     }
     
     public boolean addToList(TermAncestor ta) {
-        String aspect = ta.getTermToAssociation().getTerm().getAspect();
+//        String aspect = ta.getTermToAssociation().getTerm().getAspect();
 //        if ("F".equals(aspect)) {
 //            System.out.println("Processing mf");
 //            if ("GO:0016787".equals(ta.getTermToAssociation().getTerm().getAcc()) || "GO:0016818".equals(ta.getTermToAssociation().getTerm().getAcc())) {
@@ -132,50 +129,50 @@ public class MatrixGroup implements Comparable<MatrixGroup> {
         return false;
     }    
     
-    public boolean addToListOld(TermAncestor ta) {
-        TermToAssociation toa = ta.getTermToAssociation();
-        GOTerm addTerm = toa.getTerm();
-        ArrayList<GOTerm> addAncestorList = ta.getAncestorList();
-        int insertIndex = -1;
-        for (int i = 0; i < items.size(); i++) {
-            TermAncestor cur = items.get(i);
-            GOTerm curTerm = cur.getTermToAssociation().getTerm();
-            int index = addAncestorList.indexOf(curTerm);
-            if (index >= 0) {
-                // Ensure this term is ancestor of previous term as well
-                if (i - 1 >= 0) {
-                    TermAncestor previousTermAncestor = items.get(i - 1);
-                    ArrayList<GOTerm> previousAncestorList = previousTermAncestor.getAncestorList();
-                    if (previousAncestorList.contains(addTerm)) {
-                        insertIndex = i;
-                    }
-                }
-                else {
-                    insertIndex = i;
-                }
-                continue;
-            }
-            ArrayList<GOTerm> curAncestorList = cur.getAncestorList();
-            index = curAncestorList.indexOf(addTerm);
-            if (index >= 0) {
-                // Ensure Ancestor list of item to be inserted, contains next items term
-                if (i + 1 < items.size()) {
-                    TermAncestor nextTermAncestor = items.get(i + 1);
-                    if (addAncestorList.contains(nextTermAncestor.getTermToAssociation().getTerm())) {
-                        insertIndex = i + 1;
-                    }
-                }
-                else {
-                    insertIndex = i + 1;
-                }
-            }
-        }
-        if (insertIndex < 0) {
-            return false;
-        }
-        items.add(insertIndex, ta);
-        return true;
-    }
+//    public boolean addToListOld(TermAncestor ta) {
+//        TermToAssociation toa = ta.getTermToAssociation();
+//        GOTerm addTerm = toa.getTerm();
+//        ArrayList<GOTerm> addAncestorList = ta.getAncestorList();
+//        int insertIndex = -1;
+//        for (int i = 0; i < items.size(); i++) {
+//            TermAncestor cur = items.get(i);
+//            GOTerm curTerm = cur.getTermToAssociation().getTerm();
+//            int index = addAncestorList.indexOf(curTerm);
+//            if (index >= 0) {
+//                // Ensure this term is ancestor of previous term as well
+//                if (i - 1 >= 0) {
+//                    TermAncestor previousTermAncestor = items.get(i - 1);
+//                    ArrayList<GOTerm> previousAncestorList = previousTermAncestor.getAncestorList();
+//                    if (previousAncestorList.contains(addTerm)) {
+//                        insertIndex = i;
+//                    }
+//                }
+//                else {
+//                    insertIndex = i;
+//                }
+//                continue;
+//            }
+//            ArrayList<GOTerm> curAncestorList = cur.getAncestorList();
+//            index = curAncestorList.indexOf(addTerm);
+//            if (index >= 0) {
+//                // Ensure Ancestor list of item to be inserted, contains next items term
+//                if (i + 1 < items.size()) {
+//                    TermAncestor nextTermAncestor = items.get(i + 1);
+//                    if (addAncestorList.contains(nextTermAncestor.getTermToAssociation().getTerm())) {
+//                        insertIndex = i + 1;
+//                    }
+//                }
+//                else {
+//                    insertIndex = i + 1;
+//                }
+//            }
+//        }
+//        if (insertIndex < 0) {
+//            return false;
+//        }
+//        items.add(insertIndex, ta);
+//        return true;
+//    }
     
     public NodeInfoForMatrix getAnnotInfoForNode(Node n, int index) {
         if (null == n || index < 0 || index >= items.size()) {
@@ -294,7 +291,36 @@ public class MatrixGroup implements Comparable<MatrixGroup> {
         // Compare based on count of experimental annotations
         Integer cur = this.getCountExperimentalAnnotations();
         Integer other = o.getCountExperimentalAnnotations();
-        return cur.compareTo(other);
+        int comp = cur.compareTo(other);
+        if (0 != comp) {
+            return comp;
+        }
+        
+        GOTerm curT = this.getFirstTerm();
+        GOTerm otherT = o.getFirstTerm();
+        if (null == curT && null == otherT) {
+            return 0;
+        }
+        else if (null == curT && null != otherT) {
+            return -1;
+        }
+        else if (null != curT && null == otherT) {
+            return 1;
+        }
+        String cName = curT.getName();
+        String oName = otherT.getName();
+        if (null == cName && null == oName) {
+            return 0;
+        }
+        else if (null == cName && null != oName) {
+            return -1;
+        }
+        else if (null != cName && null == oName) {
+            return 1;
+        }
+        return cName.compareTo(oName);
+        
+        
 //        if ((null == this.items || 0 == this.items.size()) && (null == o.items || 0 == o.items.size())) {
 //            return 0;
 //        }
@@ -353,12 +379,20 @@ public class MatrixGroup implements Comparable<MatrixGroup> {
 
                 // Association may not be real i.e. node maybe annotated to a more specific child term
                 Annotation annot = a.getAnnotation();
-                if (true == acc.equals(annot.getGoTerm()) && true == annot.getEvidence().isExperimental()) {
+                if (true == acc.equals(annot.getGoTerm()) && true == annot.isExperimental()) {
                     total++;
                 }
             }
         }
         return total;
+    }
+    
+    public GOTerm getFirstTerm() {
+        if (null == items || 0 == items.size()) {
+            return null;
+        }
+        TermAncestor ta = items.get(0);
+        return ta.getTermToAssociation().getTerm();
     }
     
     

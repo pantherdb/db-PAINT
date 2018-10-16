@@ -81,7 +81,7 @@ public class LoginDlg extends JDialog{
 		//userName.setText("gouser");
 		
 		password = new JPasswordField(10);
-		password.setText("");
+		password.setText("welcome");
 		fieldPane.add(userName);
 		fieldPane.add(password);
 

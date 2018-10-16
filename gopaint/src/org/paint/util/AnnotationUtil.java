@@ -1,5 +1,5 @@
 /**
- * Copyright 2016 University Of Southern California
+ * Copyright 2018 University Of Southern California
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -25,16 +25,18 @@ import edu.usc.ksom.pm.panther.paintCommon.Node;
 import edu.usc.ksom.pm.panther.paintCommon.NodeVariableInfo;
 import edu.usc.ksom.pm.panther.paintCommon.Qualifier;
 import edu.usc.ksom.pm.panther.paintCommon.TaxonomyHelper;
-import com.sri.panther.paintCommon.util.QualifierDif;
+import edu.usc.ksom.pm.panther.paintCommon.WithEvidence;
+import edu.usc.ksom.pm.panther.paintCommon.QualifierDif;;
 import edu.usc.ksom.pm.panther.paint.annotation.AnnotationForTerm;
+import edu.usc.ksom.pm.panther.paintCommon.IWith;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Vector;
 import org.paint.datamodel.GeneNode;
 import org.paint.go.GOConstants;
-import org.paint.go.GO_Util;
 import org.paint.gui.AspectSelector;
 import org.paint.gui.event.AnnotationChangeEvent;
 import org.paint.gui.event.EventManager;
@@ -108,69 +110,69 @@ public class AnnotationUtil {
 //            }
 //        }
 //    }
-    private static void propagateIBD(GeneNode propagator, Annotation propagatorAnnot, ArrayList<GeneNode> descNodes) {
-        HashSet<Annotation> withAnnotSet = propagatorAnnot.getAnnotationDetail().getWithAnnotSet();
-        HashSet<GeneNode> withNodeSet = new HashSet<GeneNode>();
-        if (null != withAnnotSet) {
-            PaintManager pm = PaintManager.inst();
-            for (Annotation annot : withAnnotSet) {
-                Node n = annot.getAnnotationDetail().getAnnotatedNode();
-                withNodeSet.add(pm.getGeneByPTNId(n.getStaticInfo().getPublicId()));
-            }
-        }
-        for (GeneNode desc : descNodes) {
-            if (withNodeSet.contains(desc)) {
-                continue;
-            }
-            Annotation a = new Annotation();
-            Node n = desc.getNode();
-            NodeVariableInfo nvi = n.getVariableInfo();
-            if (null == nvi) {
-                nvi = new NodeVariableInfo();
-                n.setVariableInfo(nvi);
-            }
-            nvi.addGOAnnotation(a);
-            a.setGoTerm(propagatorAnnot.getGoTerm());
-            HashSet<Qualifier> qSet = propagatorAnnot.getQualifierSet();
-            if (null != qSet) {
-                a.setQualifierSet((HashSet<Qualifier>) qSet.clone());
-            }
-            Evidence e = new Evidence();
-            a.setEvidence(e);
-            e.setEvidenceCode(Evidence.CODE_IBA);
-            AnnotationDetail ad = a.getAnnotationDetail();
-            ad.setAnnotatedNode(n);
-            ad.addWith(propagatorAnnot);
-            if (null != qSet) {
-                for (Qualifier q : qSet) {
-                    ad.addToInheritedQualifierLookup(q, propagatorAnnot);
-                }
-            }
-        }
-
-    }
-
-    private static void propagateIBDOld(GeneNode propagator, Annotation propagatorAnnot, ArrayList<GeneNode> descNodes) {
-        Evidence e = propagatorAnnot.getEvidence();
-        ArrayList<GeneNode> nodesProvidingEvidence = getNodesProvidingExperimentalEvidence(propagatorAnnot, propagator);
-        ArrayList<GeneNode> descCopy = (ArrayList<GeneNode>) descNodes.clone();
-        if (null != nodesProvidingEvidence) {
-            descCopy.removeAll(nodesProvidingEvidence);
-        }
-
-        String propagatorPublicId = propagator.getNode().getStaticInfo().getPublicId();
-        ArrayList<DBReference> withs = getWiths(e.getWiths(), propagatorPublicId);
-        if (null == withs) {
-            withs = new ArrayList<DBReference>();
-        }
-        DBReference with = new DBReference();
-        with.setEvidenceType(GOConstants.PANTHER_DB);
-        with.setEvidenceValue(propagatorPublicId);
-        withs.add(with);
-
-        propagate(propagatorAnnot.getGoTerm(), GOConstants.ANCESTRAL_EVIDENCE_CODE, propagatorAnnot.getEvidence().getDbReferenceList(), withs, descCopy, propagatorAnnot.getQualifierSet());
-
-    }
+//    private static void propagateIBD(GeneNode propagator, Annotation propagatorAnnot, ArrayList<GeneNode> descNodes) {
+//        HashSet<Annotation> withAnnotSet = propagatorAnnot.getAnnotationDetail().getWithAnnotSet();
+//        HashSet<GeneNode> withNodeSet = new HashSet<GeneNode>();
+//        if (null != withAnnotSet) {
+//            PaintManager pm = PaintManager.inst();
+//            for (Annotation annot : withAnnotSet) {
+//                Node n = annot.getAnnotationDetail().getAnnotatedNode();
+//                withNodeSet.add(pm.getGeneByPTNId(n.getStaticInfo().getPublicId()));
+//            }
+//        }
+//        for (GeneNode desc : descNodes) {
+//            if (withNodeSet.contains(desc)) {
+//                continue;
+//            }
+//            Annotation a = new Annotation();
+//            Node n = desc.getNode();
+//            NodeVariableInfo nvi = n.getVariableInfo();
+//            if (null == nvi) {
+//                nvi = new NodeVariableInfo();
+//                n.setVariableInfo(nvi);
+//            }
+//            nvi.addGOAnnotation(a);
+//            a.setGoTerm(propagatorAnnot.getGoTerm());
+//            HashSet<Qualifier> qSet = propagatorAnnot.getQualifierSet();
+//            if (null != qSet) {
+//                a.setQualifierSet((HashSet<Qualifier>) qSet.clone());
+//            }
+//            Evidence e = new Evidence();
+//            a.setEvidence(e);
+//            e.setEvidenceCode(Evidence.CODE_IBA);
+//            AnnotationDetail ad = a.getAnnotationDetail();
+//            ad.setAnnotatedNode(n);
+//            ad.addWith(propagatorAnnot);
+//            if (null != qSet) {
+//                for (Qualifier q : qSet) {
+//                    ad.addToInheritedQualifierLookup(q, propagatorAnnot);
+//                }
+//            }
+//        }
+//
+//    }
+//
+//    private static void propagateIBDOld(GeneNode propagator, Annotation propagatorAnnot, ArrayList<GeneNode> descNodes) {
+//        Evidence e = propagatorAnnot.getEvidence();
+//        ArrayList<GeneNode> nodesProvidingEvidence = getNodesProvidingExperimentalEvidence(propagatorAnnot, propagator);
+//        ArrayList<GeneNode> descCopy = (ArrayList<GeneNode>) descNodes.clone();
+//        if (null != nodesProvidingEvidence) {
+//            descCopy.removeAll(nodesProvidingEvidence);
+//        }
+//
+//        String propagatorPublicId = propagator.getNode().getStaticInfo().getPublicId();
+//        ArrayList<DBReference> withs = getWiths(e.getWiths(), propagatorPublicId);
+//        if (null == withs) {
+//            withs = new ArrayList<DBReference>();
+//        }
+//        DBReference with = new DBReference();
+//        with.setEvidenceType(GOConstants.PANTHER_DB);
+//        with.setEvidenceValue(propagatorPublicId);
+//        withs.add(with);
+//
+//        propagate(propagatorAnnot.getGoTerm(), GOConstants.ANCESTRAL_EVIDENCE_CODE, propagatorAnnot.getEvidence().getDbReferenceList(), withs, descCopy, propagatorAnnot.getQualifierSet());
+//
+//    }
 
 //    private static void propagateIRD(GeneNode propagator, Annotation propagatorAnnot, ArrayList<GeneNode> descNodes) {
 //        // Check for annotation to ancestral term
@@ -190,59 +192,59 @@ public class AnnotationUtil {
 //        
 //        
 //    }    
-    private static void propagateIRDold(GeneNode propagator, Annotation propagatorAnnot, ArrayList<GeneNode> descNodes) {
-        // Get Node that created IBD and delete its annotations starting at current node and all applicable descendants
-        GeneNode origPropagator = getPAINTWithNode(propagatorAnnot);
-        Annotation origAnnotation = getPropagatorsNOTAnnotation(propagatorAnnot.getGoTerm(), origPropagator, propagatorAnnot.getQualifierSet());
+//    private static void propagateIRDold(GeneNode propagator, Annotation propagatorAnnot, ArrayList<GeneNode> descNodes) {
+//        // Get Node that created IBD and delete its annotations starting at current node and all applicable descendants
+//        GeneNode origPropagator = getPAINTWithNode(propagatorAnnot);
+//        Annotation origAnnotation = getPropagatorsNOTAnnotation(propagatorAnnot.getGoTerm(), origPropagator, propagatorAnnot.getQualifierSet());
+//
+//        ArrayList<GeneNode> descCopy = (ArrayList<GeneNode>) descNodes.clone();
+//        descCopy.add(propagator);           // Delete annotation from propagator
+//        deletePropagatorsAnnotationFromDescendants(origPropagator, origAnnotation, descCopy, true);
+//
+//        Annotation childAnnot = propagatorAnnot.getChildAnnotation();
+//        Evidence e = childAnnot.getEvidence();
+//        descCopy.remove(propagator);    // Add annotation to propagator
+//        propagate(childAnnot.getGoTerm(), GOConstants.ANCESTRAL_EVIDENCE_CODE, e.getDbReferenceList(), e.getWiths(), descCopy, childAnnot.getQualifierSet());
+//
+//    }
 
-        ArrayList<GeneNode> descCopy = (ArrayList<GeneNode>) descNodes.clone();
-        descCopy.add(propagator);           // Delete annotation from propagator
-        deletePropagatorsAnnotationFromDescendants(origPropagator, origAnnotation, descCopy, true);
-
-        Annotation childAnnot = propagatorAnnot.getChildAnnotation();
-        Evidence e = childAnnot.getEvidence();
-        descCopy.remove(propagator);    // Add annotation to propagator
-        propagate(childAnnot.getGoTerm(), GOConstants.ANCESTRAL_EVIDENCE_CODE, e.getDbReferenceList(), e.getWiths(), descCopy, childAnnot.getQualifierSet());
-
-    }
-
-    private static void propagateIKR(GeneNode propagator, Annotation propagatorAnnot, ArrayList<GeneNode> descNodes) {
-        // Get Node that created IBD and delete its annotations starting at current node and all applicable descendants
-        GeneNode origPropagator = getPAINTWithNode(propagatorAnnot);
-        Annotation origAnnotation = getPropagatorsNOTAnnotation(propagatorAnnot.getGoTerm(), origPropagator, propagatorAnnot.getQualifierSet());
-
-        ArrayList<GeneNode> descCopy = (ArrayList<GeneNode>) descNodes.clone();
-        descCopy.add(propagator);           // Delete annotation from propagator of IKR
-        deletePropagatorsAnnotationFromDescendants(origPropagator, origAnnotation, descCopy, true);
-
-        // Propagate IKR to descendant nodes.  Do not propagate to nodes that provided experimental evidence for original IBD
-        descCopy.remove(propagator);        // Remove since propagator already has IKR
-        ArrayList<GeneNode> experimentalEvidenceNodes = getNodesProvidingExperimentalEvidence(origAnnotation, origPropagator);
-        if (null != experimentalEvidenceNodes) {
-            descCopy.removeAll(experimentalEvidenceNodes);
-        }
-
-        ArrayList<DBReference> withs = new ArrayList<DBReference>(1);
-        DBReference with = new DBReference();
-        with.setEvidenceType(GOConstants.PANTHER_DB);
-        with.setEvidenceValue(propagator.getNode().getStaticInfo().getPublicId());
-        withs.add(with);
-
-        ArrayList<DBReference> dbRefs = new ArrayList<DBReference>(1);
-        DBReference dbRef = new DBReference();
-        dbRef.setEvidenceType(GOConstants.PAINT_REF);
-        dbRef.setEvidenceValue(GO_Util.inst().getPaintEvidenceAcc());
-        dbRefs.add(dbRef);
-
-        propagate(propagatorAnnot.getGoTerm(), GOConstants.ANCESTRAL_EVIDENCE_CODE, dbRefs, withs, descCopy, propagatorAnnot.getQualifierSet());
-
-        // Handle annotation to ancestor term
-        Annotation childAnnot = propagatorAnnot.getChildAnnotation();
-        Evidence ce = childAnnot.getEvidence();
-        //descCopy.remove(propagator);    // Propagator already has the annotation
-        propagate(childAnnot.getGoTerm(), GOConstants.ANCESTRAL_EVIDENCE_CODE, ce.getDbReferenceList(), ce.getWiths(), descCopy, childAnnot.getQualifierSet());
-
-    }
+//    private static void propagateIKR(GeneNode propagator, Annotation propagatorAnnot, ArrayList<GeneNode> descNodes) {
+//        // Get Node that created IBD and delete its annotations starting at current node and all applicable descendants
+//        GeneNode origPropagator = getPAINTWithNode(propagatorAnnot);
+//        Annotation origAnnotation = getPropagatorsNOTAnnotation(propagatorAnnot.getGoTerm(), origPropagator, propagatorAnnot.getQualifierSet());
+//
+//        ArrayList<GeneNode> descCopy = (ArrayList<GeneNode>) descNodes.clone();
+//        descCopy.add(propagator);           // Delete annotation from propagator of IKR
+//        deletePropagatorsAnnotationFromDescendants(origPropagator, origAnnotation, descCopy, true);
+//
+//        // Propagate IKR to descendant nodes.  Do not propagate to nodes that provided experimental evidence for original IBD
+//        descCopy.remove(propagator);        // Remove since propagator already has IKR
+//        ArrayList<GeneNode> experimentalEvidenceNodes = getNodesProvidingExperimentalEvidence(origAnnotation, origPropagator);
+//        if (null != experimentalEvidenceNodes) {
+//            descCopy.removeAll(experimentalEvidenceNodes);
+//        }
+//
+//        ArrayList<DBReference> withs = new ArrayList<DBReference>(1);
+//        DBReference with = new DBReference();
+//        with.setEvidenceType(GOConstants.PANTHER_DB);
+//        with.setEvidenceValue(propagator.getNode().getStaticInfo().getPublicId());
+//        withs.add(with);
+//
+//        ArrayList<DBReference> dbRefs = new ArrayList<DBReference>(1);
+//        DBReference dbRef = new DBReference();
+//        dbRef.setEvidenceType(GOConstants.PAINT_REF);
+//        dbRef.setEvidenceValue(GO_Util.inst().getPaintEvidenceAcc());
+//        dbRefs.add(dbRef);
+//
+//        propagate(propagatorAnnot.getGoTerm(), GOConstants.ANCESTRAL_EVIDENCE_CODE, dbRefs, withs, descCopy, propagatorAnnot.getQualifierSet());
+//
+//        // Handle annotation to ancestor term
+//        Annotation childAnnot = propagatorAnnot.getChildAnnotation();
+//        Evidence ce = childAnnot.getEvidence();
+//        //descCopy.remove(propagator);    // Propagator already has the annotation
+//        propagate(childAnnot.getGoTerm(), GOConstants.ANCESTRAL_EVIDENCE_CODE, ce.getDbReferenceList(), ce.getWiths(), descCopy, childAnnot.getQualifierSet());
+//
+//    }
 
     public static void deletePropagatorsAnnotationFromDescendants(GeneNode origPropagator, Annotation origAnnotation, ArrayList<GeneNode> descNodes, boolean checkQualifiers) {
         //ArrayList<GeneNode> experimentalEvidenceNodes = getNodesProvidingExperimentalEvidence(origAnnotation, origPropagator);
@@ -264,7 +266,7 @@ public class AnnotationUtil {
             }
             for (Iterator<Annotation> annotIter = goAnnotList.iterator(); annotIter.hasNext();) {
                 Annotation annot = annotIter.next();
-                if (true == annot.getEvidence().isExperimental()) {
+                if (true == annot.isExperimental()) {
                     continue;
                 }
                 GeneNode annotPropagator = getPAINTWithNode(annot);
@@ -289,33 +291,64 @@ public class AnnotationUtil {
 
     }
 
-    private static void propagate(String goTerm, String evidenceCode, ArrayList<DBReference> dbRefs, ArrayList<DBReference> withs, ArrayList<GeneNode> descNodes, HashSet<Qualifier> qualifierSet) {
-        for (GeneNode gn : descNodes) {
-            Node n = gn.getNode();
-            NodeVariableInfo nvi = n.getVariableInfo();
-            if (null == nvi) {
-                nvi = new NodeVariableInfo();
-                n.setVariableInfo(nvi);
+//    private static void propagate(String goTerm, String evidenceCode, ArrayList<DBReference> dbRefs, ArrayList<DBReference> withs, ArrayList<GeneNode> descNodes, HashSet<Qualifier> qualifierSet) {
+//        for (GeneNode gn : descNodes) {
+//            Node n = gn.getNode();
+//            NodeVariableInfo nvi = n.getVariableInfo();
+//            if (null == nvi) {
+//                nvi = new NodeVariableInfo();
+//                n.setVariableInfo(nvi);
+//            }
+//            Annotation a = new Annotation();
+//            nvi.addGOAnnotation(a);
+//            a.setAnnotStoredInDb(false);
+//            a.setGoTerm(goTerm);
+//            if (null != qualifierSet) {
+//                a.setQualifierSet((HashSet<Qualifier>) qualifierSet.clone());
+//            }
+//
+//            Evidence e = new Evidence();
+//            a.setEvidence(e);
+//            e.setEvidenceCode(evidenceCode);
+//            if (null != dbRefs) {
+//                e.setDbReferenceList((ArrayList<DBReference>) dbRefs.clone());
+//            }
+//
+//            if (null != withs) {
+//                e.setWiths((ArrayList<DBReference>) withs.clone());
+//            }
+//        }
+//    }
+    
+    public static Annotation getSingleWithPropagatorAnnot(Annotation a) {
+        HashSet<WithEvidence> withAnnotSet = a.getAnnotationDetail().getWithEvidenceAnnotSet();
+        if (null == withAnnotSet || 1 !=  withAnnotSet.size()) {
+            return null;
+        }
+        for (WithEvidence we: withAnnotSet) {
+            return (Annotation)we.getWith();
+        }
+        return null;
+    }
+    
+    public static Annotation getAnnotationWithSingleWithAnnotAndEvidenceCde (ArrayList<Annotation> annotList, Annotation withAnnot, String evidenceCode) {
+        for (Annotation a: annotList) {
+            HashSet<WithEvidence> withEvSet = a.getAnnotationDetail().getWithEvidenceAnnotSet();
+            if (null == withEvSet || 1 != withEvSet.size()) {
+                continue;
             }
-            Annotation a = new Annotation();
-            nvi.addGOAnnotation(a);
-            a.setAnnotStoredInDb(false);
-            a.setGoTerm(goTerm);
-            if (null != qualifierSet) {
-                a.setQualifierSet((HashSet<Qualifier>) qualifierSet.clone());
-            }
-
-            Evidence e = new Evidence();
-            a.setEvidence(e);
-            e.setEvidenceCode(evidenceCode);
-            if (null != dbRefs) {
-                e.setDbReferenceList((ArrayList<DBReference>) dbRefs.clone());
-            }
-
-            if (null != withs) {
-                e.setWiths((ArrayList<DBReference>) withs.clone());
+            for (WithEvidence we: withEvSet) {
+                Annotation wa = (Annotation)we.getWith();
+                if (wa != withAnnot) {
+                    continue;
+                }
+                if (null != evidenceCode && evidenceCode.equals(wa.getSingleEvidenceCodeFromSet()) || null == evidenceCode && null == wa.getSingleEvidenceCodeFromSet()) {
+                    return withAnnot;
+                }
+                break;
             }
         }
+        return null;
     }
 
     public static ArrayList<DBReference> getWiths(ArrayList<DBReference> dbRefList, String skipId) {
@@ -334,36 +367,79 @@ public class AnnotationUtil {
         }
         return newList;
     }
-
-    public static ArrayList<GeneNode> getNodesProvidingExperimentalEvidence(Annotation a, GeneNode propagator) {
-        edu.usc.ksom.pm.panther.paintCommon.Evidence e = a.getEvidence();
-        ArrayList<DBReference> dbRefList = e.getWiths();
-        if (null == dbRefList) {
-            return null;
+    
+    
+    public static boolean isIBAForIKRorIRD(Annotation ibaAnnot, GeneNode gn) {
+        if (null == gn) {
+            return false;
         }
-        PaintManager pm = PaintManager.inst();
-        ArrayList<GeneNode> nodeList = new ArrayList<GeneNode>();
-        for (DBReference dbRef : dbRefList) {
-            if (GOConstants.PANTHER_DB.equals(dbRef.getEvidenceType())) {
-                GeneNode gn = pm.getGeneByPTNId(dbRef.getEvidenceValue());
-                if (null == gn || false == gn.isLeaf()) {
+        Annotation ibaPropagator = getSingleWithPropagatorAnnot(ibaAnnot);
+        if (null == ibaPropagator) {
+            return false;
+        }
+        Node n = gn.getNode();
+        NodeVariableInfo nvi = n.getVariableInfo();
+        if (null == nvi) {
+            return false;
+        }
+        ArrayList<Annotation> annotList = nvi.getGoAnnotationList();
+        if (null == annotList) {
+            return false;
+        }
+        for (Annotation a: annotList) {
+            String code = a.getSingleEvidenceCodeFromSet();
+            if (Evidence.CODE_IKR.equals(code) || Evidence.CODE_IRD.equals(code)) {
+                HashSet<WithEvidence> withAnnotSet = a.getAnnotationDetail().getWithEvidenceAnnotSet();
+                if (null == withAnnotSet) {
                     continue;
                 }
-                if (true == gn.equals(propagator)) {
-                    continue;
+                for (WithEvidence we: withAnnotSet) {
+                    Annotation withAnnot = (Annotation)we.getWith();
+                    if (ibaPropagator == withAnnot) {
+                        return true;
+                    }
                 }
-                nodeList.add(gn);
             }
         }
+        return false;
+    }
+
+    public static ArrayList<GeneNode> getNodesProvidingExperimentalEvidence(Annotation a, GeneNode propagator) {
+        HashSet<Annotation> withs = a.getAnnotationDetail().getWithAnnotSet();
+        ArrayList<GeneNode> nodeList = new ArrayList<GeneNode>();
+        PaintManager pm = PaintManager.inst();        
+        if (null !=  withs) {
+            for (Annotation with: withs) {
+                Node n = with.getAnnotationDetail().getAnnotatedNode();
+                GeneNode gn = pm.getGeneByPTNId(n.getStaticInfo().getPublicId());
+                if (null != gn && false == nodeList.contains(gn) && gn != propagator) {
+                    nodeList.add(gn);
+                }
+            }
+        }
+        
         if (nodeList.isEmpty()) {
             return null;
         }
         return nodeList;
     }
 
+
     public static GeneNode getPAINTWithNode(Annotation a) {
-        Evidence e = a.getEvidence();
-        return getNonLeafPaintNodeFromWiths(e.getWiths());
+        HashSet <Annotation> annotSet = a.getAnnotationDetail().getWithAnnotSet();
+        PaintManager pm = PaintManager.inst();
+        for (Annotation annot: annotSet) {
+            if (a == annot) {
+                continue;
+            }
+            Node n = annot.getAnnotationDetail().getAnnotatedNode();
+            GeneNode gn = pm.getGeneByPTNId(n.getStaticInfo().getPublicId());
+            if (null != gn && false == gn.isLeaf()) {
+                return gn;
+            }
+            
+        }
+        return null;
     }
 
     public static GeneNode getNonLeafPaintNodeFromWiths(ArrayList<DBReference> references) {
@@ -446,7 +522,7 @@ public class AnnotationUtil {
         }
         for (Annotation a: goAnnotList) {
             // Ensure we are looking at IBA with same GO Term
-            if (false == Evidence.CODE_IBA.equals(a.getEvidence().getEvidenceCode()) || false == a.getGoTerm().equals(term)) {
+            if (false == Evidence.CODE_IBA.equals(a.getSingleEvidenceCodeFromSet()) || false == a.getGoTerm().equals(term)) {
                 continue;
             }
             AnnotationDetail ad = a.getAnnotationDetail();
@@ -472,6 +548,21 @@ public class AnnotationUtil {
             return;
         }
         
+        // Only add qualifiers that are valid for term
+        HashSet<Qualifier> validSet = null;
+        if (null != qualifierSet) {
+            HashSet<Qualifier> qsetCopy = (HashSet<Qualifier>) qualifierSet.clone();
+            validSet = new HashSet<Qualifier>();
+            PaintManager pm = PaintManager.inst();
+            GOTermHelper gth = pm.goTermHelper();
+            GOTerm goTerm = gth.getTerm(termAcc);
+            for (Qualifier q : qsetCopy) {
+                if (true == gth.isQualifierValidForTerm(goTerm, q)) {
+                    validSet.add(q);
+                }
+            }        
+        }
+        
         for (GeneNode gn : propagateList) {
 
             Node n = gn.getNode();
@@ -489,65 +580,70 @@ public class AnnotationUtil {
             Annotation descAnnot = new Annotation();
             nvi.addGOAnnotation(descAnnot);
             descAnnot.setAnnotStoredInDb(false);
-            if (null != qualifierSet) {
-                descAnnot.setQualifierSet((HashSet<Qualifier>) qualifierSet.clone());
+            if (null != validSet) {
+                descAnnot.setQualifierSet((HashSet<Qualifier>) validSet.clone());
             }
             descAnnot.setGoTerm(termAcc);
-            Evidence e = new edu.usc.ksom.pm.panther.paintCommon.Evidence();
-            descAnnot.setEvidence(e);
-            e.setEvidenceCode(edu.usc.ksom.pm.panther.paintCommon.Evidence.CODE_IBA);
-            DBReference dbRef = new DBReference();
-            dbRef.setEvidenceType(GOConstants.PAINT_REF);
-            dbRef.setEvidenceValue(GO_Util.inst().getPaintEvidenceAcc());
-            e.addDbRef(dbRef);
+            WithEvidence we = new WithEvidence();
+            we.setEvidenceType(WithEvidence.EVIDENCE_TYPE_ANNOT_PAINT_ANCESTOR);
+            we.setEvidenceCode(edu.usc.ksom.pm.panther.paintCommon.Evidence.CODE_IBA);
+            we.setWith(propagatorAnnot);
+            descAnnot.addWithEvidence(we);
+//            Evidence e = new edu.usc.ksom.pm.panther.paintCommon.Evidence();
+//            descAnnot.setEvidence(e);
+//            e.setEvidenceCode(edu.usc.ksom.pm.panther.paintCommon.Evidence.CODE_IBA);
+//            DBReference dbRef = new DBReference();
+//            dbRef.setEvidenceType(GOConstants.PAINT_REF);
+//            dbRef.setEvidenceValue(GO_Util.inst().getPaintEvidenceAcc());
+//            e.addDbRef(dbRef);
             AnnotationDetail ad = descAnnot.getAnnotationDetail();
             ad.setAnnotatedNode(gn.getNode());
-            ad.addWith(propagatorAnnot);
-            if (null != qualifierSet) {
-                for (Qualifier q : qualifierSet) {
+//            ad.addWith(propagatorAnnot);
+            if (null != validSet) {
+                for (Qualifier q : validSet) {
                     ad.addToInheritedQualifierLookup(q, propagatorAnnot);
                 }
             }
         }
     }
 
-    public static void addIBAAnnotationOld(GOTerm term, List<GeneNode> propagateList, List<GeneNode> nodesProvidingEvidence, HashSet<Qualifier> qualifierSet) {
-
-        ArrayList<DBReference> withs = new ArrayList<DBReference>();
-        if (null != nodesProvidingEvidence) {
-            for (GeneNode gNode : nodesProvidingEvidence) {
-                Node curNode = gNode.getNode();
-                DBReference curRef = new DBReference();
-                curRef.setEvidenceType(GOConstants.PANTHER_DB);
-                curRef.setEvidenceValue(curNode.getStaticInfo().getPublicId());
-                withs.add(curRef);
-            }
-        }
-
-        for (GeneNode gNode : propagateList) {
-            Node descNode = gNode.getNode();
-            NodeVariableInfo descNvi = descNode.getVariableInfo();
-            if (null == descNvi) {
-                descNvi = new NodeVariableInfo();
-                descNode.setVariableInfo(descNvi);
-            }
-            Annotation descAnnot = new Annotation();
-            descNvi.addGOAnnotation(descAnnot);
-
-            if (null != qualifierSet) {
-                descAnnot.setQualifierSet((HashSet<Qualifier>) qualifierSet.clone());
-            }
-            descAnnot.setGoTerm(term.getAcc());
-            edu.usc.ksom.pm.panther.paintCommon.Evidence descEvidence = new edu.usc.ksom.pm.panther.paintCommon.Evidence();
-            descAnnot.setEvidence(descEvidence);
-            descEvidence.setEvidenceCode(GOConstants.ANCESTRAL_EVIDENCE_CODE);
-            DBReference descDbRef = new DBReference();
-            descDbRef.setEvidenceType(GOConstants.PAINT_REF);
-            descDbRef.setEvidenceValue(GO_Util.inst().getPaintEvidenceAcc());
-            descEvidence.addDbRef(descDbRef);
-            descEvidence.setWiths((ArrayList<DBReference>) withs.clone());
-        }
-    }
+//    public static void addIBAAnnotationOld(GOTerm term, List<GeneNode> propagateList, List<GeneNode> nodesProvidingEvidence, HashSet<Qualifier> qualifierSet) {
+//
+//        ArrayList<DBReference> withs = new ArrayList<DBReference>();
+//        if (null != nodesProvidingEvidence) {
+//            for (GeneNode gNode : nodesProvidingEvidence) {
+//                Node curNode = gNode.getNode();
+//                DBReference curRef = new DBReference();
+//                curRef.setEvidenceType(GOConstants.PANTHER_DB);
+//                curRef.setEvidenceValue(curNode.getStaticInfo().getPublicId());
+//                withs.add(curRef);
+//            }
+//        }
+//
+//        for (GeneNode gNode : propagateList) {
+//            Node descNode = gNode.getNode();
+//            NodeVariableInfo descNvi = descNode.getVariableInfo();
+//            if (null == descNvi) {
+//                descNvi = new NodeVariableInfo();
+//                descNode.setVariableInfo(descNvi);
+//            }
+//            Annotation descAnnot = new Annotation();
+//            descNvi.addGOAnnotation(descAnnot);
+//
+//            if (null != qualifierSet) {
+//                descAnnot.setQualifierSet((HashSet<Qualifier>) qualifierSet.clone());
+//            }
+//            descAnnot.setGoTerm(term.getAcc());
+//            edu.usc.ksom.pm.panther.paintCommon.Evidence descEvidence = new edu.usc.ksom.pm.panther.paintCommon.Evidence();
+//            descAnnot.setEvidence(descEvidence);
+//            descEvidence.setEvidenceCode(GOConstants.ANCESTRAL_EVIDENCE_CODE);
+//            DBReference descDbRef = new DBReference();
+//            descDbRef.setEvidenceType(GOConstants.PAINT_REF);
+//            descDbRef.setEvidenceValue(GO_Util.inst().getPaintEvidenceAcc());
+//            descEvidence.addDbRef(descDbRef);
+//            descEvidence.setWiths((ArrayList<DBReference>) withs.clone());
+//        }
+//    }
 
     public static HashSet<GeneNode> getDescWithExpEvdnce(GeneNode gNode) {
         HashSet<GeneNode> rtnList = new HashSet<GeneNode>();
@@ -565,7 +661,7 @@ public class AnnotationUtil {
                 continue;
             }
             for (Annotation annot : goAnnotList) {
-                if (false == annot.getEvidence().isExperimental()) {
+                if (false == annot.isExperimental()) {
                     continue;
                 }
                 rtnList.add(gn);
@@ -605,6 +701,10 @@ public class AnnotationUtil {
        if (null == gNode) {
            return;
        }
+       Node n = gNode.getNode();
+       if (null == n) {
+           System.out.println("Did not find node information");
+       }
        NodeVariableInfo nvi = gNode.getNode().getVariableInfo();
        if (null != nvi) {
            
@@ -612,8 +712,8 @@ public class AnnotationUtil {
            if (null != annotList) {
                 ArrayList<Annotation> removeList = new ArrayList<Annotation>();
                 for (Annotation a: annotList) {
-                    Evidence e = a.getEvidence();
-                    if (true == e.isExperimental() || true == e.isPaint()) {
+                    
+                    if (true == a.isExperimental() || true == a.isPaint()) {
                         continue;
                     }
                     //System.out.println("Removed annotation " + a.getGoTerm() + " from node " + gNode.getNode().getStaticInfo().getPublicId());
@@ -667,6 +767,7 @@ public class AnnotationUtil {
         ArrayList<GeneNode> descendents = new ArrayList<GeneNode>();
         // First go through all the IBA's that were created when IKR or IRD was created and make a list.
         GeneNodeUtil.inst().allNonPrunedDescendents(root, descendents);
+        descendents.add(0, root);
         ArrayList<Annotation> IBAannots = existingIBAannots(descendents);
         propagateAnnotationsForBookOpen(root, IBAannots);
     }
@@ -685,7 +786,7 @@ public class AnnotationUtil {
                            if (null == remainingWiths || true == remainingWiths.isEmpty()) {
                                newRemovedAnnotSet.add(a);
                            }
-                           else if (Evidence.CODE_IKR.equals(a.getEvidence().getEvidenceCode()) || Evidence.CODE_IRD.equals(a.getEvidence().getEvidenceCode())) {
+                           else if (Evidence.CODE_IKR.equals(a.getSingleEvidenceCodeFromSet()) || Evidence.CODE_IRD.equals(a.getSingleEvidenceCodeFromSet())) {
                                newRemovedAnnotSet.add(a);
                            }
                        }
@@ -735,6 +836,10 @@ public class AnnotationUtil {
         PaintManager pm = PaintManager.inst();
         for (Annotation annot : withAnnotSet) {
             Node n = annot.getAnnotationDetail().getAnnotatedNode();
+            if (null == n) {
+                System.out.println("Annotation id " + a.getAnnotationId() + " does not have annotated node");
+                continue;
+            }
             withNodes.add(pm.getGeneByPTNId(n.getStaticInfo().getPublicId()));
         }
         return withNodes;
@@ -763,15 +868,20 @@ public class AnnotationUtil {
 
             AnnotationDetail newDetail = newAnnot.getAnnotationDetail();
             newDetail.setAnnotatedNode(n);
-            Evidence newEvidence = new Evidence();
-            newAnnot.setEvidence(newEvidence);
-            newEvidence.setEvidenceCode(GOConstants.ANCESTRAL_EVIDENCE_CODE);
-            DBReference dbRef = new DBReference();
-            dbRef.setEvidenceType(GOConstants.PAINT_REF);
-            dbRef.setEvidenceValue(GO_Util.inst().getPaintEvidenceAcc());
-            newEvidence.addDbRef(dbRef);
-
-            newDetail.addWith(propagatorAnnot);
+            WithEvidence we = new WithEvidence();
+            we.setEvidenceType(WithEvidence.EVIDENCE_TYPE_ANNOT_PAINT_ANCESTOR);            
+            we.setEvidenceCode(Evidence.CODE_IBA);
+            we.setWith(propagatorAnnot);
+            newAnnot.addWithEvidence(we);
+//            Evidence newEvidence = new Evidence();
+//            newAnnot.setEvidence(newEvidence);
+//            newEvidence.setEvidenceCode(GOConstants.ANCESTRAL_EVIDENCE_CODE);
+//            DBReference dbRef = new DBReference();
+//            dbRef.setEvidenceType(GOConstants.PAINT_REF);
+//            dbRef.setEvidenceValue(GO_Util.inst().getPaintEvidenceAcc());
+//            newEvidence.addDbRef(dbRef);
+//
+//            newDetail.addWith(propagatorAnnot);
             // Get inherited qualifiers.  Set with of qualifiers to propagator of annotation
             LinkedHashMap<Qualifier, HashSet<Annotation>> qualifierLookup = ibaAnnot.getAnnotationDetail().getQualifierLookup();
             for (Qualifier q: qualifierLookup.keySet()) {
@@ -791,34 +901,34 @@ public class AnnotationUtil {
         }
     }
     
-    private static void addIBAToDescendants(Annotation propagator, ArrayList<GeneNode> nodesToSkip, String term, boolean checkTaxonConstraint) {
-        Node annotator = propagator.getAnnotationDetail().getAnnotatedNode();
-        PaintManager pm = PaintManager.inst();
-        GeneNode annotGn = pm.getGeneByPTNId(annotator.getStaticInfo().getPublicId());
-        List<GeneNode> children = annotGn.getChildren();
-        if (null == children) {
-            return;
-        }
-        
-        boolean checkTaxon = true;
-        TaxonomyHelper th = pm.getTaxonHelper();
-        if (null == th) {
-            checkTaxon = false;
-        }
-        for (GeneNode child: children) {
-            if (true == child.isPruned()) {
-                continue;
-            }
-            propagateIBAToDescendants(propagator, child, nodesToSkip, term, (checkTaxon && checkTaxonConstraint), th);
-        }
-    }
-    
-    private static void propagateIBAToDescendants(Annotation propagator, GeneNode gn, ArrayList<GeneNode> nodesToSkip, String term, boolean checkTaxonConstraint, TaxonomyHelper th) {
+//    private static void addIBAToDescendants(Annotation propagator, ArrayList<GeneNode> nodesToSkip, String term, boolean checkTaxonConstraint) {
+//        Node annotator = propagator.getAnnotationDetail().getAnnotatedNode();
+//        PaintManager pm = PaintManager.inst();
+//        GeneNode annotGn = pm.getGeneByPTNId(annotator.getStaticInfo().getPublicId());
+//        List<GeneNode> children = annotGn.getChildren();
+//        if (null == children) {
+//            return;
+//        }
+//        
+//        boolean checkTaxon = true;
+//        TaxonomyHelper th = pm.getTaxonHelper();
+//        if (null == th) {
+//            checkTaxon = false;
+//        }
+//        for (GeneNode child: children) {
+//            if (true == child.isPruned()) {
+//                continue;
+//            }
+//            propagateIBAToDescendants(propagator, child, nodesToSkip, term, (checkTaxon && checkTaxonConstraint), th);
+//        }
+//    }
+//    
+    private static void propagateIBAToDescendants(Annotation propagator, GeneNode gn, List<GeneNode> nodesToSkip, String term, boolean checkTaxonConstraint, TaxonomyHelper th) {
         // DO NOT DO TAXON CONSTRAINT CHECK HERE.  Only for IBD annotations
 //        if ((true == checkTaxonConstraint && false == GeneNodeUtil.isTermValidForNode(gn, term)) || true == nodesToSkip.contains(gn)) {
 //            return;
 //        }
-        if (true == true == nodesToSkip.contains(gn)) {
+        if (null != nodesToSkip && true == nodesToSkip.contains(gn) || true == IBAannotationAlreadyExists(term, propagator, gn.getNode())) {
             return;
         }
         
@@ -849,15 +959,20 @@ public class AnnotationUtil {
         AnnotationDetail newDetail = newAnnot.getAnnotationDetail();
         newDetail.addWith(propagator);
         newDetail.setAnnotatedNode(n);
-        Evidence newEvidence = new Evidence();
-        newAnnot.setEvidence(newEvidence);
-        newEvidence.setEvidenceCode(GOConstants.ANCESTRAL_EVIDENCE_CODE);
-        DBReference dbRef = new DBReference();
-        dbRef.setEvidenceType(GOConstants.PAINT_REF);
-        dbRef.setEvidenceValue(GO_Util.inst().getPaintEvidenceAcc());
-        newEvidence.addDbRef(dbRef);
-
-        newDetail.addWith(propagator);
+        WithEvidence we = new WithEvidence();
+        we.setEvidenceType(WithEvidence.EVIDENCE_TYPE_ANNOT_PAINT_ANCESTOR);        
+        we.setEvidenceCode(Evidence.CODE_IBA);
+        we.setWith(propagator);
+        newAnnot.addWithEvidence(we);
+//        Evidence newEvidence = new Evidence();
+//        newAnnot.setEvidence(newEvidence);
+//        newEvidence.setEvidenceCode(GOConstants.ANCESTRAL_EVIDENCE_CODE);
+//        DBReference dbRef = new DBReference();
+//        dbRef.setEvidenceType(GOConstants.PAINT_REF);
+//        dbRef.setEvidenceValue(GO_Util.inst().getPaintEvidenceAcc());
+//        newEvidence.addDbRef(dbRef);
+//
+//        newDetail.addWith(propagator);
         // Get inherited qualifiers.  Set with of qualifiers to propagator of annotation
         LinkedHashMap<Qualifier, HashSet<Annotation>> qualifierLookup = propagator.getAnnotationDetail().getQualifierLookup();
         for (Qualifier q : qualifierLookup.keySet()) {
@@ -868,6 +983,9 @@ public class AnnotationUtil {
         }
     }
 
+    /*
+    // NOTE!!!!!!!!!!!!!!!!!!! Similar to AnnotationHelper package on server
+    */
     private static void propagateIBAtoNodes(Annotation propagator, ArrayList<GeneNode> nodeList, String term) {
         for (GeneNode gn : nodeList) {
             Node n = gn.getNode();
@@ -881,17 +999,24 @@ public class AnnotationUtil {
             newAnnot.setGoTerm(term);
 
             AnnotationDetail newDetail = newAnnot.getAnnotationDetail();
-            newDetail.addWith(propagator);
             newDetail.setAnnotatedNode(n);
-            Evidence newEvidence = new Evidence();
-            newAnnot.setEvidence(newEvidence);
-            newEvidence.setEvidenceCode(GOConstants.ANCESTRAL_EVIDENCE_CODE);
-            DBReference dbRef = new DBReference();
-            dbRef.setEvidenceType(GOConstants.PAINT_REF);
-            dbRef.setEvidenceValue(GO_Util.inst().getPaintEvidenceAcc());
-            newEvidence.addDbRef(dbRef);
+            WithEvidence we = new WithEvidence();
+            we.setEvidenceType(WithEvidence.EVIDENCE_TYPE_ANNOT_PAINT_ANCESTOR);            
+            we.setEvidenceCode(Evidence.CODE_IBA);
+            we.setWith(propagator);
+            newAnnot.addWithEvidence(we);
+            
+//            newDetail.addWith(propagator);
+//            newDetail.setAnnotatedNode(n);
+//            Evidence newEvidence = new Evidence();
+//            newAnnot.setEvidence(newEvidence);
+//            newEvidence.setEvidenceCode(GOConstants.ANCESTRAL_EVIDENCE_CODE);
+//            DBReference dbRef = new DBReference();
+//            dbRef.setEvidenceType(GOConstants.PAINT_REF);
+//            dbRef.setEvidenceValue(GO_Util.inst().getPaintEvidenceAcc());
+//            newEvidence.addDbRef(dbRef);
 
-            newDetail.addWith(propagator);
+
             // Get inherited qualifiers.  Set with of qualifiers to propagator of annotation
             LinkedHashMap<Qualifier, HashSet<Annotation>> qualifierLookup = propagator.getAnnotationDetail().getQualifierLookup();
             for (Qualifier q: qualifierLookup.keySet()) {
@@ -922,7 +1047,7 @@ public class AnnotationUtil {
             if (a == withAnnot) {
                 continue;
             }
-            if (Evidence.CODE_IBD.equals(withAnnot.getEvidence().getEvidenceCode())) {
+            if (Evidence.CODE_IBD.equals(withAnnot.getSingleEvidenceCodeFromSet())) {
                 return withAnnot;
             }
             return getIBDpropagator(withAnnot);
@@ -931,15 +1056,16 @@ public class AnnotationUtil {
     }
     
     private static Annotation getPropagator(Annotation a) {
-        HashSet<Annotation> withs = a.getAnnotationDetail().getWithAnnotSet();
-        if (null == withs) {
+        HashSet<WithEvidence> withSet = a.getAnnotationDetail().getWithEvidenceAnnotSet();
+        if (null == withSet) {
             return null;
         }
-        for (Annotation withAnnot: withs) {
-            if (a == withAnnot) {
+        for (WithEvidence we: withSet) {
+            Annotation with = (Annotation)we.getWith();
+            if (a == we.getWith()) {
                 continue;
             }
-            return withAnnot;
+            return with;
         }
         return null;        
     }
@@ -955,11 +1081,11 @@ public class AnnotationUtil {
                 for (int i = 0; i < annotList.size(); i++) {
                     Annotation a = annotList.get(i);
 //                    System.out.println("Processing " + i + " annotation");
-                    Evidence e = a.getEvidence();
+//                    Evidence e = a.getEvidence();
 //                    if (true == Evidence.CODE_IBA.equals(e.getEvidenceCode()) && false == gNode.isLeaf()) {
 //                        System.out.println("Here");
 //                    }
-                    if (true == Evidence.CODE_IBA.equals(e.getEvidenceCode()) && true == initialIBAannots.contains(a)) {
+                    if (true == Evidence.CODE_IBA.equals(a.getSingleEvidenceCodeFromSet()) && true == initialIBAannots.contains(a)) {
                         Annotation ibdProp = getIBDpropagator(a);
                         Annotation propagator = getPropagator(a);
                         if (null == ibdProp || null == propagator) {
@@ -973,7 +1099,7 @@ public class AnnotationUtil {
                         }
                         propagateIBAtoNodes(propagator, descendents, a.getGoTerm());
                     }
-                    if (true == Evidence.CODE_IBD.equals(e.getEvidenceCode())) {
+                    if (true == Evidence.CODE_IBD.equals(a.getSingleEvidenceCodeFromSet())) {
                         ArrayList<GeneNode> descendents = new ArrayList<GeneNode>();
                         GeneNodeUtil.allNonPrunedDescendents(gNode, descendents);
                         HashSet<GeneNode> nodesProvidingEvidence = getEvidenceNodesForAnnotation(a);
@@ -983,7 +1109,7 @@ public class AnnotationUtil {
                         propagateIBAtoNodes(a, descendents, a.getGoTerm());
                         continue;
                     }
-                    if (true == Evidence.CODE_IRD.equals(e.getEvidenceCode()) || true == Evidence.CODE_IKR.equals(e.getEvidenceCode())) {
+                    if (true == Evidence.CODE_IRD.equals(a.getSingleEvidenceCodeFromSet()) || true == Evidence.CODE_IKR.equals(a.getSingleEvidenceCodeFromSet())) {
                         // remove IBA's propagated from IBD
                          Annotation ibdProp = getIBDpropagator(a);
                          Annotation propagator = getPropagator(a);
@@ -1012,7 +1138,7 @@ public class AnnotationUtil {
                             }
                             for (Iterator<Annotation> annotIter = dAnnotList.iterator(); annotIter.hasNext();) {
                                 Annotation descAnnot = annotIter.next();
-                                if (false == Evidence.CODE_IBA.equals(descAnnot.getEvidence().getEvidenceCode())) {
+                                if (false == Evidence.CODE_IBA.equals(descAnnot.getSingleEvidenceCodeFromSet())) {
                                     continue;
                                 }
                                 if (false == a.getGoTerm().equals(descAnnot.getGoTerm())) {
@@ -1040,7 +1166,7 @@ public class AnnotationUtil {
 
                         // For IKR, need to propagate to descendents
                         descendents.remove(gNode);      // Remove myself since node being processed does not get IBA
-                        if (true == GOConstants.KEY_RESIDUES_EC.equals(e.getEvidenceCode())) {
+                        if (true == GOConstants.KEY_RESIDUES_EC.equals(a.getSingleEvidenceCodeFromSet())) {
                             propagateIBAtoNodes(a, descendents, a.getGoTerm());
                         }
 
@@ -1092,7 +1218,7 @@ public class AnnotationUtil {
             }
             ArrayList<Annotation> removeAnnot = new ArrayList<Annotation>();    // If we find an IBA without 'matching' IKR or 'IRD' remove since this is invalid data
             for (Annotation a : annotList) {
-                if (false == GOConstants.ANCESTRAL_EVIDENCE_CODE.equals(a.getEvidence().getEvidenceCode())) {
+                if (false == GOConstants.ANCESTRAL_EVIDENCE_CODE.equals(a.getSingleEvidenceCodeFromSet())) {
                     continue;
                 }
 //                if (true == "38109929".equals(a.getAnnotationId())) {
@@ -1118,9 +1244,9 @@ public class AnnotationUtil {
                     if (a.equals(compAnnot)) {
                         continue;
                     }
-                    if (true == GOConstants.DIVERGENT_EC.equals(compAnnot.getEvidence().getEvidenceCode())  ||
-                        true == GOConstants.KEY_RESIDUES_EC.equals(compAnnot.getEvidence().getEvidenceCode()) ||
-                        true == GOConstants.DESCENDANT_SEQUENCES_EC.equals(compAnnot.getEvidence().getEvidenceCode())) {
+                    if (true == GOConstants.DIVERGENT_EC.equals(compAnnot.getSingleEvidenceCodeFromSet())  ||
+                        true == GOConstants.KEY_RESIDUES_EC.equals(compAnnot.getSingleEvidenceCodeFromSet()) ||
+                        true == GOConstants.DESCENDANT_SEQUENCES_EC.equals(compAnnot.getSingleEvidenceCodeFromSet())) {
                         Annotation compPropagator = null;
                         for (Annotation compProp : compAnnot.getAnnotationDetail().getWithAnnotSet()) {
                             if (compAnnot == compProp) {
@@ -1153,15 +1279,23 @@ public class AnnotationUtil {
 
     public static HashSet<GeneNode> getWithsNodes(Annotation a) {
         AnnotationDetail ad = a.getAnnotationDetail();
-        HashSet<Annotation> withSet = ad.getWithAnnotSet();
-        if (null == withSet) {
-            return null;
-        }
+        HashSet<WithEvidence> withSet = ad.getWithEvidenceAnnotSet();
+
         PaintManager pm = PaintManager.inst();
         HashSet<GeneNode> rtnSet = new HashSet<GeneNode>(withSet.size());
-        for (Annotation with : withSet) {
-            Node n = with.getAnnotationDetail().getAnnotatedNode();
-            rtnSet.add(pm.getGeneByPTNId(n.getStaticInfo().getPublicId()));
+        if (null != withSet) {
+            for (WithEvidence with : withSet) {
+                Annotation annot = (Annotation)with.getWith();
+                Node n = annot.getAnnotationDetail().getAnnotatedNode();
+                rtnSet.add(pm.getGeneByPTNId(n.getStaticInfo().getPublicId()));
+            }
+        }
+        withSet = ad.getWithEvidenceNodeSet();
+        if (null != withSet) {
+            for (WithEvidence with: withSet) {
+                Node n = (Node)with.getWith();
+                rtnSet.add(pm.getGeneByPTNId(n.getStaticInfo().getPublicId()));                
+            }
         }
         return rtnSet;
     }
@@ -1190,7 +1324,7 @@ public class AnnotationUtil {
         if (null == a) {
             return null;
         }
-        if (false == Evidence.CODE_IBD.equals(a.getEvidence().getEvidenceCode())) {
+        if (false == Evidence.CODE_IBD.equals(a.getSingleEvidenceCodeFromSet())) {
             Annotation temp = getWithAnnotation(a, gNode);
             if (null == temp) {
                 return null;
@@ -1202,15 +1336,16 @@ public class AnnotationUtil {
 
     public static Annotation getWithAnnotation(Annotation a, GeneNode gNode) {
         AnnotationDetail ad = a.getAnnotationDetail();
-        HashSet<Annotation> withSet = ad.getWithAnnotSet();
+        HashSet<WithEvidence> withSet = ad.getWithEvidenceAnnotSet();
         if (null == withSet) {
             return null;
         }
-        for (Annotation with : withSet) {
-            if (true == with.getAnnotationDetail().getAnnotatedNode().equals(gNode.getNode())) {
+        for (WithEvidence with : withSet) {
+            Annotation annot = (Annotation)with.getWith();
+            if (true == annot.getAnnotationDetail().getAnnotatedNode().equals(gNode.getNode())) {
                 continue;
             }
-            return with;
+            return annot;
         }
         return null;
     }
@@ -1234,8 +1369,200 @@ public class AnnotationUtil {
         }
         return null;
     }
+    
+    public static HashSet<Annotation> deleteAnnotation(GeneNode gNode, Annotation a) {
+        HashSet<Annotation> deleteAnnots = new HashSet<Annotation>();
+        deleteAnnots.add(a);
+        return deleteAnnotation(gNode, a, deleteAnnots);
+    }
+    
+    public static HashSet<Annotation> deleteAnnotation(GeneNode gNode, Annotation a, HashSet<Annotation> annotsToBeDeleted) {
+        HashSet<Annotation> deletedAnnots = new HashSet<Annotation>();
+        Node n = gNode.getNode();
 
-    public static HashSet<Annotation> deleteAnnotation(GeneNode gNode, Annotation a, boolean createNewAnnots) {
+//        if (true == "PTN002467107".equals(n.getStaticInfo().getPublicId())) {
+//            System.out.println("Here");
+//        }
+        NodeVariableInfo nvi = n.getVariableInfo();
+        if (null == nvi) {
+            return deletedAnnots;
+        }
+        ArrayList<Annotation> annotList = nvi.getGoAnnotationList();
+        if (null == annotList) {
+            return deletedAnnots;
+        }
+        if (false == annotList.contains(a)) {
+            return deletedAnnots;
+        }
+        
+ 
+        deleteAnnotation(gNode, a, /*annotsToBeDeleted, */ deletedAnnots, annotsToBeDeleted);
+        for (Annotation annot : deletedAnnots) {
+            Node node = annot.getAnnotationDetail().getAnnotatedNode();
+            if (null == node) {
+                continue;
+            }
+            NodeVariableInfo nodeNvi = node.getVariableInfo();
+            if (null == nodeNvi) {
+                continue;
+            }
+            ArrayList<Annotation> aList = nodeNvi.getGoAnnotationList();
+            if (null == aList) {
+                continue;
+            }
+            aList.remove(annot);
+            System.out.println("Deleted annotation from node " + n.getStaticInfo().getPublicId() + " annotation to term " + annot.getGoTerm());
+            if (aList.isEmpty()) {
+                nodeNvi.setGoAnnotationList(null);
+            }
+        }
+        return deletedAnnots;                
+    }
+    
+     private static void deleteAnnotation(GeneNode gNode, Annotation a, /*HashSet<Annotation> annotsToBeDeleted, */ HashSet<Annotation> deletedAnnots, HashSet<Annotation> annotsToBeDeleted) {
+        if (false == a.isCreatedByPaint()) {
+            return;
+        }
+        annotsToBeDeleted.add(a);
+        Node node = gNode.getNode();
+//        if (true == "PTN002467107".equals(node.getStaticInfo().getPublicId())) {
+//            System.out.println("Here");
+//        }
+        String code = a.getSingleEvidenceCodeFromSet();
+
+        System.out.println("Deleting annotation for " + gNode.getNode().getStaticInfo().getPublicId() + " code " + a.getSingleEvidenceCodeFromSet());
+        // First remove dependent annotations
+        ArrayList<GeneNode> descendents = new ArrayList<GeneNode>();
+        GeneNodeUtil.allNonPrunedDescendents(gNode, descendents);
+        for (GeneNode desc : descendents) {
+            Node n = desc.getNode();
+//            if (true == "PTN001597050".equals(desc.getNode().getStaticInfo().getPublicId()) || true == " PTN002224260".equals(desc.getNode().getStaticInfo().getPublicId())) {
+//                System.out.println("desc Here");
+//            }
+
+            NodeVariableInfo nvi = n.getVariableInfo();
+            if (null == nvi) {
+                continue;
+            }
+            ArrayList<Annotation> annotList = nvi.getGoAnnotationList();
+            if (null == annotList) {
+                continue;
+            }
+            
+            Vector deleteInfo = new Vector();
+
+            for (Iterator<Annotation> annotIter = annotList.iterator(); annotIter.hasNext(); ) {
+                Annotation annot = annotIter.next();
+                if (false == annot.withExists(a)) {
+//                    if (Evidence.CODE_IBA.equals(annot.getEvidence().getEvidenceCode())) {
+//                        System.out.println("Passing by IBA annotation");
+//                    }
+                    continue;
+                }
+                
+                if (false == annot.isRequired(a)) {
+                    System.out.println("Annot to " + annot.getSingleEvidenceCodeFromSet() + " does not require annot with code " + a.getSingleEvidenceCodeFromSet());
+                    annot.removeWith(a);
+                    HashSet<String> codes = annot.getAnnotationDetail().getEvidenceCodes();
+                    if (null == codes || codes.isEmpty()) {
+                        deleteAnnotation(desc, annot, annotsToBeDeleted);
+                    }
+                    continue;
+                }
+
+                System.out.println("Deleting descendent annotation for " + n.getStaticInfo().getPublicId() + " annot code " + annot.getSingleEvidenceCodeFromSet());
+                
+                // Before removing the with (aka propagator), remove annotations that are dependent on this annotation itself                
+                Vector deleteLater = new Vector(2);
+                deleteInfo.add(deleteLater);
+                deleteLater.add(desc);
+                deleteLater.add(annot);
+                
+            }
+            for (int i = 0; i < deleteInfo.size(); i++) {
+                Vector deleteLater = (Vector)deleteInfo.get(i);
+                deleteAnnotation((GeneNode)deleteLater.get(0), (Annotation)deleteLater.get(1), annotsToBeDeleted);
+            }
+           
+            
+        }
+        
+        if (Evidence.CODE_IKR.equals(code) || Evidence.CODE_IRD.equals(code)) {
+            Annotation propagator = getPropagator(a);
+            Annotation iba = getAssociatedIBAForIKRorIRD(gNode, a);     // Case where we annotated to ancestor term
+            if (null != iba) {
+                String goTerm = iba.getGoTerm();
+                deleteAnnotation(gNode, iba, annotsToBeDeleted);
+                for (GeneNode gn: descendents) {
+                    Node n = gn.getNode();
+                    NodeVariableInfo nvi = n.getVariableInfo();
+                    if (null == nvi) {
+                        continue;
+                    }
+                    ArrayList<Annotation> annotList = nvi.getGoAnnotationList();
+                    if (null == annotList) {
+                        continue;
+                    }
+                    
+                    Vector deleteInfo = new Vector();
+                    for (Annotation annot: annotList) {
+                        if (false == goTerm.equals(annot.getGoTerm())) {
+                            continue;
+                        }
+                        // Have to have same propagator
+                        Annotation curProp = getPropagator(annot);
+                        if (propagator != curProp) {
+                            continue;
+                        }
+                        
+                        // For IBA qualifiers have to be the same
+                        QualifierDif qd = new QualifierDif(iba.getQualifierSet(), annot.getQualifierSet());
+                        String curCode = annot.getSingleEvidenceCodeFromSet();
+                        if (QualifierDif.QUALIFIERS_SAME == qd.getDifference() && Evidence.CODE_IBA.equals(curCode)) {
+                            Vector deleteLater = new Vector(2);
+                            deleteInfo.add(deleteLater);
+                            deleteLater.add(gn);
+                            deleteLater.add(annot);
+                        }
+                        
+                        // For IKR or IRD qualifiers are different
+                        if (QualifierDif.areOpposite(iba.getQualifierSet(), annot.getQualifierSet()) &&  (Evidence.CODE_IKR.equals(curCode)  || Evidence.CODE_IRD.equals(curCode))) {
+                            Vector deleteLater = new Vector(2);
+                            deleteInfo.add(deleteLater);
+                            deleteLater.add(gn);
+                            deleteLater.add(annot);                            
+                        }
+                    }
+                    for (int i = 0; i < deleteInfo.size(); i++) {
+                        Vector deleteLater = (Vector) deleteInfo.get(i);
+                        deleteAnnotation((GeneNode) deleteLater.get(0), (Annotation) deleteLater.get(1), annotsToBeDeleted);
+                    }
+                }
+            }
+            
+            // Remove the annotation
+            deletedAnnots.add(a);
+            
+            // If propagator is being removed, no need to add propagated terms           
+            if (annotsToBeDeleted.contains(propagator) || deletedAnnots.contains(propagator)) {
+                return;
+            }
+            // Get nodes that will need propagation
+            // Get the IBD that propagated this annotation and get the list of nodes that provided experimental evidence
+            Annotation ibd = getLastIBD(a, gNode);
+            Node ibdProp = ibd.getAnnotationDetail().getAnnotatedNode();
+            PaintManager pm = PaintManager.inst();
+            ArrayList<GeneNode> evNodes = getNodesProvidingExperimentalEvidence(ibd, pm.getGeneByPTNId(ibdProp.getStaticInfo().getPublicId()));
+
+            System.out.println("Creating IBA's for " + propagator.getGoTerm());
+            propagateIBAToDescendants (propagator, gNode, evNodes, propagator.getGoTerm(), false, pm.getTaxonHelper());
+            return;
+        }
+        deletedAnnots.add(a);
+        
+     }   
+
+    public static HashSet<Annotation> deleteAnnotationOld(GeneNode gNode, Annotation a, boolean createNewAnnots) {
         //HashSet<Annotation> annotsToBeDeleted = new HashSet<Annotation>();
         //annotsToBeDeleted.add(a);
         // Check that node has associated annotation
@@ -1252,8 +1579,10 @@ public class AnnotationUtil {
         if (false == annotList.contains(a)) {
             return deletedAnnots;
         }
+        
+      
 
-        deleteAnnotation(gNode, a, /*annotsToBeDeleted, */ deletedAnnots, createNewAnnots);
+        deleteAnnotationOld(gNode, a, /*annotsToBeDeleted, */ deletedAnnots, createNewAnnots);
         for (Annotation annot : deletedAnnots) {
             n = annot.getAnnotationDetail().getAnnotatedNode();
             nvi = n.getVariableInfo();
@@ -1272,15 +1601,19 @@ public class AnnotationUtil {
         return deletedAnnots;
     }
 
-    private static void deleteAnnotation(GeneNode gNode, Annotation a, /*HashSet<Annotation> annotsToBeDeleted, */ HashSet<Annotation> deletedAnnots, boolean createNewAnnots) {
-        String code = a.getEvidence().getEvidenceCode();
+    private static void deleteAnnotationOld(GeneNode gNode, Annotation a, /*HashSet<Annotation> annotsToBeDeleted, */ HashSet<Annotation> deletedAnnots, boolean createNewAnnots) {
+        if (false == a.isCreatedByPaint()) {
+            return;
+        }
+        
+        String code = a.getSingleEvidenceCodeFromSet();
 //        if (false == Evidence.CODE_IBD.equals(code) && false == false == Evidence.CODE_IBA.equals(code) && false == Evidence.CODE_IKR.equals(code) && false == Evidence.CODE_IRD.equals(code)) {
 //            return;
 //        }
 //        if (true == "PTN002224259".equals(gNode.getNode().getStaticInfo().getPublicId()) || true == " PTN002224260".equals(gNode.getNode().getStaticInfo().getPublicId())) {
 //            System.out.println("Here");
 //        }
-        System.out.println("Deleting annotation for " + gNode.getNode().getStaticInfo().getPublicId() + " code " + a.getEvidence().getEvidenceCode());
+        System.out.println("Deleting annotation for " + gNode.getNode().getStaticInfo().getPublicId() + " code " + a.getSingleEvidenceCodeFromSet());
         // First remove dependent annotations
         ArrayList<GeneNode> descendents = new ArrayList<GeneNode>();
         GeneNodeUtil.allNonPrunedDescendents(gNode, descendents);
@@ -1307,17 +1640,53 @@ public class AnnotationUtil {
 //                    }
                     continue;
                 }
-                System.out.println("Deleting descendent annotation for " + n.getStaticInfo().getPublicId() + " annot code " + annot.getEvidence().getEvidenceCode());
-                // Before removing the with (aka propagator), remove annotations that are dependent on this annotation itself                
-                deleteAnnotation(desc, annot, /*annotsToBeDeleted, */ deletedAnnots, false);
-//                if (true == "PTN002224259".equals(gNode.getNode().getStaticInfo().getPublicId())) {
-//                        System.out.println("Processing special");
-//                }
-                if (null != annot.getParentAnnotation()) {
+                
+                if (false == annot.isRequired(a)) {
+                    annot.removeWith(a);
                     continue;
                 }
 
+                System.out.println("Deleting descendent annotation for " + n.getStaticInfo().getPublicId() + " annot code " + annot.getSingleEvidenceCodeFromSet());
+                
+                // Before removing the with (aka propagator), remove annotations that are dependent on this annotation itself                
+                deleteAnnotationOld(desc, annot, /*annotsToBeDeleted, */ deletedAnnots, false);
+//                if (true == "PTN002224259".equals(gNode.getNode().getStaticInfo().getPublicId())) {
+//                        System.out.println("Processing special");
+//                }
+//                if (null != annot.getParentAnnotation()) {
+//                    continue;
+//                }
+
                 if (Evidence.CODE_IKR == code || Evidence.CODE_IRD == code) {
+                    HashSet<WithEvidence> withEvSet = annot.getAnnotationDetail().getWithEvidenceAnnotSet();
+                    if (null != withEvSet) {
+                        HashSet<Annotation> withs = new HashSet<Annotation>();
+                        for (WithEvidence we: withEvSet) {
+                            withs.add((Annotation)we.getWith());
+                        }
+                        
+                        
+                        withs.remove(a);
+                        if (null != withs && 1 == withs.size()) {
+                        Annotation with = null;
+                            for (Annotation w : withs) {
+                                with = w;
+                                break;
+                            }
+                            if (true == with.getAnnotationDetail().getAnnotatedNode().equals(n)) {
+                                Annotation removedAnnot = annot.removeWith(a);
+                                //annotsToBeDeleted.add(annot);
+                                deletedAnnots.add(annot);
+                                System.out.println("Deleting annotation code " + annot.getSingleEvidenceCodeFromSet() + " term " + annot.getGoTerm() + " associated with node " + annot.getAnnotationDetail().getAnnotatedNode().getStaticInfo().getPublicId());
+                            }
+
+                        }                        
+                        
+                        
+                        
+                        
+                        
+                    }
                     HashSet<Annotation> withs = (HashSet<Annotation>) (annot.getAnnotationDetail().getWithAnnotSet()).clone();
                     withs.remove(a);
                     if (null != withs && 1 == withs.size()) {
@@ -1330,41 +1699,44 @@ public class AnnotationUtil {
                             Annotation removedAnnot = annot.removeWith(a);
                             //annotsToBeDeleted.add(annot);
                             deletedAnnots.add(annot);
-                            System.out.println("Deleting annotation code " + annot.getEvidence().getEvidenceCode() + " term " + annot.getGoTerm() + " associated with node " + annot.getAnnotationDetail().getAnnotatedNode().getStaticInfo().getPublicId());
+                            System.out.println("Deleting annotation code " + annot.getSingleEvidenceCodeFromSet() + " term " + annot.getGoTerm() + " associated with node " + annot.getAnnotationDetail().getAnnotatedNode().getStaticInfo().getPublicId());
                         }
-                        Annotation childAnnot = annot.getChildAnnotation();
-                        if (null != childAnnot && Evidence.CODE_IBA.equals(childAnnot.getEvidence().getEvidenceCode())) {
-                            //annotsToBeDeleted.add(childAnnot);
-                            deletedAnnots.add(childAnnot);
-                            System.out.println("Deleting annotation code " + childAnnot.getEvidence().getEvidenceCode() + " term " + childAnnot.getGoTerm() + " associated with node " + childAnnot.getAnnotationDetail().getAnnotatedNode().getStaticInfo().getPublicId());
-                            //removedSet.add(childAnnot);                            
-                        }
+//                        Annotation childAnnot = annot.getChildAnnotation();
+//                        if (null != childAnnot && Evidence.CODE_IBA.equals(childAnnot.getEvidence().getEvidenceCode())) {
+//                            //annotsToBeDeleted.add(childAnnot);
+//                            deletedAnnots.add(childAnnot);
+//                            System.out.println("Deleting annotation code " + childAnnot.getEvidence().getEvidenceCode() + " term " + childAnnot.getGoTerm() + " associated with node " + childAnnot.getAnnotationDetail().getAnnotatedNode().getStaticInfo().getPublicId());
+//                            //removedSet.add(childAnnot);                            
+//                        }
                         //deleteAnnotation(desc, with, /*annotsToBeDeleted, */deletedAnnots, false);
                     }
 
                 } else {
                     Annotation removedAnnot = annot.removeWith(a);
                     if (null == removedAnnot) {
-                        System.out.println("Cannot remove annotation with code " + a.getEvidence().getEvidenceCode() + " from annotation with evidence code " + annot.getEvidence().getEvidenceCode());
+                        System.out.println("Cannot remove annotation with code " + a.getSingleEvidenceCodeFromSet() + " from annotation with evidence code " + annot.getSingleEvidenceCodeFromSet());
                     }
-                    HashSet<Annotation> remainingWiths = annot.getAnnotationDetail().getWithAnnotSet();
+                    HashSet<WithEvidence> remainingWiths = annot.getAnnotationDetail().getWithEvidenceAnnotSet();
                     if (null == remainingWiths || 0 == remainingWiths.size()) {
+                        if (null == annot.getSingleEvidenceCodeFromSet()) {
+                            System.out.println("Here");
+                        }
                         //annotsToBeDeleted.add(annot);
                         deletedAnnots.add(annot);
-                        System.out.println("Deleting annotation code " + annot.getEvidence().getEvidenceCode() + " term " + annot.getGoTerm() + " associated with node " + annot.getAnnotationDetail().getAnnotatedNode().getStaticInfo().getPublicId());
+                        System.out.println("Deleting annotation code " + annot.getSingleEvidenceCodeFromSet() + " term " + annot.getGoTerm() + " associated with node " + annot.getAnnotationDetail().getAnnotatedNode().getStaticInfo().getPublicId());
                     }
                 }
 
             }
         }
-        String evCode = a.getEvidence().getEvidenceCode();
+        String evCode = a.getSingleEvidenceCodeFromSet();
         if (true == Evidence.CODE_IBD.equals(evCode) || true == Evidence.CODE_IBA.equals(evCode)) {
             deletedAnnots.add(a);
             return;
         } else if (true == Evidence.CODE_IKR.equals(evCode) || true == Evidence.CODE_IRD.equals(evCode)) {
             Annotation lastIBD = getLastIBD(a, gNode);
-            Annotation child = a.getChildAnnotation();
-            if (null != child && true == Evidence.CODE_IBA.equals(child.getEvidence().getEvidenceCode())) {
+//            Annotation child = a.getChildAnnotation();
+//            if (null != child && true == Evidence.CODE_IBA.equals(child.getEvidence().getEvidenceCode())) {
                 // Need to delete ancestral annotations from descendents
                 descendents.add(gNode);
                 for (GeneNode desc : descendents) {
@@ -1374,8 +1746,8 @@ public class AnnotationUtil {
                         ArrayList<Annotation> descAnnotList = nvi.getGoAnnotationList();
                         if (null != descAnnotList) {
                             for (Annotation descAnnot : descAnnotList) {
-                                String descEvCode = descAnnot.getEvidence().getEvidenceCode();
-                                if (true == Evidence.CODE_IBA.equals(descEvCode) && true == child.getGoTerm().equals(descAnnot.getGoTerm())) {
+                                String descEvCode = descAnnot.getSingleEvidenceCodeFromSet();
+                                if (true == Evidence.CODE_IBA.equals(descEvCode) /*&& true == child.getGoTerm().equals(descAnnot.getGoTerm() ) */) {
                                     deletedAnnots.add(descAnnot);
                                 }
                                 
@@ -1389,7 +1761,7 @@ public class AnnotationUtil {
                         }
                     }
                 }
-            }
+            //}
             deletedAnnots.add(a);
 
             if (null != lastIBD && true == createNewAnnots && (true == Evidence.CODE_IKR.equals(evCode) || true == Evidence.CODE_IRD.equals(evCode))) {
@@ -1424,7 +1796,7 @@ public class AnnotationUtil {
             if (false == go_aspect.equals(gth.getTerm(annot.getGoTerm()).getAspect())) {
                 continue;
             }
-            String code = annot.getEvidence().getEvidenceCode();
+            String code = annot.getSingleEvidenceCodeFromSet();
             if (Evidence.CODE_IBD.equals(code) || Evidence.CODE_IKR.equals(code) || Evidence.CODE_IRD.equals(code)) {
                 LinkedHashMap<Qualifier, HashSet<Annotation>> map = annot.getAnnotationDetail().getQualifierLookup();
                 if (true == QualifierDif.containsNegative(map.keySet())) {
@@ -1441,15 +1813,27 @@ public class AnnotationUtil {
         if (null == children) {
             return;
         }
+        ArrayList<GeneNode> evNodes = getNodesProvidingExperimentalEvidence(a, gNode);
+        
+        
         for (GeneNode child : children) {
             if (true == GeneNodeUtil.inPrunedBranch(child)) {
                 continue;
             }
-            propagateIBAForGraft(child, a);
+            propagateIBAForGraft(child, a, evNodes);
         }
     }
 
-    public static void propagateIBAForGraft(GeneNode gNode, Annotation a) {
+    /**
+     * 
+     * @param gNode
+     * @param a
+     * @param skipSet nodes that should not get the IBA annotation
+     */
+    public static void propagateIBAForGraft(GeneNode gNode, Annotation a, List<GeneNode> skipSet) {
+        if (skipSet.contains(gNode)) {
+            return;
+        }
         boolean found = false;
         boolean propagateToChildren = true;
         Node n = gNode.getNode();
@@ -1468,9 +1852,33 @@ public class AnnotationUtil {
             HashSet<Annotation> withSet = annot.getAnnotationDetail().getWithAnnotSet();
             if (null != withSet && withSet.contains(a)) {
                 found = true;
-                if (true == Evidence.CODE_IKR.equals(annot.getEvidence().getEvidenceCode()) || true == Evidence.CODE_IRD.equals(annot.getEvidence().getEvidenceCode())) {
+                if (true == Evidence.CODE_IKR.equals(annot.getSingleEvidenceCodeFromSet()) || true == Evidence.CODE_IRD.equals(annot.getSingleEvidenceCodeFromSet())) {
                     propagateToChildren = false;
+                
+                
+                    // Propagate IBA for IKR
+                    if (true == Evidence.CODE_IKR.equals(annot.getSingleEvidenceCodeFromSet())) {
+                        List<GeneNode> children = gNode.getChildren();
+                        if (null != children) {
+                            for (GeneNode child: children) {
+                                if (true == child.isPruned()) {
+                                    continue;
+                                }
+                                propagateIBAForGraft(child, annot, skipSet);
+                            }
+                        }
+                    }
+
+                    Annotation iba = getAssociatedIBAForIKRorIRD(gNode, annot);
+                    if (null != iba) {
+                        Annotation ibd = getLastIBD(annot, gNode);
+                        Node ibdProp = ibd.getAnnotationDetail().getAnnotatedNode();
+                        PaintManager pm = PaintManager.inst();
+                        ArrayList<GeneNode> evNodes = getNodesProvidingExperimentalEvidence(ibd, pm.getGeneByPTNId(ibdProp.getStaticInfo().getPublicId()));
+                        propagateIBAToDescendants(ibd, gNode, evNodes, iba.getGoTerm(), false, pm.getTaxonHelper());
+                    }
                 }
+                
             }
         }
 
@@ -1489,24 +1897,27 @@ public class AnnotationUtil {
                 if (true == GeneNodeUtil.inPrunedBranch(child)) {
                     continue;
                 }
-                propagateIBAForGraft(child, a);
+                propagateIBAForGraft(child, a, skipSet);
             }
         }
 
     }
 
     public static HashSet<Annotation> getApplicableAnnotations(ArrayList<GeneNode> leaves, GOTerm goTerm, GOTermHelper gth, HashSet<Qualifier> qSet) {
-        boolean neg = QualifierDif.containsNegative(qSet);
+        //boolean neg = QualifierDif.containsNegative(qSet);
         HashSet<Annotation> annots = new HashSet<Annotation>();
         for (GeneNode leaf : leaves) {
             AnnotationForTerm aft = new AnnotationForTerm(leaf, goTerm, gth);
-            if (neg != QualifierDif.containsNegative(aft.getQset())) {
-                continue;
-            }
             if (false == aft.annotationExists()) {
                 continue;
             }
-            annots.addAll(aft.getAnnotSet());
+            for (Annotation a: aft.getAnnotSet()) {
+                QualifierDif qd = new QualifierDif(qSet, a.getQualifierSet());
+                if (QualifierDif.QUALIFIERS_SAME != qd.getDifference()) {
+                    continue;
+                }
+                annots.add(a);
+            }
         }
         return annots;
     }
@@ -1525,6 +1936,7 @@ public class AnnotationUtil {
         GeneNode root = PaintManager.inst().getTree().getRoot();
         ArrayList<GeneNode> allDesc = new ArrayList<GeneNode>();
         GeneNodeUtil.allNonPrunedDescendents(root, allDesc);
+        allDesc.add(0, root);
         GOTermHelper gth = PaintManager.inst().goTermHelper();
         for (GeneNode gn : allDesc) {
             Node n = gn.getNode();
@@ -1537,7 +1949,7 @@ public class AnnotationUtil {
                 continue;
             }
             for (Annotation a : annotList) {
-                if (true == Evidence.CODE_IBD.equals(a.getEvidence().getEvidenceCode())) {
+                if (true == Evidence.CODE_IBD.equals(a.getSingleEvidenceCodeFromSet())) {
                     String term = a.getGoTerm();
                     HashSet<Qualifier> qSet = a.getQualifierSet();
                     HashSet<Annotation> newWiths = getApplicableAnnotations(leaves, gth.getTerm(term), gth, qSet);
@@ -1545,10 +1957,16 @@ public class AnnotationUtil {
                         HashSet<Annotation> withSet = a.getAnnotationDetail().getWithAnnotSet();
 
                         if (null != withSet && withSet.containsAll(newWiths)) {
+                            propagateIBDforGraft(gn, a);
                             continue;
                         }
                         for (Annotation newAnnot : newWiths) {
                             if (false == withSet.contains(newAnnot)) {
+                                WithEvidence we = new WithEvidence();
+                                we.setEvidenceCode(Evidence.CODE_IBD);
+                                we.setEvidenceType(WithEvidence.EVIDENCE_TYPE_ANNOT_PAINT_EXP);
+                                we.setWith(newAnnot);
+                                a.getAnnotationDetail().addWithEvidence(we);
                                 a.getAnnotationDetail().addWith(newAnnot);
                             }
                             if (null != qSet && null != newAnnot.getQualifierSet() && QualifierDif.contains(qSet, newAnnot.getQualifierSet())) {
@@ -1559,10 +1977,11 @@ public class AnnotationUtil {
                         }
                         propagateIBDforGraft(gn, a);
                     }
-
-                } else if (true == Evidence.CODE_IKR.equals(a.getEvidence().getEvidenceCode()) || true == Evidence.CODE_IRD.equals(a.getEvidence().getEvidenceCode())) {
-                    // Add appropriate leaves
+                    
                 }
+//                else if (true == Evidence.CODE_IKR.equals(a.getSingleEvidenceCodeFromSet()) || true == Evidence.CODE_IRD.equals(a.getSingleEvidenceCodeFromSet())) {
+//                    // Add appropriate leaves
+//                }
             }
 
         }
@@ -1586,10 +2005,10 @@ public class AnnotationUtil {
             }
             for (Iterator<Annotation> annotIter = annotList.iterator(); annotIter.hasNext();) {
                 Annotation a = annotIter.next();
-                String code = a.getEvidence().getEvidenceCode();
+                String code = a.getSingleEvidenceCodeFromSet();
                 if (true == Evidence.CODE_IBA.equals(code) || true == Evidence.CODE_IBD.equals(code) || true == Evidence.CODE_IKR.equals(code) || true == Evidence.CODE_IRD.equals(code)) {
                     deletedAnnotSet.add(a);
-                    a.removeWith(a);
+//                    a.removeFromWithEvidence(a);
                     annotIter.remove();
                 }
             }
@@ -1618,7 +2037,7 @@ public class AnnotationUtil {
             }
             for (Iterator<Annotation> annotIter = annotList.iterator(); annotIter.hasNext();) {
                 Annotation a = annotIter.next();
-                if (false == a.getEvidence().isExperimental()) {
+                if (false == a.isExperimental()) {
                     continue;
                 }
                 expAnnotFromLeaves.add(a);
@@ -1642,42 +2061,53 @@ public class AnnotationUtil {
             
             for (Iterator<Annotation> annotIter = ((ArrayList<Annotation>)annotList.clone()).iterator(); annotIter.hasNext();) {
                 Annotation a = annotIter.next();
-                String code = a.getEvidence().getEvidenceCode();
+                String code = a.getSingleEvidenceCodeFromSet();
                 if (true == Evidence.CODE_IBD.equals(code) || true == Evidence.CODE_IKR.equals(code) || true == Evidence.CODE_IRD.equals(code)) {
+                    // Remove any nodes that could have been used as evidence
+                    for (GeneNode removedAnnotNode: descendents) {
+                        a.removeFromWithEvidence(removedAnnotNode.getNode());
+                    }
+                    
+                    // Make copy of original qualifier
+                    HashSet<Qualifier> qSetCopy = null;
+                    if (null != a.getQualifierSet()) {
+                        qSetCopy = (HashSet<Qualifier>) a.getQualifierSet().clone();
+                    }
+
+                    HashSet<WithEvidence> withAnnotSet = a.getAnnotationDetail().getWithEvidenceAnnotSet();                  
+                    
                     for (Annotation removedAnnot : expAnnotFromLeaves) {
-                        HashSet<Qualifier> qSetCopy = null;
-                        if (null != a.getQualifierSet()) {
-                            qSetCopy = (HashSet<Qualifier>) a.getQualifierSet().clone();
-                        }
-                        HashSet<Annotation> withSet = a.getAnnotationDetail().getWithAnnotSet();
-                        if (null != withSet) {
-                            if (true == withSet.contains(removedAnnot) && 1 == withSet.size()) {
-                                deleteAnnotation(gn, a, true);
+                        //HashSet<Annotation> withSet = a.getAnnotationDetail().getWithAnnotSet();
+                        if (null != withAnnotSet) {
+                            if (true == contains(withAnnotSet, removedAnnot)  && 1 == withAnnotSet.size()) {
+                                deleteAnnotation(gn, a);
                                 continue;
                             }
 
-                            if (true == withSet.contains(removedAnnot) && true == Evidence.CODE_IBD.equals(code)) {
+                            if (true == contains(withAnnotSet, removedAnnot) && true == Evidence.CODE_IBD.equals(code)) {
                                 a.removeWith(removedAnnot);
                                 if (true == QualifierDif.areOpposite(a.getQualifierSet(), qSetCopy)) {
-                                    deleteAnnotation(gn, a, true);
+                                    deleteAnnotation(gn, a);
                                     continue;
                                 }
                             }
                             if (true == Evidence.CODE_IKR.equals(code) || true == Evidence.CODE_IRD.equals(code)) {
-                                if (true == withSet.contains(removedAnnot) && 2 == withSet.size()) {
-                                    deleteAnnotation(gn, a, true);
+                                if (true == contains(withAnnotSet, removedAnnot) && 2 == withAnnotSet.size()) {
+                                    deleteAnnotation(gn, a);
                                     continue;
                                 }
-                                a.removeWith(removedAnnot);
-                                HashSet<Node> nodeSet = a.getAnnotationDetail().getWithNodeSet();
-                                if (null != nodeSet) {
-                                    for (GeneNode leaf : leaves) {
-                                        nodeSet.remove(leaf.getNode());
-                                    }
-                                    if (true == nodeSet.isEmpty()) {
-                                        a.getAnnotationDetail().setWithNodeSet(null);
-                                    }
-                                }
+                                a.removeFromWithEvidence(removedAnnot);
+                             
+                                //a.removeWith(removedAnnot);
+//                                HashSet<Node> nodeSet = a.getAnnotationDetail().getWithNodeSet();
+//                                if (null != nodeSet) {
+//                                    for (GeneNode leaf : leaves) {
+//                                        nodeSet.remove(leaf.getNode());
+//                                    }
+//                                    if (true == nodeSet.isEmpty()) {
+//                                        a.getAnnotationDetail().setWithNodeSet(null);
+//                                    }
+//                                }
                             }
                         }
                     }
@@ -1701,18 +2131,33 @@ public class AnnotationUtil {
     }
     
     public static Annotation getAssociatedIBAForIKRorIRD(GeneNode gNode, Annotation IKRorIRDAnnotation) {
-        String code = IKRorIRDAnnotation.getEvidence().getEvidenceCode();
+        Node n = gNode.getNode();
+        if (true == "PTN002467107".equals(n.getStaticInfo().getPublicId())) {
+            System.out.println("Here");
+        }        
+        String code = IKRorIRDAnnotation.getSingleEvidenceCodeFromSet();
         if (false == Evidence.CODE_IRD.equals(code) && false == Evidence.CODE_IKR.equals(code)) {
             System.out.println("Call to get associated IBA for non IKR or IRD");
             return null;
         }
         Annotation with = null;
-        for (Annotation aWith: IKRorIRDAnnotation.getAnnotationDetail().getWithAnnotSet()) {
-            if (true == Evidence.CODE_IBD.equals(aWith.getEvidence().getEvidenceCode())) {
-                with = aWith;
-                break;
-            }
+
+        HashSet<Annotation> ikrIrdwithSet = IKRorIRDAnnotation.getAnnotationDetail().getWithAnnotSet();
+        if (null == ikrIrdwithSet) {
+            return null;
         }
+        for (Annotation iw : ikrIrdwithSet) {
+            HashSet<Annotation> withSet = iw.getAnnotationDetail().getWithAnnotSet();
+            if (null == withSet) {
+                continue;
+            }
+            if (iw == IKRorIRDAnnotation) {
+                continue;
+            }
+            with = iw;
+            break;
+        }
+
         
         Node node = gNode.getNode();
         NodeVariableInfo nvi = node.getVariableInfo();
@@ -1724,7 +2169,10 @@ public class AnnotationUtil {
             return null;
         }
         for (Annotation a: annotList) {
-            if (true == Evidence.CODE_IBA.equals(a.getEvidence().getEvidenceCode())) {
+            if (a == IKRorIRDAnnotation) {
+                continue;
+            }
+            if (true == Evidence.CODE_IBA.equals(a.getSingleEvidenceCodeFromSet())) {
                 if (true == a.getAnnotationDetail().getWithAnnotSet().contains(with)) {
                     return a;
                 }
@@ -1736,7 +2184,7 @@ public class AnnotationUtil {
     
     
     public static Annotation getAssociatedIKRorIRDforIBA(GeneNode gNode, Annotation ibaAnnotation) {
-        if (false == Evidence.CODE_IBA.equals(ibaAnnotation.getEvidence().getEvidenceCode())) {
+        if (false == Evidence.CODE_IBA.equals(ibaAnnotation.getSingleEvidenceCodeFromSet())) {
             System.out.println("Call to get associated IRD OR IKR for non IBA");
             return null;
         }
@@ -1755,7 +2203,7 @@ public class AnnotationUtil {
             return null;
         }
         for (Annotation a: annotList) {
-            String code = a.getEvidence().getEvidenceCode();
+            String code = a.getSingleEvidenceCodeFromSet();
             if (true == Evidence.CODE_IKR.equals(code) || true == Evidence.CODE_IRD.equals(code)) {
                 if (true == a.getAnnotationDetail().getWithAnnotSet().contains(with)) {
                     return a;
@@ -1764,7 +2212,7 @@ public class AnnotationUtil {
         }
         return null;
     }
-    
+       
     public static HashSet<Annotation> getAnnotationsForTerm(GeneNode gNode, GOTerm term) {
         HashSet<Annotation> annotSet = new HashSet<Annotation>();
         
@@ -1785,6 +2233,27 @@ public class AnnotationUtil {
             return null;
         }
         return annotSet;
+    }
+    
+    public static ArrayList<AnnotationForTerm> getAnnotsAndApplicableQls(GeneNode gNode, GOTerm term) {
+        ArrayList<AnnotationForTerm> annotForTerm = new ArrayList<AnnotationForTerm>();
+        GOTermHelper gth = PaintManager.inst().goTermHelper();
+        
+        ArrayList<GeneNode> desc = new ArrayList<GeneNode>();
+        GeneNodeUtil.allNonPrunedDescendents(gNode, desc);
+        List<GeneNode> leaves = GeneNodeUtil.getAllLeaves(desc);
+        
+        for (GeneNode leaf: leaves) {        
+            AnnotationForTerm aft = new AnnotationForTerm(leaf, term, gth);
+            if (false == aft.annotationExists()) {
+                continue;
+            }
+            annotForTerm.add(aft);
+        }
+        if (true == annotForTerm.isEmpty()) {
+            return null;
+        }        
+        return annotForTerm;
     }
     
     public static boolean qualifiersMatch(HashSet<Annotation> annotSet) {
@@ -1810,5 +2279,20 @@ public class AnnotationUtil {
         }
         return true;
     }
+    
+    public static boolean contains(HashSet<WithEvidence> withEvSet, IWith with) {
+        if (null == withEvSet || null == with) {
+            return false;
+        }
+        for (WithEvidence we: withEvSet) {
+            if (we.getWith() == with) {
+                return true;
+            }
+        }
+        return false;
+        
+    }
+    
+
 
 }

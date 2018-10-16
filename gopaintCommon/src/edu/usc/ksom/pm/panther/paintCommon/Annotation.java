@@ -1,5 +1,5 @@
 /**
- *  Copyright 2016 University Of Southern California
+ *  Copyright 2017 University Of Southern California
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -16,22 +16,21 @@
 package edu.usc.ksom.pm.panther.paintCommon;
 
 import java.io.Serializable;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.Set;
 
-/**
- *
- * @author muruganu
- */
+
 // Created specifically for GO annotations.  NOT PANTHER subfamily or GO-SLIM information
-public class Annotation implements Serializable {
+public class Annotation implements Serializable, IWith {
     private String annotationId;
     private String annotationTypeId;
     private String annotationType;      //GO SF? now only GO
     private boolean annotIsToChildTerm = false;        // gene is annotated with a more specific term.  This annotation exists so that users can annotate with a parent term
-    private Annotation childAnnotation;     // For IKR and IRD, this will be the related IBA.  No other cases for now
-    private Annotation parentAnnotation;    // for IBA, this is the IKR or IRD
+//    private Annotation childAnnotation;     // For IKR and IRD, this will be the related IBA.  No other cases for now
+//    private Annotation parentAnnotation;    // for IBA, this is the IKR or IRD
     private boolean annotStoredInDb = false;        // Annotations that are propagated are not stored in database.  
     private AnnotationDetail annotationDetail = new AnnotationDetail();
     //Annotation propagatorAnnot = null;           // For IBA, IKR, IRD we have an annotation that was propagated.
@@ -73,6 +72,58 @@ public class Annotation implements Serializable {
     public void setGoTerm(String goTerm) {
         this.goTerm = goTerm;
     }
+    
+    public void addWithEvidence(WithEvidence we) {
+        annotationDetail.addWithEvidence(we);
+    }
+    
+    public String getSingleEvidenceCodeFromSet() {
+        HashSet<String> codeSet = getEvidenceCodeSet();
+        if (null == codeSet || 1 != codeSet.size()) {
+            return null;
+        }
+        for (String code: codeSet) {
+            return code;
+        }
+        return null;
+    }
+    
+    
+    public HashSet<String> getEvidenceCodeSet() {
+        AnnotationDetail ad = this.annotationDetail;
+        if (null == ad) {
+            return null;
+        }
+        HashSet<String> codeSet = new HashSet<String>();
+        if (null != ad.getWithEvidenceAnnotSet()) {
+            for (WithEvidence cur: ad.getWithEvidenceAnnotSet()) {
+//                IWith with = cur.getWith();
+//                if (with == this) {
+//                    continue;
+//                }
+                if (null != cur.getEvidenceCode()) {
+                    codeSet.add(cur.getEvidenceCode());
+                }
+            }
+        }
+        
+        if (null != ad.getWithEvidenceNodeSet()) {
+            for (WithEvidence cur: ad.getWithEvidenceNodeSet()) {
+                if (null != cur.getEvidenceCode()) {
+                    codeSet.add(cur.getEvidenceCode());
+                }
+            }
+        }
+        
+        if (null !=  ad.getWithEvidenceDBRefSet()) {
+            for (WithEvidence cur: ad.getWithEvidenceDBRefSet()) {
+                if (null != cur.getEvidenceCode()) {
+                    codeSet.add(cur.getEvidenceCode());
+                }
+            }
+        }
+        return codeSet;
+    }    
 
     /**
      * Use ANNOTATION DETAIL TO GET AND SET QUALIFIER
@@ -92,15 +143,14 @@ public class Annotation implements Serializable {
         GOTerm term = gth.getTerm(goTerm);
         
         HashSet<Qualifier> applicableSet = new HashSet<Qualifier>();
-        if (applicableSet.isEmpty()) {
-            return null;
-        }
-        
         for (Qualifier q: qualifierSet) {
             if (true == gth.isQualifierValidForTerm(term, q)) {
                 applicableSet.add(q);
             }
         }
+        if (applicableSet.isEmpty()) {
+            return null;
+        }        
         return applicableSet;
     }
 
@@ -126,13 +176,13 @@ public class Annotation implements Serializable {
         qualifierSet.add(q);
     }
 
-    public Evidence getEvidence() {
-        return evidence;
-    }
-
-    public void setEvidence(Evidence evidence) {
-        this.evidence = evidence;
-    }
+//    public Evidence getEvidence() {
+//        return evidence;
+//    }
+//
+//    public void setEvidence(Evidence evidence) {
+//        this.evidence = evidence;
+//    }
 
     public Annotation makeCopy() {
         Annotation newAnnot = new Annotation();
@@ -150,9 +200,9 @@ public class Annotation implements Serializable {
             }
         }
         
-        if (null != evidence) {
-            newAnnot.setEvidence(this.evidence.makeCopy());
-        }
+//        if (null != evidence) {
+//            newAnnot.setEvidence(this.evidence.makeCopy());
+//        }
         return newAnnot;
     }
 
@@ -164,21 +214,21 @@ public class Annotation implements Serializable {
         this.annotIsToChildTerm = annotIsToChildTerm;
     }
 
-    public Annotation getChildAnnotation() {
-        return childAnnotation;
-    }
-
-    public void setChildAnnotation(Annotation childAnnotation) {
-        this.childAnnotation = childAnnotation;
-    }
-
-    public Annotation getParentAnnotation() {
-        return parentAnnotation;
-    }
-
-    public void setParentAnnotation(Annotation parentAnnotation) {
-        this.parentAnnotation = parentAnnotation;
-    }
+//    public Annotation getChildAnnotation() {
+//        return childAnnotation;
+//    }
+//
+//    public void setChildAnnotation(Annotation childAnnotation) {
+//        this.childAnnotation = childAnnotation;
+//    }
+//
+//    public Annotation getParentAnnotation() {
+//        return parentAnnotation;
+//    }
+//
+//    public void setParentAnnotation(Annotation parentAnnotation) {
+//        this.parentAnnotation = parentAnnotation;
+//    }
 
     public boolean isAnnotStoredInDb() {
         return annotStoredInDb;
@@ -195,6 +245,66 @@ public class Annotation implements Serializable {
     public void setAnnotationDetail(AnnotationDetail annotationDetail) {
         this.annotationDetail = annotationDetail;
     }
+    
+    public boolean isCreatedByPaint() {
+        HashSet<WithEvidence> withEvSet = this.annotationDetail.getWithEvidenceSet();
+        if (null == withEvSet) {
+            return false;
+        }
+        for (WithEvidence we: withEvSet) {
+            if (true == we.isPAINTType()) {
+                return true;
+            }
+        }
+        return false;
+    }
+    
+    public void removeFromWithEvidence(IWith iw) {
+        if (null == iw) {
+            return;
+        }
+        HashSet<WithEvidence> withEvAnnotSet = annotationDetail.getWithEvidenceAnnotSet();
+        if (null != withEvAnnotSet) {
+            for (Iterator<WithEvidence> iter = withEvAnnotSet.iterator(); iter.hasNext();) {
+                WithEvidence we = iter.next();
+                if (we.getWith() == iw) {
+                    iter.remove();
+                    removeWith((Annotation)iw);
+                    return;
+                }   
+            }
+        }
+        
+        HashSet<WithEvidence> withEvNodeSet = annotationDetail.getWithEvidenceNodeSet();
+        if (null != withEvNodeSet) {
+            for (Iterator<WithEvidence> iter = withEvNodeSet.iterator(); iter.hasNext();) {
+                WithEvidence we = iter.next();
+                if (we.getWith() == iw) {
+                    iter.remove();
+                    HashSet<Node> nodeSet = annotationDetail.getWithNodeSet();
+                    if (null != nodeSet) {
+                        nodeSet.remove((Node)iw);
+                    }
+                    return;
+                }   
+            }
+        }
+        HashSet<WithEvidence> withEvDBRefSet = annotationDetail.getWithEvidenceDBRefSet();
+        if (null != withEvDBRefSet) {
+            for (Iterator<WithEvidence> iter = withEvDBRefSet.iterator(); iter.hasNext();) {
+                WithEvidence we = iter.next();
+                if (we.getWith() == iw) {
+                    iter.remove();
+                    HashSet<DBReference> dbRefSet = annotationDetail.getWithOtherSet();
+                    if (null != dbRefSet) {
+                        dbRefSet.remove((DBReference)iw);
+                    }
+                    return;
+                }   
+            }
+        }        
+    }
+    
 
 //    public Annotation getPropagatorAnnot() {
 //        return propagatorAnnot;
@@ -221,12 +331,113 @@ public class Annotation implements Serializable {
         return removeAnnot;
     }
     
-    public boolean withExists(Annotation a) {
-        HashSet<Annotation> withAnnots = annotationDetail.getWithAnnotSet();
-        if (null == withAnnots) {
+    public static boolean hasExperimentalWith(Annotation a) {
+        HashSet<WithEvidence> withEvSet = a.getAnnotationDetail().getWithEvidenceSet();
+        if (null == withEvSet) {
             return false;
         }
-        return withAnnots.contains(a);
+        for (WithEvidence we: withEvSet) {
+            IWith with = we.getWith();
+            if (with instanceof Annotation) {
+                Annotation aWith = (Annotation)with;
+                if (true == aWith.isExperimental()) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }    
+    
+    public boolean withExists(Annotation a) {
+        HashSet<WithEvidence> withAnnotEvSet = annotationDetail.getWithEvidenceAnnotSet();
+        if (null == withAnnotEvSet) {
+            return false;
+        }
+        for (WithEvidence we: withAnnotEvSet) {
+            Annotation with = (Annotation)we.getWith();
+            if (with == a) {
+                return true;
+            }
+        }
+        return false;
+    }
+    
+    public boolean isRequired(Annotation a) {
+        HashSet<WithEvidence> withAnnotEvSet = annotationDetail.getWithEvidenceAnnotSet();
+        if (null == withAnnotEvSet) {
+            return false;
+        }
+        
+        for (WithEvidence we: withAnnotEvSet) {
+            Annotation with = (Annotation)we.getWith();
+            if (with == a) {
+                if (1 == withAnnotEvSet.size()) {
+                    return true;
+                }
+                String code = this.getSingleEvidenceCodeFromSet();
+                if (Evidence.CODE_IKR.equals(code) || Evidence.CODE_IRD.equals(code)) {
+                    return true;
+                }
+            }
+        }
+        
+        // Check qualifiers
+        LinkedHashMap<Qualifier, HashSet<Annotation>> qualifierLookup = annotationDetail.getInheritedQualifierLookup();
+        if (null != qualifierLookup) {
+            Collection <HashSet<Annotation>> values = qualifierLookup.values();
+            for (HashSet<Annotation> val: values) {
+                if (val.size() == 1 && val.contains(a)) {
+                    return true;
+                }
+            }
+        }
+        
+        qualifierLookup = annotationDetail.getAddedQualifierLookup();
+        if (null != qualifierLookup) {
+            Collection <HashSet<Annotation>> values = qualifierLookup.values();
+            for (HashSet<Annotation> val: values) {
+                if (val.size() == 1 && val.contains(a)) {
+                    return true;
+                }
+            }
+        }
+        
+        qualifierLookup = annotationDetail.getRemovedQualifierLookup();
+        if (null != qualifierLookup) {
+            Collection <HashSet<Annotation>> values = qualifierLookup.values();
+            for (HashSet<Annotation> val: values) {
+                if (val.size() == 1 && val.contains(a)) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+    
+    public boolean isExperimental() {
+        HashSet<String> codes = annotationDetail.getEvidenceCodes();
+        if (null == codes) {
+            return false;
+        }
+        for (String code: codes) {
+            if (true == Evidence.isExperimental(code)) {
+                return true;
+            }
+        }
+        return false;
+    }
+    
+    public boolean isPaint() {
+        HashSet<String> codes = annotationDetail.getEvidenceCodes();
+        if (null == codes) {
+            return false;
+        }
+        for (String code: codes) {
+            if (true == Evidence.isPaint(code)) {
+                return true;
+            }
+        }
+        return false;        
     }
 
     

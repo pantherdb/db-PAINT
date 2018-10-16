@@ -1,0 +1,9 @@
+File geneontology-svn-4886.tar.gz is from the geneontology site.
+
+
+It is based on SVN version 4886.
+
+It has changes to enable compiling with Java 1.8
+
+have to set following environment variable as follows for compiling:
+JAVA_TOOL_OPTIONS=-Dfile.encoding=UTF8

@@ -139,30 +139,30 @@ public class GO_Util {
 		return new GOobjectFactory("config/hibernate.cfg.xml");
 	}
 
-	public boolean getGeneProducts (List<String []> go_genes) {
-		GOobjectFactory go_factory = getGOfactory();
-		GeneProductThread thread = new GeneProductThread(go_factory);
-		thread.setGeneList(go_genes);
-
-		boolean error = false;
-
-		thread.start();
-
-		try {
-			thread.join(patience);
-		}
-		catch (InterruptedException e) {
-			log.error("Error fetching gene products");
-			error = true;
-		}
-		if (!thread.getState().equals(Thread.State.TERMINATED)) {
-			error = true;
-			thread.interrupt();
-			log.error("Timed out fetching gene products");
-		}
-		go_factory.close();
-		return error;
-	}
+//	public boolean getGeneProducts (List<String []> go_genes) {
+//		GOobjectFactory go_factory = getGOfactory();
+//		GeneProductThread thread = new GeneProductThread(go_factory);
+//		thread.setGeneList(go_genes);
+//
+//		boolean error = false;
+//
+//		thread.start();
+//
+//		try {
+//			thread.join(patience);
+//		}
+//		catch (InterruptedException e) {
+//			log.error("Error fetching gene products");
+//			error = true;
+//		}
+//		if (!thread.getState().equals(Thread.State.TERMINATED)) {
+//			error = true;
+//			thread.interrupt();
+//			log.error("Timed out fetching gene products");
+//		}
+//		go_factory.close();
+//		return error;
+//	}
 
 	public int threadFinished(Thread thread, long startTime) {
 		//loop until MessageLoop thread exits
@@ -457,17 +457,7 @@ public class GO_Util {
 	}
         
         public boolean isPAINTAnnotation(edu.usc.ksom.pm.panther.paintCommon.Annotation annot) {
-            edu.usc.ksom.pm.panther.paintCommon.Evidence e = annot.getEvidence();
-            ArrayList<DBReference> dbRefList = e.getDbReferenceList();
-            if (null == dbRefList) {
-                return false;
-            }
-            for (DBReference dbRef: dbRefList) {
-                if (GOConstants.PAINT_REF.equals(dbRef.getEvidenceType())) {
-                    return true;
-                }
-            }
-            return false;
+            return annot.isPaint();
         }
 
 	public boolean isPAINTAnnotation(Association assoc) {
@@ -604,54 +594,54 @@ public class GO_Util {
 //                ArrayList<DBReference> dbRefList = e.getDbReferenceList();
 //            }
 //        }
-	public boolean isPainted(GeneNode node, boolean recurse) {
-		boolean annotated = false;
-                NodeVariableInfo nvi = node.getNode().getVariableInfo();
-                if (null == nvi) {
-                    return false;
-                }
-                ArrayList<edu.usc.ksom.pm.panther.paintCommon.Annotation> annotList = nvi.getGoAnnotationList();
-                if (null == annotList) {
-                    return false;
-                }
-                for (edu.usc.ksom.pm.panther.paintCommon.Annotation annot: annotList) {
-                    annotated = GO_Util.inst().isPAINTAnnotation(annot);
-                    if (true == annotated) {
-                        break;
-                    }
-                }
-		if (recurse && !annotated) {
-			List<GeneNode> children = node.getChildren();
-			if (children != null) {
-				for (Iterator<GeneNode> node_it = children.iterator(); node_it.hasNext() && !annotated; ) {
-					GeneNode child = node_it.next();
-					annotated = isPainted(child, recurse);
-				}
-			}
-		}
-		return annotated;
-	}
-	public boolean isPaintedOld(GeneNode node, boolean recurse) {
-		boolean annotated = false;
-		GeneProduct gene_product = node.getGeneProduct();
-		if (gene_product != null) {
-			Set<Association> associations = gene_product.getAssociations();
-			for (Iterator<Association> assoc_it = associations.iterator(); assoc_it.hasNext()  && !annotated; ) {
-				Association assoc = assoc_it.next();
-				annotated = GO_Util.inst().isPAINTAnnotation(assoc);	
-			}
-		}
-		if (recurse && !annotated) {
-			List<GeneNode> children = node.getChildren();
-			if (children != null) {
-				for (Iterator<GeneNode> node_it = children.iterator(); node_it.hasNext() && !annotated; ) {
-					GeneNode child = node_it.next();
-					annotated = isPainted(child, recurse);
-				}
-			}
-		}
-		return annotated;
-	}
+//	public boolean isPainted(GeneNode node, boolean recurse) {
+//		boolean annotated = false;
+//                NodeVariableInfo nvi = node.getNode().getVariableInfo();
+//                if (null == nvi) {
+//                    return false;
+//                }
+//                ArrayList<edu.usc.ksom.pm.panther.paintCommon.Annotation> annotList = nvi.getGoAnnotationList();
+//                if (null == annotList) {
+//                    return false;
+//                }
+//                for (edu.usc.ksom.pm.panther.paintCommon.Annotation annot: annotList) {
+//                    annotated = GO_Util.inst().isPAINTAnnotation(annot);
+//                    if (true == annotated) {
+//                        break;
+//                    }
+//                }
+//		if (recurse && !annotated) {
+//			List<GeneNode> children = node.getChildren();
+//			if (children != null) {
+//				for (Iterator<GeneNode> node_it = children.iterator(); node_it.hasNext() && !annotated; ) {
+//					GeneNode child = node_it.next();
+//					annotated = isPainted(child, recurse);
+//				}
+//			}
+//		}
+//		return annotated;
+//	}
+//	public boolean isPaintedOld(GeneNode node, boolean recurse) {
+//		boolean annotated = false;
+//		GeneProduct gene_product = node.getGeneProduct();
+//		if (gene_product != null) {
+//			Set<Association> associations = gene_product.getAssociations();
+//			for (Iterator<Association> assoc_it = associations.iterator(); assoc_it.hasNext()  && !annotated; ) {
+//				Association assoc = assoc_it.next();
+//				annotated = GO_Util.inst().isPAINTAnnotation(assoc);	
+//			}
+//		}
+//		if (recurse && !annotated) {
+//			List<GeneNode> children = node.getChildren();
+//			if (children != null) {
+//				for (Iterator<GeneNode> node_it = children.iterator(); node_it.hasNext() && !annotated; ) {
+//					GeneNode child = node_it.next();
+//					annotated = isPainted(child, recurse);
+//				}
+//			}
+//		}
+//		return annotated;
+//	}
 
 	public DBXref getPAINTEvidenceDBXref() {
 		if (paint_dbxref == null) {

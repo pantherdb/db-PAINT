@@ -1,6 +1,6 @@
 /* 
  * 
- * Copyright (c) 2017, Regents of the University of California 
+ * Copyright (c) 2018, Regents of the University of California 
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
@@ -51,6 +51,7 @@ import org.apache.log4j.Logger;
 import org.bbop.framework.GUIManager;
 import org.obo.util.VersionNumber;
 import org.paint.go.GOConstants;
+import org.paint.gui.familytree.TreeModel;
 import org.paint.util.SVGIcon;
 
 /**
@@ -68,6 +69,8 @@ public class Preferences {
 
 	private String pantherURL = null;
         private double tree_distance_scaling = 50;
+        private TreeModel.TreeColorSchema colorSchema = TreeModel.TreeColorSchema.DUPLICATION;
+        
         protected ReadResources RR = initResources();        
         private  ReadResources initResources() {
             try {
@@ -126,6 +129,8 @@ public class Preferences {
 	private Color  msa_weighted_colors[] = {
 			new Color(21, 138, 255), new Color(220, 233, 255)
 	};
+        
+
 
 	private String high_throughput[] = {
 			"PMID:10341420",
@@ -282,7 +287,7 @@ public class Preferences {
 	}
         
         public String getPAINTversion() {
-            return "2017_03_23_1";
+            return "2018_08_30_1";
         }
 
 	public VersionNumber getVersion() {
@@ -448,6 +453,14 @@ public class Preferences {
 	public void setTree_distance_scaling(double scale) {
 		tree_distance_scaling = scale;
 	}
+        
+        public TreeModel.TreeColorSchema getColorSchema() {
+            return this.colorSchema;
+        }
+        
+        public void setTreeColorSchema(TreeModel.TreeColorSchema colorSchema) {
+            this.colorSchema = colorSchema;
+        }
 
 	public Object clone() throws CloneNotSupportedException {
 

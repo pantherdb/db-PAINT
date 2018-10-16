@@ -171,6 +171,7 @@
         <copy file="${src.dir}/hibernate.cfg.xml" todir="${paintApp.dir}" overwrite="true"/>
         <copy file="${src.dir}/preferences.xml" todir="${paintApp.dir}" overwrite="true"/>        
         <copy file="${src.dir}/log4j.properties" todir="${paintApp.dir}" overwrite="true"/>
+        <copy file="${config.dir}/PANTHER.sh" todir="${paintApp.dir}" overwrite="true"/>
         <copy file="${config.dir}/launchPAINT.sh" todir="${paintApp.dir}" overwrite="true"/>
         <copy file="${config.dir}/launchPAINT.bat" todir="${paintApp.dir}" overwrite="true"/>
         <chmod file="${paintApp.dir}/launchPAINT.sh" perm="755"/>
