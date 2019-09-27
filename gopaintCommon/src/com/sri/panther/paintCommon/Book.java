@@ -1,5 +1,5 @@
 /**
- *  Copyright 2018 University Of Southern California
+ *  Copyright 2019 University Of Southern California
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -27,6 +27,9 @@ public class Book implements Comparable, Serializable {
     protected User lockedBy;
     protected int numLeaves;
     protected HashSet<String> orgSet;
+    protected String comment;
+    protected String commentUser;
+    protected String commentOp;    
     
     // A book can have multiple status.  Instead of using a hashtable or vector which will use up lots of memory when users retrieve
     // books from searches, use binary bits for each status.  Most importantly, this makes it easier to check for status
@@ -192,6 +195,30 @@ public class Book implements Comparable, Serializable {
 
     public void setOrgSet(HashSet<String> orgSet) {
         this.orgSet = orgSet;
+    }
+
+    public String getComment() {
+        return comment;
+    }
+
+    public void setComment(String comment) {
+        this.comment = comment;
+    }
+
+    public String getCommentUser() {
+        return commentUser;
+    }
+
+    public void setCommentUser(String commentUser) {
+        this.commentUser = commentUser;
+    }
+
+    public String getCommentOp() {
+        return commentOp;
+    }
+
+    public void setCommentOp(String commentOp) {
+        this.commentOp = commentOp;
     }
 
 }
