@@ -1,5 +1,5 @@
 /**
- *  Copyright 2017 University Of Southern California
+ *  Copyright 2019 University Of Southern California
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -38,8 +38,8 @@ public class Annotation implements Serializable, IWith {
     // Specific to GO annotation type
     private String goTerm;              // GO:123
     private HashSet<Qualifier> qualifierSet;        // Use annotationDetail to get and set qualifiers
-    
-    private Evidence evidence;
+
+    private boolean experimental = false;
 
     public String getAnnotationId() {
         return annotationId;
@@ -414,18 +414,18 @@ public class Annotation implements Serializable, IWith {
         return false;
     }
     
-    public boolean isExperimental() {
-        HashSet<String> codes = annotationDetail.getEvidenceCodes();
-        if (null == codes) {
-            return false;
-        }
-        for (String code: codes) {
-            if (true == Evidence.isExperimental(code)) {
-                return true;
-            }
-        }
-        return false;
-    }
+//    public boolean isExperimental() {
+//        HashSet<String> codes = annotationDetail.getEvidenceCodes();
+//        if (null == codes) {
+//            return false;
+//        }
+//        for (String code: codes) {
+//            if (true == Evidence.isExperimental(code)) {
+//                return true;
+//            }
+//        }
+//        return false;
+//    }
     
     public boolean isPaint() {
         HashSet<String> codes = annotationDetail.getEvidenceCodes();
@@ -438,6 +438,14 @@ public class Annotation implements Serializable, IWith {
             }
         }
         return false;        
+    }
+
+    public boolean isExperimental() {
+        return experimental;
+    }
+
+    public void setExperimental(boolean experimental) {
+        this.experimental = experimental;
     }
 
     
