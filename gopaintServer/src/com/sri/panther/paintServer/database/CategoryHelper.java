@@ -1,7 +1,17 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
+/**
+ * Copyright 2019 University Of Southern California
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not
+ * use this file except in compliance with the License. You may obtain a copy of
+ * the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations under
+ * the License.
  */
 package com.sri.panther.paintServer.database;
 
@@ -22,7 +32,11 @@ import java.util.HashMap;
  */
 public class CategoryHelper {
     
-    public static final String QUERY_CATEGORY_SINGLE_PARENT_GO = "select distinct c1.accession, c1.name, c1.definition, c1.classification_id child_id, c2.accession parent, c2.classification_id parent_id, r.rank, c1.term_type_sid, c2.term_type_sid,  (case when ctt1.term_name='molecular_function' THEN 'F' when ctt1.term_name='cellular_component'THEN 'C' when ctt1.term_name='biological_process' THEN 'P' END) as cAspect, (case when ctt2.term_name='molecular_function' THEN 'F' when ctt2.term_name='cellular_component'THEN 'C' when ctt2.term_name='biological_process' THEN 'P' END) as pAspect from go_classification c1, go_classification_relationship r, go_classification c2,  classification_term_type ctt1, classification_term_type ctt2 where c1.depth is null  and c1.classification_version_sid = %1 and c1.obsolescence_date is null and c1.classification_id = r.child_classification_id and r.parent_classification_id = c2.classification_id and r.obsolescence_date is null and c2.classification_version_sid = %1 and c2.obsolescence_date is null   and c1.term_type_sid = ctt1.term_type_sid and c2.term_type_sid = ctt2.term_type_sid ";
+    public static final String QUERY_CATEGORY_SINGLE_PARENT_GO_ACROSS_ASPECT = "select distinct c1.accession, c1.name, c1.definition, c1.classification_id child_id, c2.accession parent, c2.classification_id parent_id, r.rank, c1.term_type_sid, c2.term_type_sid,  (case when ctt1.term_name='molecular_function' THEN 'F' when ctt1.term_name='cellular_component'THEN 'C' when ctt1.term_name='biological_process' THEN 'P' END) as cAspect, (case when ctt2.term_name='molecular_function' THEN 'F' when ctt2.term_name='cellular_component'THEN 'C' when ctt2.term_name='biological_process' THEN 'P' END) as pAspect from go_classification c1, go_classification_relationship r, go_classification c2,  classification_term_type ctt1, classification_term_type ctt2 where c1.depth is null  and c1.classification_version_sid = %1 and c1.obsolescence_date is null and c1.classification_id = r.child_classification_id and r.parent_classification_id = c2.classification_id and r.obsolescence_date is null and c2.classification_version_sid = %1 and c2.obsolescence_date is null   and c1.term_type_sid = ctt1.term_type_sid and c2.term_type_sid = ctt2.term_type_sid ";
+    
+    // Update to only find relationships where the aspects are same
+    public static final String QUERY_CATEGORY_SINGLE_PARENT_GO = "select distinct c1.accession, c1.name, c1.definition, c1.classification_id child_id, c2.accession parent, c2.classification_id parent_id, r.rank, c1.term_type_sid, c2.term_type_sid,  (case when ctt1.term_name='molecular_function' THEN 'F' when ctt1.term_name='cellular_component'THEN 'C' when ctt1.term_name='biological_process' THEN 'P' END) as cAspect, (case when ctt2.term_name='molecular_function' THEN 'F' when ctt2.term_name='cellular_component'THEN 'C' when ctt2.term_name='biological_process' THEN 'P' END) as pAspect from go_classification c1, go_classification_relationship r, go_classification c2,  classification_term_type ctt1, classification_term_type ctt2 where c1.depth is null  and c1.classification_version_sid = %1 and c1.obsolescence_date is null and c1.classification_id = r.child_classification_id and r.parent_classification_id = c2.classification_id and r.obsolescence_date is null and c2.classification_version_sid = %1 and c2.obsolescence_date is null and c1.term_type_sid = c2.term_type_sid  and c1.term_type_sid = ctt1.term_type_sid and c2.term_type_sid = ctt2.term_type_sid ";
+
     public static final String QUERY_CATEGORY_ACC_GO = "select accession, name, depth, definition, term_type_sid, classification_id from go_classification where accession = '%1' and obsolescence_date is null and CLASSIFICATION_VERSION_SID = %2";
     public static final String PARAM_1 = "%1";
     public static final String PARAM_2 = "%2";
