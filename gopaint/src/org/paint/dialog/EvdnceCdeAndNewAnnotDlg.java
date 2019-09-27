@@ -324,12 +324,17 @@ public class EvdnceCdeAndNewAnnotDlg extends JDialog implements ActionListener {
                     goIter.remove();
                     continue;
                 }
-                ArrayList<GOTerm> parents = ancestor.getParents();
+                List<GOTerm> parents = ancestor.getParents();
                 if (null == parents || 0 == parents.size()) {
                     goIter.remove();
                 }
                 
                 if (false == AnnotationHelper.isQualifierSetValidForTerm(ancestor, qSet, gth)) {
+                    goIter.remove();
+                }
+                
+                // Skip terms that are not allowed
+                if (false == gth.isAnnotAllowedForTerm(ancestor.getAcc())) {
                     goIter.remove();
                 }
             }
