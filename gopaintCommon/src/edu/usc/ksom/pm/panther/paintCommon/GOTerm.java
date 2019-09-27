@@ -1,5 +1,5 @@
 /**
- *  Copyright 2016 University Of Southern California
+ *  Copyright 2019 University Of Southern California
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -17,12 +17,9 @@ package edu.usc.ksom.pm.panther.paintCommon;
 
 import java.io.Serializable;
 import java.util.ArrayList;
+import java.util.List;
 
 
-/**
- *
- * @author muruganu
- */
 public class GOTerm implements Serializable {
     private String acc;
     private String name;
@@ -57,14 +54,27 @@ public class GOTerm implements Serializable {
     public void setDescription(String description) {
         this.description = description;
     }
+    
+    public List<GOTerm> getParents() {
+        ArrayList<GOTerm> parentsWithSameAspect = new ArrayList<GOTerm>();
+        if (null == parents) {
+            return parentsWithSameAspect;
+        }
+        for (GOTerm parent: parents) {
+            if (aspectSame(parent)) {
+                parentsWithSameAspect.add(parent);
+            }
+        }
+        return parentsWithSameAspect;
+    }
 
-    public ArrayList<GOTerm> getParents() {
+    public List<GOTerm> getParentsAcrossAllAspects() {
         return parents;
     }
 
-    public void setParents(ArrayList<GOTerm> parents) {
-        this.parents = parents;
-    }
+//    public void setParents(ArrayList<GOTerm> parents) {
+//        this.parents = parents;
+//    }
     
     public void addParent(GOTerm parent) {
         if (null == this.parents) {
@@ -72,14 +82,27 @@ public class GOTerm implements Serializable {
         }
         this.parents.add(parent);
     }
+    
+    public List<GOTerm> getChildren() {
+        ArrayList<GOTerm> childrenSameAsp = new ArrayList<GOTerm>();
+        if (null == children) {
+            return childrenSameAsp;
+        }
+        for (GOTerm child: children) {
+            if (aspectSame(child)) {
+                childrenSameAsp.add(child);
+            }
+        }
+        return childrenSameAsp;
+    }
 
-    public ArrayList<GOTerm> getChildren() {
+    public List<GOTerm> getChildrenAcrossAllAspects() {
         return children;
     }
 
-    public void setChildren(ArrayList<GOTerm> children) {
-        this.children = children;
-    }
+//    public void setChildren(ArrayList<GOTerm> children) {
+//        this.children = children;
+//    }
     
     public void addChild(GOTerm child) {
         if (null == this.children) {
@@ -112,6 +135,20 @@ public class GOTerm implements Serializable {
         this.id = id;
     }
     
-    
+    public boolean aspectSame(GOTerm compTerm) {
+        if (null == compTerm) {
+            return false;
+        }
+        if (null == aspect && null == compTerm.aspect) {
+            return true;
+        }
+        if (null != aspect && null != compTerm.aspect && aspect.equals(compTerm.aspect)) {
+            return true;
+        }
+        if (null != aspect && null != compTerm.aspect && false == aspect.equals(compTerm.aspect)) {
+            return false;
+        }
+        return false;
+    }
     
 }
