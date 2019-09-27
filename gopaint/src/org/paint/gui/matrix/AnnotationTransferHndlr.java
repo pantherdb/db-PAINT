@@ -1,5 +1,5 @@
 /**
- * Copyright 2018 University Of Southern California
+ * Copyright 2019 University Of Southern California
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -22,7 +22,6 @@ import edu.usc.ksom.pm.panther.paintCommon.GOTermHelper;
 import edu.usc.ksom.pm.panther.paintCommon.Node;
 import edu.usc.ksom.pm.panther.paintCommon.NodeVariableInfo;
 import edu.usc.ksom.pm.panther.paintCommon.Qualifier;
-import edu.usc.ksom.pm.panther.paintCommon.QualifierDif;;
 import edu.usc.ksom.pm.panther.paint.annotation.AnnotationForTerm;
 import edu.usc.ksom.pm.panther.paint.matrix.TermAncestor;
 import edu.usc.ksom.pm.panther.paint.matrix.TermToAssociation;
@@ -63,7 +62,6 @@ import javax.swing.JOptionPane;
 import javax.swing.TransferHandler;
 import static javax.swing.TransferHandler.NONE;
 import org.bbop.framework.GUIManager;
-import org.paint.datamodel.Association;
 import org.paint.datamodel.GeneNode;
 import org.paint.dialog.AnnotationQualifierDlg;
 import org.paint.gui.DirtyIndicator;
@@ -86,12 +84,18 @@ public class AnnotationTransferHndlr extends TransferHandler {
 
     public static final DataFlavor FLAVOR_MATRIX_TRANSFER_INFO = new DataFlavor(MatrixTransferInfo.class, "MatrixTransferInfo");
     
-    public static final String REMOVE_MSG_PART_1 = "Annotation to node ";
-    public static final String REMOVE_MSG_PART_2 = " for term ";
-    public static final String REMOVE_MSG_PART_3 = " (";
-    public static final String REMOVE_MSG_PART_4 = ") will be removed.\n";
+    public static final String REMOVE_MSG_MORE_SPECIFIC_PART_1 = "Annotation to descendant node ";
+    public static final String REMOVE_MSG_MORE_SPECIFIC_PART_2 = " for more specific term ";
+    public static final String REMOVE_MSG_MORE_SPECIFIC_PART_3 = " (";
+    public static final String REMOVE_MSG_MORE_SPECIFIC_PART_4 = ") will be removed.\n";
+
+    public static final String REMOVE_MSG_LESS_SPECIFIC_PART_1 = "Annotation to node ";
+    public static final String REMOVE_MSG_LESS_SPECIFIC_PART_2 = " for less specific term ";
+    public static final String REMOVE_MSG_LESS_SPECIFIC_PART_3 = " (";
+    public static final String REMOVE_MSG_LESS_SPECIFIC_PART_4 = ") will be removed.\n";
     
-    public static final String MORE_SPECIFIC_DESCENDENT_ANNOTATION = "More specific descendent annotation";    
+    public static final String MORE_SPECIFIC_DESCENDENT_ANNOTATION = "More specific descendent annotation";
+    public static final String LESS_SPECIFIC_ANNOTATION = "Less specific annotation";    
 
     public AnnotationTransferHndlr() {
         super();
@@ -344,6 +348,10 @@ public class AnnotationTransferHndlr extends TransferHandler {
             return false;
         }
         
+        if (false == handleAnnotsToLessSpecificTerms(annotTerm, applicableQset, gNode)) {
+            return false;
+        }
+        
         ArrayList<GeneNode> nodesToBeAnnotated = (ArrayList<GeneNode>)allDescendents.clone();
         nodesToBeAnnotated.removeAll(nodesProvidingEvidence);
         PaintAction.inst().addAnnotationAndPropagate(annotTerm, gNode, nodesToBeAnnotated, nodesProvidingEvidence, annotSet, applicableQset);
@@ -354,7 +362,12 @@ public class AnnotationTransferHndlr extends TransferHandler {
     }
     
 
-    
+    /**
+     * Note, no need to look at NOT annotations in this scenario
+     * @param term
+     * @param descList
+     * @return 
+     */
     private boolean handleAnnotsToMoreSpecificTerms(GOTerm term, List<GeneNode> descList) {
         // Get ancestors for term with same aspect
         GOTermHelper gth = PaintManager.inst().goTermHelper();
@@ -389,12 +402,14 @@ public class AnnotationTransferHndlr extends TransferHandler {
                 if (null == code) {
                     continue;
                 }
-                if (code.equals(Evidence.CODE_IBD) || code.equals(Evidence.CODE_IKR) || code.equals(Evidence.CODE_IRD)) {
+
+                GeneNode gn = PaintManager.inst().getGeneByPTNId(n.getStaticInfo().getPublicId());
+                if (code.equals(Evidence.CODE_IBD) || (code.equals(Evidence.CODE_IKR) && false == gn.isLeaf()) || code.equals(Evidence.CODE_IRD)) {
                     String goTerm = annot.getGoTerm();
                     GOTerm curTerm = gth.getTerm(goTerm);
                     if (true == ancestors.contains(curTerm) || true == curTerm.equals(term)) {
                         removeDescSet.add(annot);
-                        removeBuffer.append(REMOVE_MSG_PART_1 + n.getStaticInfo().getPublicId() + REMOVE_MSG_PART_2 + goTerm + REMOVE_MSG_PART_3 + curTerm.getName() + REMOVE_MSG_PART_4);
+                        removeBuffer.append(REMOVE_MSG_MORE_SPECIFIC_PART_1 + n.getStaticInfo().getPublicId() + REMOVE_MSG_MORE_SPECIFIC_PART_2 + goTerm + REMOVE_MSG_MORE_SPECIFIC_PART_3 + curTerm.getName() + REMOVE_MSG_MORE_SPECIFIC_PART_4);
                     }
                 }
                 else {
@@ -421,6 +436,55 @@ public class AnnotationTransferHndlr extends TransferHandler {
         
 
 
+    }
+    
+    private boolean handleAnnotsToLessSpecificTerms(GOTerm term, HashSet<Qualifier> applicableQset, GeneNode gNode) {
+        Node n = gNode.getNode();
+        NodeVariableInfo nvi = gNode.getNode().getVariableInfo();
+        if (null == nvi) {
+            return true;
+        }
+        ArrayList<Annotation> annots = nvi.getGoAnnotationList();
+        if (null == annots || 0 == annots.size()) {
+            return true;
+        }
+        GOTermHelper gth = PaintManager.inst().goTermHelper();
+        ArrayList<GOTerm> ancestors = gth.getAncestors(term);
+        if (null == ancestors || 0 == ancestors.size()) {
+            return true;
+        }
+        
+        HashSet<Annotation> removeAnnotSet = new HashSet<Annotation>();
+        StringBuffer removeBuffer = new StringBuffer();
+        for (Annotation a: annots) {
+            String code = a.getSingleEvidenceCodeFromSet();
+            GeneNode gn = PaintManager.inst().getGeneByPTNId(n.getStaticInfo().getPublicId());
+            if (Evidence.CODE_IBD.equals(code) || (Evidence.CODE_IKR.equals(code) && false == gn.isLeaf()) ||Evidence.CODE_IRD.equals(code)) {
+                GOTerm curTerm = gth.getTerm(a.getGoTerm());
+                if (ancestors.contains(curTerm)) {
+                    removeAnnotSet.add(a);
+                    removeBuffer.append(REMOVE_MSG_LESS_SPECIFIC_PART_1 + n.getStaticInfo().getPublicId() + REMOVE_MSG_LESS_SPECIFIC_PART_2 + a.getGoTerm() + REMOVE_MSG_LESS_SPECIFIC_PART_3 + curTerm.getName() + REMOVE_MSG_LESS_SPECIFIC_PART_4);
+                    
+                }
+
+            } 
+        }
+        if (true == removeAnnotSet.isEmpty()) {
+            return true;
+        }
+        
+        int dialogResult = JOptionPane.showConfirmDialog(GUIManager.getManager().getFrame(), removeBuffer.toString(), LESS_SPECIFIC_ANNOTATION, JOptionPane.YES_NO_CANCEL_OPTION, JOptionPane.WARNING_MESSAGE);
+        if (dialogResult != JOptionPane.YES_OPTION) {
+            return false;
+        }
+        
+        for (Annotation annot: removeAnnotSet) {
+            Node node = annot.getAnnotationDetail().getAnnotatedNode();
+            GeneNode gn = PaintManager.inst().getGeneByPTNId(node.getStaticInfo().getPublicId());
+            AnnotationUtil.deleteAnnotation(gn, annot);
+        }
+        
+        return true;
     }
     
 //    public boolean checkAncestorAnnots(GeneNode gNode) {
