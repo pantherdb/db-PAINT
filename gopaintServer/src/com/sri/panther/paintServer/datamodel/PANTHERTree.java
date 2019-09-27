@@ -1,5 +1,5 @@
 /**
- * Copyright 2018 University Of Southern California
+ * Copyright 2019 University Of Southern California
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -16,6 +16,7 @@
 package com.sri.panther.paintServer.datamodel;
 
 import java.util.Hashtable;
+import java.util.Vector;
 
 public class PANTHERTree {
     protected PANTHERTreeNode root;
@@ -34,5 +35,20 @@ public class PANTHERTree {
 
     public Hashtable<String, PANTHERTreeNode> getNodesTbl() {
         return nodesTbl;
+    }
+    
+    public boolean isLeaf(String nodeLabel) {
+        if (null == nodeLabel || null == nodesTbl) {
+            return false;
+        }
+        PANTHERTreeNode node = nodesTbl.get(nodeLabel);
+        if (null == node) {
+            return false;
+        }
+        Vector<PANTHERTreeNode> children = node.getChildren();
+        if (null == children || 0 == children.size()) {
+            return true;
+        }
+        return false;
     }
 }
