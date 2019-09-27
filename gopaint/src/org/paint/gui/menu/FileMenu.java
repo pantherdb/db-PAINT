@@ -1,21 +1,17 @@
-/* 
- * 
- * Copyright (c) 2017, Regents of the University of California 
- * All rights reserved.
+/**
+ *  Copyright 2019 University Of Southern California
  *
- * Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
- * 
- * Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.
- * Neither the name of the Lawrence Berkeley National Lab nor the names of its contributors may be used to endorse 
- * or promote products derived from this software without specific prior written permission.
- * 
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, 
- * INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. 
- * IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, 
- * OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; 
- * OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) 
- * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- * 
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing,
+ *  software distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
  */
 package org.paint.gui.menu;
 
@@ -31,20 +27,17 @@ import java.util.List;
 import javax.swing.JMenu;
 import javax.swing.JMenuItem;
 import javax.swing.JOptionPane;
-import javax.swing.SwingWorker;
 
 import org.apache.log4j.Logger;
 import org.bbop.framework.GUIManager;
 import org.paint.dataadapter.FileAdapter;
 import org.paint.dialog.ActiveFamily;
 import org.paint.dialog.NewFamily;
-import org.paint.dialog.PantherURLSelectionDlg;
 import org.paint.gui.DirtyIndicator;
 import org.paint.gui.event.AnnotationChangeEvent;
 import org.paint.gui.event.AnnotationChangeListener;
 import org.paint.gui.event.EventManager;
 import org.paint.main.PaintManager;
-import org.paint.util.LoginUtil;
 
 import com.sri.panther.paintCommon.familyLibrary.FileNameGenerator;
 import java.awt.Toolkit;
@@ -61,7 +54,7 @@ import org.paint.gui.event.CommentChangeEvent;
 import org.paint.gui.event.FamilyChangeEvent;
 import org.paint.gui.event.FamilyChangeListener;
 
-public class FileMenu extends JMenu implements AnnotationChangeListener, FamilyChangeListener { // DynamicMenu {
+public class FileMenu extends JMenu implements AnnotationChangeListener, FamilyChangeListener { 
 
     /**
      *
@@ -77,6 +70,7 @@ public class FileMenu extends JMenu implements AnnotationChangeListener, FamilyC
     protected JMenuItem updateFamilyNameItem;
     protected JMenuItem saveDBItem;
     protected JMenuItem viewOmittedAnnotInfoItem;
+    protected JMenuItem viewUpdateHistoryItem;
 
     private static final String MENU_ITEM_LOGIN = "Login";
     private static final String MENU_ITEM_LOGOFF = "Logoff";
@@ -86,6 +80,7 @@ public class FileMenu extends JMenu implements AnnotationChangeListener, FamilyC
     private static final String MENU_ITEM_UPDATE_NAME_FAMILY = "Name Family...";
     private static final String MENU_ITEM_SAVE_TO_DB = "Save to database...";
     private static final String MENU_ITEM_VIEW_ANNOT_INFO = "View omitted annotation information";
+    private static final String MENU_ITEM_VIEW_ANNOT_HISTORY_INFO = "View annotation history";
 
     private static List<FileMenu> instances = new ArrayList<FileMenu>();
 
@@ -140,6 +135,11 @@ public class FileMenu extends JMenu implements AnnotationChangeListener, FamilyC
         viewOmittedAnnotInfoItem.addActionListener(new ViewOmittedAnnotActionListener());
         add(viewOmittedAnnotInfoItem);
         viewOmittedAnnotInfoItem.setEnabled(false);
+        
+        viewUpdateHistoryItem = new JMenuItem(MENU_ITEM_VIEW_ANNOT_HISTORY_INFO);
+        viewUpdateHistoryItem.addActionListener(new ViewAnnotHistoryActionListener());
+        add(viewUpdateHistoryItem);
+        viewUpdateHistoryItem.setEnabled(false);
 
                 // Add save functon later on if required
 //		saveFileLocalItem = new JMenuItem(save_annots);
@@ -158,6 +158,7 @@ public class FileMenu extends JMenu implements AnnotationChangeListener, FamilyC
         updateCommentItem.setEnabled(DirtyIndicator.inst().bookUpdated());
         updateFamilyNameItem.setEnabled(DirtyIndicator.inst().bookUpdated());
         viewOmittedAnnotInfoItem.setEnabled(DirtyIndicator.inst().bookUpdated());
+        viewUpdateHistoryItem.setEnabled(DirtyIndicator.inst().bookUpdated());
 //		openDBItem.setEnabled(InternetChecker.getInstance().isConnectionPresent(true));
 //
 //		boolean family_loaded = DirtyIndicator.inst().familyLoaded();
@@ -180,6 +181,7 @@ public class FileMenu extends JMenu implements AnnotationChangeListener, FamilyC
         this.updateFamilyNameItem.setEnabled(true);
         this.saveDBItem.setEnabled(true);
         this.viewOmittedAnnotInfoItem.setEnabled(true);
+        this.viewUpdateHistoryItem.setEnabled(true);
     }
 
     private class LoginActionListener implements ActionListener {
@@ -286,6 +288,7 @@ public class FileMenu extends JMenu implements AnnotationChangeListener, FamilyC
             updateCommentItem.setEnabled(false);
             updateFamilyNameItem.setEnabled(false);
             viewOmittedAnnotInfoItem.setEnabled(false);
+            viewUpdateHistoryItem.setEnabled(false);
         }
     }
     
@@ -346,12 +349,33 @@ public class FileMenu extends JMenu implements AnnotationChangeListener, FamilyC
             JOptionPane.showMessageDialog(GUIManager.getManager().getFrame(), new JScrollPane(ta), "Information about omitted annotations", JOptionPane.INFORMATION_MESSAGE);
         }
     }
+    private class ViewAnnotHistoryActionListener implements ActionListener{
+        public void actionPerformed(ActionEvent e) {
+            PaintManager pm = PaintManager.inst();            
+            String upateHistory = pm.getUpdateHistory();
+            if (null == upateHistory) {
+                upateHistory = STR_EMPTY;
+            }
+            String info = upateHistory.toString().replaceAll(LINE_BREAK, LINE_SEPARATOR_SYSTEM_PROPERY);
+            JTextArea ta = new JTextArea(20, 100);
+            if (null != info) {
+               ta.setText(info);
+            }
+            ta.setEditable(false);
+            ta.setWrapStyleWord(true);
+            ta.setLineWrap(true);
+            ta.setCaretPosition(0);
+            JOptionPane.showMessageDialog(GUIManager.getManager().getFrame(), new JScrollPane(ta), "Curation history information", JOptionPane.INFORMATION_MESSAGE);
+        }
+    }    
+    
+    
     
     private class UpdateCommentsActionListener implements ActionListener {
 
         public void actionPerformed(ActionEvent e) {
             PaintManager pm = PaintManager.inst();
-            String curComment = pm.getComment();
+            String curComment = pm.getCuratorNotes();
             if (null != curComment) {
                 curComment = curComment.replaceAll(LINE_BREAK, LINE_SEPARATOR_SYSTEM_PROPERY);
             }
@@ -365,7 +389,7 @@ public class FileMenu extends JMenu implements AnnotationChangeListener, FamilyC
             ta.setCaretPosition(0);
             ta.setEditable(true);
 
-            JOptionPane.showMessageDialog(GUIManager.getManager().getFrame(), new JScrollPane(ta), "Comment", JOptionPane.INFORMATION_MESSAGE);
+            JOptionPane.showMessageDialog(GUIManager.getManager().getFrame(), new JScrollPane(ta), "Curator Notes", JOptionPane.INFORMATION_MESSAGE);
             String newComment = ta.getText();
             if (null != newComment) {
                 newComment = newComment.trim();
@@ -374,14 +398,13 @@ public class FileMenu extends JMenu implements AnnotationChangeListener, FamilyC
                 }
             }
             if (null != curComment && false == curComment.equals(newComment)) {
-                pm.setComment(newComment);
+                pm.setCuratorNotes(newComment);
             }
             else if (null != newComment && false == newComment.equals(curComment)) {
-                pm.setComment(newComment);
+                pm.setCuratorNotes(newComment);
             }
             DirtyIndicator.inst().setAnnotated(true);
             EventManager.inst().fireCommentChangeEvent(new CommentChangeEvent(this));
-            EventManager.inst().fireAnnotationChangeEvent(new AnnotationChangeEvent(pm.getTree().getRoot()));
         }
     }
 
@@ -501,115 +524,7 @@ public class FileMenu extends JMenu implements AnnotationChangeListener, FamilyC
         }
     }
 
-    /**
-     * Opens book from database
-     *
-     */
-//    private class OpenFromDBActionListener implements ActionListener {
-//
-//        public void actionPerformed(ActionEvent e) {
-//            SwingWorker<Void, Void> worker = new SwingWorker<Void, Void>() {
-//                protected Void doInBackground() throws Exception {
-//                    // If document has been updated, attempt to save before opening/locking another
-//                    boolean proceed = true;
-//                    if (DirtyIndicator.inst().bookUpdated()) {
-//                        proceed = DirtyIndicator.inst().runDirtyDialog("opening a new family?");
-//                    }
-//                    if (proceed) {
-//                        if (!LoginUtil.getLoggedIn()) {
-//                            if (!LoginUtil.login()) {
-//                                return null;
-//                            }
-//                        }
-//
-//                        NewFamily dlg = new NewFamily(GUIManager.getManager().getFrame());
-//                        String familyID = dlg.display();
-//                        if (familyID != null) {
-//							// Open book for user
-//                            //							PaintManager.inst().closeCurrent();
-//                            PaintManager.inst().openNewFamily(familyID);
-//                            
-//                            
-//                            updateMenus();
-//                        }
-//                    }
-//                    return null;
-//                }
-//            };
-//            worker.execute();
-//        }
-//    }
 
-    /**
-     * Class declaration
-     *
-     *
-     * @author
-     * @version %I%, %G%
-     */
-//    private class OpenFromFileActionListener implements ActionListener {
-//
-//        public void actionPerformed(ActionEvent e) {
-//            SwingWorker<Void, Void> worker = new SwingWorker<Void, Void>() {
-//                protected Void doInBackground() throws Exception {
-//                    // If document has been updated, attempt to save before opening/locking another
-//                    boolean proceed = true;
-//                    if (DirtyIndicator.inst().isPainted()) {
-//                        proceed = DirtyIndicator.inst().runDirtyDialog("opening a family?");
-//                    }
-//                    if (proceed) {
-//                        if (!LoginUtil.getLoggedIn()) {
-//                            LoginUtil.login();
-//                        }
-//                        ActiveFamily dlg = new ActiveFamily(GUIManager.getManager().getFrame());
-//                        File f = dlg.getSelectedFile(false, FileNameGenerator.PAINT_SUFFIX);
-//                        if ((null != f) && (f.isFile())) {
-//                            String full_file_name = f.getCanonicalPath();
-//                            String familyID = full_file_name.substring(full_file_name.lastIndexOf('/') + 1, full_file_name.lastIndexOf('.'));
-//
-//                            PaintManager.inst().openNewFamily(familyID);
-//                            updateMenus();
-//                        }
-//                    }
-//                    return null;
-//                }
-//            };
-//            worker.execute();
-//        }
-//    }
-
-    /**
-     * Class declaration
-     *
-     *
-     * @author
-     * @version %I%, %G%
-     */
-//    private class EditURLActionListener implements ActionListener {
-//
-//        /**
-//         * Method declaration
-//         *
-//         *
-//         * @param e
-//         *
-//         * @see
-//         */
-//        public void actionPerformed(ActionEvent e) {
-//            // If document has been updated, attempt to save before changing upl version
-//            if (DirtyIndicator.inst().runDirtyDialog("Family has been modified, save changes?")) {
-//                if (!LoginUtil.getLoggedIn()) {
-//                    LoginUtil.login();
-//                }
-//
-//                if (!LoginUtil.getLoggedIn()) {
-//                    return;
-//                }
-//                PantherURLSelectionDlg dlg = new PantherURLSelectionDlg(GUIManager.getManager().getFrame());
-//                dlg.display();
-//            }
-//        }
-//    }
 
     @Override
     public void handleAnnotationChangeEvent(AnnotationChangeEvent event) {
