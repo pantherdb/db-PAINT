@@ -1,5 +1,5 @@
 /**
- *  Copyright 2017 University Of Southern California
+ *  Copyright 2019 University Of Southern California
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -22,10 +22,7 @@ import com.sri.panther.paintServer.util.ConfigFile;
 import java.util.HashMap;
 import java.util.HashSet;
 
-/**
- *
- * @author muruganu
- */
+
 public class FamilyManager {
     private static FamilyManager instance;
     private static HashMap<String, Book> bookLookup = null;
@@ -43,13 +40,13 @@ public class FamilyManager {
     }
     
     private static void initInfo() {
-        ClassificationVersion cv = VersionManager.getInstance().getCurrentVersion();
+        ClassificationVersion cv = VersionManager.getInstance().getClsVersion();
         DataIO dataIO = new DataIO(ConfigFile.getProperty(ConfigFile.KEY_DB_JDBC_DBSID));
-        bookLookup = dataIO.getLeafCountsForFamily(cv.getClsId());
+        bookLookup = dataIO.getLeafCountsForFamily(cv.getId());
         
         // Get organism information for leaves
         
-        orgLookup = dataIO.getSpeciesForFamily(cv.getClsId());
+        orgLookup = dataIO.getSpeciesForFamily(cv.getId());
         instance = new FamilyManager();
         
 
