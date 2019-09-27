@@ -1,21 +1,17 @@
-/* 
- * 
- * Copyright (c) 2018, Regents of the University of California 
- * All rights reserved.
+/**
+ * Copyright 2019 University Of Southern California
  *
- * Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
- * 
- * Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.
- * Neither the name of the Lawrence Berkeley National Lab nor the names of its contributors may be used to endorse 
- * or promote products derived from this software without specific prior written permission.
- * 
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, 
- * INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. 
- * IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, 
- * OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; 
- * OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) 
- * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- * 
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not
+ * use this file except in compliance with the License. You may obtain a copy of
+ * the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations under
+ * the License.
  */
 
 package org.paint.gui.evidence;
@@ -37,6 +33,8 @@ import java.awt.LayoutManager;
 import java.awt.Rectangle;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
 
 import javax.swing.BorderFactory;
 import javax.swing.BoxLayout;
@@ -72,17 +70,19 @@ public class EvidencePanel  extends AbstractPaintGUIComponent implements
 	/**
 	 * 
 	 */
-	private static final long serialVersionUID = 1L;
-	protected static EvidencePanel singleton;
+    private static final long serialVersionUID = 1L;
+    protected static EvidencePanel singleton;
 
-	private JTextArea comment_panel;
-	private JTextArea warning_panel;
-        
-        private HashMap<String, JTextArea> aspectPanelLookup = new HashMap<String, JTextArea>();
-//	private LoggingPanel mf_panel;
-//	private LoggingPanel cc_panel;
-//	private LoggingPanel bp_panel;
-	private JTextArea prune_panel;
+    private JTextArea comment_panel;
+    private JTextArea warning_panel;
+
+    private HashMap<String, JTextArea> aspectPanelLookup = new HashMap<String, JTextArea>();
+
+    private JTextArea prune_panel;
+    public static final String STR_EMPTY = "";
+    public static final String STR_BRACKET_START = "(";
+    public static final String STR_BRACKET_END = ")";
+    public static final String STR_COMMA = ",";      
 
 	private static Logger logger = Logger.getLogger(EvidencePanel.class);
 
@@ -354,9 +354,10 @@ public class EvidencePanel  extends AbstractPaintGUIComponent implements
                 warningBuf.append(gn.getNodeLabel() + publicId + " annotated to term " + term.getName() + Constant.STR_BRACKET_ROUND_OPEN + term.getAcc() + Constant.STR_BRACKET_ROUND_CLOSE + " violates taxonomy constraint");
             }            
             sb.append(gn.getNodeLabel() + publicId + Constant.STR_TAB + a.getSingleEvidenceCodeFromSet() + Constant.STR_TAB + term.getName() + Constant.STR_BRACKET_ROUND_OPEN + term.getAcc() + Constant.STR_BRACKET_ROUND_CLOSE);
-            if (true == QualifierDif.containsNegative(a.getQualifierSet())) {
+            String qualifierStr = getQualifierString(a.getQualifierSet());
+            if (null != qualifierStr && 0 != qualifierStr.length()) {
                 sb.append(Constant.STR_TAB);
-                sb.append(Qualifier.QUALIFIER_NOT);
+                sb.append(qualifierStr);                
             }
         }
         
@@ -387,6 +388,24 @@ public class EvidencePanel  extends AbstractPaintGUIComponent implements
         }
         prune_panel.setText(prunedBuf.toString());
     }
+    
+    private String getQualifierString(HashSet<Qualifier> qualifierSet) {
+        if (null == qualifierSet || 0 == qualifierSet.size()) {
+            return STR_EMPTY;
+        }
+        StringBuffer sb = new StringBuffer(STR_BRACKET_START);
+        boolean added = false;
+        for (Iterator<Qualifier> iter = qualifierSet.iterator(); iter.hasNext();) {
+            if (true == added) {
+                sb.append(STR_COMMA);
+            }
+            Qualifier q = iter.next();
+            sb.append(q.getText().toUpperCase());
+            added = true;
+        }
+        sb.append(STR_BRACKET_END);
+        return sb.toString();
+    }  
 
     @Override
     public void handleCommentChangeEvent(CommentChangeEvent event) {
@@ -395,9 +414,10 @@ public class EvidencePanel  extends AbstractPaintGUIComponent implements
     
     private void handleCommentChange() {
         PaintManager pm = PaintManager.inst();
-        String curComment = pm.getComment();
+        String curComment = pm.getFullComment();
         if (null == curComment) {
-            curComment = Constant.STR_EMPTY;
+            comment_panel.setText(Constant.STR_EMPTY);
+            return;
         }
         comment_panel.setText(curComment);
     }
