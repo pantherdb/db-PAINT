@@ -1,5 +1,5 @@
 /**
- *  Copyright 2016 University Of Southern California
+ *  Copyright 2019 University Of Southern California
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -19,10 +19,6 @@ import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.HashSet;
 
-/**
- *
- * @author muruganu
- */
 public class Evidence implements Serializable {
 
     private String evidenceId;
@@ -103,25 +99,25 @@ public class Evidence implements Serializable {
         this.date = date;
     }
 
-    public static final String[][] evidenceCodes = {
-        {"EXP", "Experimental data"},
-        {"IC", "Curator"},
-        {"IDA", "Direct Assay"},
-        {"IEA", "Electronic Analysis"},
-        {"IEP", "Expression Pattern"},
-        {"IGC", "Genomic Context"},
-        {"IGI", "Genetic Interaction"},
-        {"IMP", "Mutant Phenotype"},
-        {"IPI", "Physical Interaction"},
-        {"ISA", "Sequence Alignment"},
-        {"ISM", "Sequence Model Similarity"},
-        {"ISO", "Sequence Orthology"},
-        {"ISS", "Sequence or Structural Similarity"},
-        {"NAS", "Not-traceable Author Statement"},
-        {"ND", "No data available"},
-        {"NR", "Not Recorded"},
-        {"RCA", "Reviewed Computational Analysis"},
-        {"TAS", "Traceable Author Statement"},};
+//    public static final String[][] evidenceCodes = {
+//        {"EXP", "Experimental data"},
+//        {"IC", "Curator"},
+//        {"IDA", "Direct Assay"},
+//        {"IEA", "Electronic Analysis"},
+//        {"IEP", "Expression Pattern"},
+//        {"IGC", "Genomic Context"},
+//        {"IGI", "Genetic Interaction"},
+//        {"IMP", "Mutant Phenotype"},
+//        {"IPI", "Physical Interaction"},
+//        {"ISA", "Sequence Alignment"},
+//        {"ISM", "Sequence Model Similarity"},
+//        {"ISO", "Sequence Orthology"},
+//        {"ISS", "Sequence or Structural Similarity"},
+//        {"NAS", "Not-traceable Author Statement"},
+//        {"ND", "No data available"},
+//        {"NR", "Not Recorded"},
+//        {"RCA", "Reviewed Computational Analysis"},
+//        {"TAS", "Traceable Author Statement"},};
 
     private static final HashSet<String> experimentalCodes = initExperimental();
     private static final HashSet<String> paintCodes = initPaintCodes();
@@ -138,7 +134,8 @@ public class Evidence implements Serializable {
         expSet.add("HDA");  
         expSet.add("HMP");  
         expSet.add("HGI");
-        expSet.add("HEP");          
+        expSet.add("HEP");
+        expSet.add("IKR");      // NOTE, CAN HAVE IKR as experimental evidence as well as PAINT evidence       
         return expSet;
     }
     
@@ -158,12 +155,12 @@ public class Evidence implements Serializable {
         return paintSet;
     }
 
-    public boolean isExperimental() {
-        if (null == this.evidenceCode) {
-            return false;
-        }
-        return experimentalCodes.contains(this.evidenceCode.toUpperCase());
-    }
+//    public boolean isExperimental() {
+//        if (null == this.evidenceCode) {
+//            return false;
+//        }
+//        return experimentalCodes.contains(this.evidenceCode.toUpperCase());
+//    }
     
     public static boolean isExperimental(String code) {
         if (null == code || null == experimentalCodes) {
@@ -172,18 +169,46 @@ public class Evidence implements Serializable {
         return experimentalCodes.contains(code);
     }
     
-    public boolean isPaint() {
-        if (null == this.evidenceCode) {
+    public static boolean isExperimentalCodeValidForNode(String code, boolean isLeaf) {
+        if (false == isLeaf) {
             return false;
         }
-        return paintCodes.contains(this.evidenceCode.toUpperCase());
-    }
+        if (null == code || null == experimentalCodes) {
+            return false;
+        }
+        return experimentalCodes.contains(code);        
+    } 
+    
+//    public boolean isPaint() {
+//        if (null == this.evidenceCode) {
+//            return false;
+//        }
+//        return paintCodes.contains(this.evidenceCode.toUpperCase());
+//    }
     
     public static boolean isPaint(String code) {
         if (null == code || null == paintCodes) {
             return false;
         }
         return paintCodes.contains(code);        
+    }
+    
+    public static boolean isPAINTCodeValidForNode(String code, boolean isLeaf) {
+        if (null == code || null == paintCodes) {
+            return false;
+        }
+        if (true == isLeaf)  {
+            if (true == CODE_IKR.equals(code)) {
+                return true;
+            }
+            else if (true == CODE_IRD.equals(code)) {
+                return false;
+            }
+            else if (true == CODE_IBD.equals(code)) {
+                return false;
+            }            
+        }
+        return paintCodes.contains(code);
     }
     
     public Evidence makeCopy() {
