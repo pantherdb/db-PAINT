@@ -1,5 +1,5 @@
 /**
- * Copyright 2018 University Of Southern California
+ * Copyright 2019 University Of Southern California
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -22,10 +22,12 @@ import edu.usc.ksom.pm.panther.paintCommon.QualifierDif;
 import com.sri.panther.paintCommon.util.StringUtils;
 import com.sri.panther.paintCommon.util.Utils;
 import com.sri.panther.paintServer.datamodel.ClassificationVersion;
+import com.sri.panther.paintServer.datamodel.FullGOAnnotVersion;
 import com.sri.panther.paintServer.datamodel.NodeAnnotation;
 import com.sri.panther.paintServer.datamodel.Organism;
 import com.sri.panther.paintServer.datamodel.PANTHERTree;
 import com.sri.panther.paintServer.datamodel.PANTHERTreeNode;
+import com.sri.panther.paintServer.datamodel.PantherVersion;
 import com.sri.panther.paintServer.logic.CategoryLogic;
 import com.sri.panther.paintServer.logic.FamilyManager;
 import com.sri.panther.paintServer.logic.OrganismManager;
@@ -35,6 +37,7 @@ import edu.usc.ksom.pm.panther.paintCommon.AnnotationHelper;
 import edu.usc.ksom.pm.panther.paintCommon.AnnotationNode;
 import edu.usc.ksom.pm.panther.paintCommon.Annotation;
 import edu.usc.ksom.pm.panther.paintCommon.AnnotationDetail;
+import edu.usc.ksom.pm.panther.paintCommon.Comment;
 import edu.usc.ksom.pm.panther.paintCommon.DBReference;
 import edu.usc.ksom.pm.panther.paintCommon.Evidence;
 import edu.usc.ksom.pm.panther.paintCommon.GOTerm;
@@ -54,7 +57,6 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -80,11 +82,17 @@ public class DataIO {
     GOTermHelper goTermHelper = CategoryLogic.getInstance().getGOTermHelper();
 
     private static final java.text.SimpleDateFormat DATE_FORMATTER = new java.text.SimpleDateFormat("yyyy.MM.dd G 'at' HH:mm:ss z");
+    private static final java.text.SimpleDateFormat DATE_FORMATTER_COMMENT = new java.text.SimpleDateFormat("yyyyMMdd");    
 
     public static final String PANTHER_CLS_TYPE_SID = ConfigFile.getProperty(ConfigFile.PROPERTY_PANTHER_CLS_TYPE_SID);
     public static final String CUR_CLASSIFICATION_VERSION_SID = ConfigFile.getProperty(ConfigFile.PROPERTY_CLASSIFICATION_VERSION_SID);
+    
+    private FullGOAnnotVersion fullGOVersionInfo = null;
+    private PantherVersion pantherVersionInfo = null;
 
     protected static final String STR_TAB = "\t";
+    protected static final String STR_HYPHEN = "-";
+    protected static final String STR_NEWLINE = "\n";    
     protected static final String COMMA_DELIM = ",";
     protected static final String SEMI_COLON_DELIM = ";";
     protected static final String SPACE_DELIM = " ";
@@ -119,6 +127,7 @@ public class DataIO {
     protected static final String MSG_INITIALIZING_ANNOTATION_ID_INFO = "Initializing annotation id info";
     protected static final String MSG_INITIALIZING_QUALIFIER_ID_INFO = "Initializing qualifier id info";
     protected static final String MSG_INITIALIZING_CC_ID_INFO = "Initializing confidence code info";
+    protected static final String MSG_ERROR_UNABLE_TO_GET_DATABASE_CONNEECTION = "Unable to get database connection";
 
     protected static final String MSG_CLASSIFICATION_ID_INFO_NOT_FOUND = "Classification information not found";
     protected static final String MSG_ERROR_IDENTIFIER_RETRIEVAL_NULL_FOUND = " - Error during identifier retrieval for protein ";
@@ -312,6 +321,12 @@ public class DataIO {
                                                 "where c.classification_version_sid = %1 and c.depth = %2 and c.accession = '%3'\n" +
                                                 " and c.classification_id = cmts.classification_id and c.obsolescence_date is null and cmts.obsolescence_date is null";
     
+    public static final String FAMILY_COMMENT_FOR_ALL = "select c.accession, cm.remark from classification c, comments cm\n" +
+                                                        "where c.classification_version_sid =  %1 \n" +
+                                                        "and c.depth = %2 and c.obsolescence_date is null\n" +
+                                                        "and c.classification_id = cm.classification_id\n" +
+                                                        "and cm.obsolescence_date is null";
+    
     
     public static final String  CLS_COMMENT_PRIMARY_OBJECT_ID = "select CLASSIFICATION_ID, REMARK from COMMENTS where (CLASSIFICATION_ID, CREATION_DATE) in (select c.CLASSIFICATION_ID, max(c.CREATION_DATE) from   (select classification_id  from classification c where c.classification_version_sid = %2 and c.depth = %3 and c.accession like '%4'  %1 ) e, COMMENTS c where e.classification_id = c.CLASSIFICATION_ID and c.PRIMARY_OBJECT_ID is null %1  group by c.CLASSIFICATION_ID )";
 
@@ -428,6 +443,9 @@ public class DataIO {
     public static final String SEARCH_NODE_GENE_PRIMARY_EXT_ACC = "select n.accession as accession from gene g, gene_node gn, node n, node_type nt where g.PRIMARY_EXT_ACC like '%1' and g.GENE_ID = gn.GENE_ID  and gn.node_id = n.node_id and n.node_type_id = nt.NODE_TYPE_ID and nt.NODE_TYPE = 'LEAF' and n.CLASSIFICATION_VERSION_SID = %2";
     public static final String SEARCH_NODE_PTN = "select n.accession as accession from node n where lower (n.public_id) like '%1' and n.classification_version_sid = %2 ";
     
+    public static final String QUERY_VERSION_INFO = "select * from FULLGO_VERSION";
+
+    
     public static final String SEARCH_FAMILY_ID = "select c.accession as accession from classification c where c.accession = '%1'  and c.classification_version_sid = %2 ";
    
     public static final String GET_LEAF_COUNTS_FOR_FAMILY = "select substr(n.accession, 0, 10) as accession, count(substr(n.accession, 0, 10)) from node n, node_type nt where nt.node_type = 'LEAF' and nt.node_type_id = n.node_type_id and n.classification_version_sid = %1 and n.obsolescence_date is null group by substr(n.accession, 0, 10) ";
@@ -489,13 +507,20 @@ public class DataIO {
     protected static final String COLUMN_NAME_CURATION_STATUS_ID = "CURATION_STATUS_ID";
     protected static final String COLUMN_NAME_CURATION_STATUS_TYPE_SID = "STATUS_TYPE_SID";    
     protected static final String COLUMN_NAME_RANK = "RANK";
-    protected static final String COMUMN_NAME_REMARK = "REMARK";
+    protected static final String COLUMN_NAME_REMARK = "REMARK";
     protected static final String COLUMN_NAME_RELATIONSHIP = "RELATIONSHIP";
     protected static final String COLUMN_NAME_CONFIDENCE_CODE = "CONFIDENCE_CODE";
     protected static final String COLUMN_NAME_CONFIDENCE_CODE_SID = "CONFIDENCE_CODE_SID";    
     protected static final String COLUMN_NAME_CREATED_BY = "CREATED_BY";
     protected static final String COLUMN_NAME_IDENTIFIER_TYPE = "identifier_type";
     protected static final String COLUMN_NAME_COUNT = "count";
+    public static final String COLUMN_GO_ANNOTATION_FORMAT_VERSION = "GO_ANNOTATION_FORMAT_VERSION";
+    public static final String COLUMN_GO_ANNOTATION_RELEASE_DATE = "GO_ANNOTATION_RELEASE_DATE";
+    public static final String COLUMN_PANTHER_VERSION = "PANTHER_VERSION";
+    public static final String COLUMN_PANTHER_RELEASE_DATE = "PANTHER_RELEASE_DATE";
+    public static final String COLUMN_REACTOME_ANNOTATION_FORMAT_VERSION = "REACTOME_ANNOTATION_FORMAT_VERSION";
+    public static final String COLUMN_REACTOME_ANNOTATION_RELEASE_DATE = "REACTOME_ANNOTATION_RELEASE_DATE";    
+    
     
     protected static final String COLUMN_NAME_PRIVILEGE_RANK = "PRIVILEGE_RANK";
     protected static final String COLUMN_NAME_USER_NAME = "NAME";
@@ -561,6 +586,18 @@ public class DataIO {
     protected static final String LEVEL_FAMILY = "_famLevel";
     protected static final String LEVEL_SUBFAMILY = "_subfamLevel";
     protected static final String TYPE_PRUNED = "_pruned";
+
+    public static final String CODE_UNKNOWN = "Unknown";
+    public static final String NODE_UNKNOWN = "Unknown";
+    public static final String TERM_UNDEFINED = "Term undefined";
+    public static final String ANNOTATION_ID = "Annotation id";
+    public static final String OP_OBSOLETE = "Obsolete";
+    public static final String OP_SAVE = "Save";
+    public static final String STR_BRACKET_START = "(";
+    public static final String STR_BRACKET_END = ")";    
+    public static final String ASPECT_FUNCTION = "F";
+    public static final String ASPECT_PROCESS = "P";
+    public static final String ASPECT_CELL_LOC = "C";    
 
     protected static final String RANK_PROP_GO_CURATOR = "panther_curator_rank";
     public static final String RANK_CURATOR_GO = ConfigFile.getProperty(RANK_PROP_GO_CURATOR);
@@ -762,7 +799,7 @@ public class DataIO {
         }
         ClassificationVersion cv = new ClassificationVersion();
         ArrayList infoList = clsIdToVersionRelease.get(CUR_CLASSIFICATION_VERSION_SID);
-        cv.setClsId(CUR_CLASSIFICATION_VERSION_SID);
+        cv.setId(CUR_CLASSIFICATION_VERSION_SID);
         if (null != infoList && infoList.size() >= 1) {
             cv.setName((String)infoList.get(0));
         }
@@ -770,6 +807,60 @@ public class DataIO {
             cv.setReleaseDate((String)infoList.get(1));
         }
         return cv;
+    }
+    
+    public FullGOAnnotVersion getFullGOVersion() {
+        if (null == fullGOVersionInfo) {
+            initVersionInfo();
+        }
+        return fullGOVersionInfo;
+    }
+    
+    public PantherVersion getPantherVersion() {
+        if (null == pantherVersionInfo) {
+            initVersionInfo();
+        }
+        return pantherVersionInfo;
+    }
+    
+    public synchronized void initVersionInfo() {
+       Connection con = null;
+        Statement stmt = null;
+        ResultSet rst = null;
+        fullGOVersionInfo = new FullGOAnnotVersion();
+        pantherVersionInfo = new PantherVersion();
+
+        try {
+            con = getConnection();
+            if (null == con) {
+                log.error(MSG_ERROR_UNABLE_TO_GET_DATABASE_CONNEECTION);
+                return;
+            }
+        
+            stmt = con.createStatement();
+            rst = stmt.executeQuery(QUERY_VERSION_INFO);
+            while(rst.next()) {
+                fullGOVersionInfo.setId(rst.getString(COLUMN_GO_ANNOTATION_FORMAT_VERSION));
+                Date goDate = rst.getDate(COLUMN_GO_ANNOTATION_RELEASE_DATE);
+                if (null != goDate) {
+                    fullGOVersionInfo.setReleaseDate(DATE_FORMATTER.format(goDate));
+                }
+                pantherVersionInfo.setId(rst.getString(COLUMN_PANTHER_VERSION));
+                Date pantherDate = rst.getDate(COLUMN_PANTHER_RELEASE_DATE);
+                if (null != pantherDate) {
+                    pantherVersionInfo.setReleaseDate(DATE_FORMATTER.format(goDate));
+                }
+                break;
+            }
+        }
+        catch(Exception e) {
+            e.printStackTrace();
+            fullGOVersionInfo = null;
+            pantherVersionInfo = null;
+        }
+        finally {
+            ReleaseResources.releaseDBResources(rst, stmt, con);
+        }     
     }
 
     public synchronized void initClsLookup() {
@@ -840,6 +931,61 @@ public class DataIO {
         }
         return query;
     }
+    
+    public HashMap<String, String> getLongGeneNameLookup(String book, String uplVersion) {
+        if (null == book || null == uplVersion) {
+            return null;
+        }
+        
+        HashMap<String, String> geneLookup = new HashMap<String, String>();
+
+        Connection con = null;
+        Statement gstmt = null;
+        ResultSet grslt = null;
+        try {
+            con = getConnection();
+            if (null == con) {
+                return null;
+            }
+
+            // Make sure release dates can be retrieved, else return null
+            initClsLookup();
+            if (null == clsIdToVersionRelease) {
+                return null;
+            }
+            String query = addVersionReleaseClause(uplVersion, Constant.STR_EMPTY, TABLE_NAME_n);
+            query = addVersionReleaseClause(uplVersion, query, TABLE_NAME_gn);
+            query = addVersionReleaseClause(uplVersion, query, TABLE_NAME_g);
+            query = NODE_GENE + query;
+//            System.out.println(query);
+
+            query = Utils.replace(query, QUERY_PARAMETER_1, uplVersion);
+            query = Utils.replace(query, QUERY_PARAMETER_2, book + QUERY_WILDCARD);
+
+            gstmt = con.createStatement();
+
+
+            grslt = gstmt.executeQuery(query);
+
+            grslt.setFetchSize(100);
+            while (grslt.next()) {
+
+                // annotation id to gene information
+                String annotId = grslt.getString(COLUMN_NAME_ACCESSION);
+                String geneIdentifier = grslt.getString(COLUMN_NAME_GENE_PRIMARY_EXT_ACC);
+                if (null != annotId && null != geneIdentifier) {
+                    geneLookup.put(annotId, geneIdentifier);
+                }
+            }
+        } catch (SQLException se) {
+            System.out.println("Unable to retrieve gene information from database, exception "
+                    + se.getMessage() + " has been returned.");
+            geneLookup = null;
+        } finally {
+            ReleaseResources.releaseDBResources(grslt, gstmt, con);
+        }
+        return geneLookup;
+    }    
 
     public void getGeneInfo(String book, String uplVersion, HashMap<String, Node> nodeLookup) {
         if (null == book || null == uplVersion || null == nodeLookup) {
@@ -1526,9 +1672,9 @@ public class DataIO {
             
             // Remove annotations that were not created by paint and are also non-experimental
             for (String annotId: annotToEvdnceCde.keySet()) {
-                if ("313870898".equals(annotId)) {
-                    System.out.println("Here");
-                }
+//                if ("313870898".equals(annotId)) {
+//                    System.out.println("Here");
+//                }
                 HashSet<String> evCdeSet = annotToEvdnceCde.get(annotId);
                 boolean isPaint = false;
                 boolean isExp = false;
@@ -1560,9 +1706,9 @@ public class DataIO {
                 for (int i = 0; i < data.size(); i++) {
                     Object[] parts = data.get(i);
                     String annotationId = (String)parts[0];
-                    if ("313870898".equals(annotationId)) {
-                        System.out.println("Here");
-                    }                    
+//                    if ("313870898".equals(annotationId)) {
+//                        System.out.println("Here");
+//                    }                    
                     // This will handle the annotations that were removed because they are non paint and non experimental
                     if (true == annotsToIgnore.contains(annotationId)) {
                         annotRemoved = true;
@@ -2103,7 +2249,7 @@ public class DataIO {
      * @return
      * @throws Exception 
      */
-    public boolean getFullGOAnnotations(String book, String uplVersion, HashMap<String, Node> nodeLookup, HashMap<Annotation, ArrayList<IWith>> annotToPosWithLookup, StringBuffer errorBuf, StringBuffer paintErrBuf, HashSet<String> removedAnnotSet, HashSet<String> modifiedAnnotSet, boolean checkAggOnly) throws Exception {
+    public boolean getFullGOAnnotations(String book, String uplVersion, HashMap<String, Node> nodeLookup, HashMap<Annotation, ArrayList<IWith>> annotToPosWithLookup, StringBuffer errorBuf, StringBuffer paintErrBuf, HashSet<Annotation> removedAnnotSet, HashSet<String> modifiedAnnotSet, HashSet<Annotation> removedFromGOAnnot, boolean checkAggOnly) throws Exception {
         PANTHERTree pantherTree = getPANTHERTree(uplVersion, book);
         if (null == pantherTree) {
             return false;
@@ -2188,14 +2334,23 @@ public class DataIO {
                 String qualifier = grslt.getString(COLUMN_NAME_QUALIFIER);
                 String paintAnnot = grslt.getString(COLUMN_NAME_PAINT_ANNOT);
                 boolean isPaintAnnot = Boolean.TRUE.toString().equalsIgnoreCase(paintAnnot);
-                
-//                if ("194473506".equals(annotationId)) {
+              
+//                if ("IKR".equals(cc)) {
+//                    System.out.println("Here");
+//                }
+//                if (true == "384251118".equals(annotationId)) {
 //                    System.out.println("Here");
 //                }                
                 
                 if (null == cc) {
                     cc = Constant.STR_EMPTY;
                 }
+                
+                // Only consider experimental annotations from go aggregate table. No longer need to tag problems with this data
+                boolean isExp = Evidence.isExperimental(cc);
+                if (false == isExp && false == isPaintAnnot) {
+                    continue;
+                }                 
                 
                 // Annotation pointing to non-existent term in hierarchy
                 if (null == goTermHelper.getTerm(term)) {
@@ -2207,26 +2362,53 @@ public class DataIO {
                     }                   
                     System.out.println("Annotation " + annotationId + " refers to " + term + " that is not defined in hierarchy");
                     errorBuf.append(accToPTNLookup.get(accession) + " annotated to " + q + " with evidence code " + cc + " for annotation id " + annotationId + " refers to " + term + " that is not defined in Ontology\n");
-                    if (true == isPaintAnnot) {
-                        removedAnnotSet.add(annotationId);
+                    if (true == isPaintAnnot && false == containsAnnot(removedAnnotSet, annotationId)) {
+                        Annotation removed = new Annotation();
+                        removed.setAnnotationId(annotationId);
+                        removed.setGoTerm(term);
+                        removedAnnotSet.add(removed);
                     }
 //                    annotsToIgnore.add(annotationId);
                     continue;                    
                 }
                 
-                // Only consider experimental annotations from go aggregate table
-                boolean isExp = Evidence.isExperimental(cc);
-                if (false == isExp && false == isPaintAnnot) {
+                
+                // Check for annotations to non-allowed terms
+                if (false == goTermHelper.isAnnotAllowedForTerm(term)) {
+                        Annotation removed = new Annotation();
+                        removed.setAnnotationId(annotationId);
+                        removed.setGoTerm(term);
+                    if (true == isPaintAnnot) {
+                        errorBuf.append(accToPTNLookup.get(accession) + " for annotation id " + annotationId + " refers to " + term + " that cannot be annotated\n");
+                    }
+                    else {
+                        if (false == containsAnnot(removedFromGOAnnot, annotationId)) {
+                            removedFromGOAnnot.add(removed);
+                        }
+                    }
+                    if (false == containsAnnot(removedAnnotSet, annotationId)) {
+                        removedAnnotSet.add(removed);
+                    }
                     continue;
                 }
-                
+  
                 Qualifier tq = new Qualifier();
                 tq.setText(qualifier);
                 if (false == goTermHelper.isQualifierValidForTerm(goTermHelper.getTerm(term), tq)) {
+                    Annotation removed = new Annotation();
+                    removed.setAnnotationId(annotationId);
+                    removed.setGoTerm(term);
                     System.out.println("Annotation " + annotationId + " for " + term + " associated with invalid qualifier " + tq.getText());
                     errorBuf.append(accToPTNLookup.get(accession) + " annotated to " + term + " with qualifier " + tq.getText() + " with evidence code " + cc + " for annotation id " + annotationId + " refers to a qualifier that is not valid for this term. \n");
                     if (true == isPaintAnnot) {
-                        removedAnnotSet.add(annotationId);
+                        if (false == removedAnnotSet.contains(removed)) {
+                            removedAnnotSet.add(removed);
+                        }
+                    }
+                    else {
+                        if (false == removedFromGOAnnot.contains(removed)) {
+                            removedFromGOAnnot.add(removed);
+                        }
                     }
                     continue;
                 }
@@ -2255,25 +2437,66 @@ public class DataIO {
                         }
                         errorBuf.append(accToPTNLookup.get(accession) + " annotated to " + q + " with evidence code " + cc + " for annotation id " + annotationId + " refers to non-existent node id " + evidence + "\n");
 //                        annotsToIgnore.add(annotationId);
+                        Annotation removed = new Annotation();
+                        removed.setAnnotationId(annotationId);
+                        removed.setGoTerm(term);
                         if (true == isPaintAnnot) {
-                            removedAnnotSet.add(annotationId);
+                            if (false == containsAnnot(removedAnnotSet, annotationId)) {
+                                removedAnnotSet.add(removed);
+                            }
+                        } else {
+                            if (false == containsAnnot(removedFromGOAnnot, annotationId)) {
+                                removedFromGOAnnot.add(removed);
+                            }
                         }
-                        continue;                        
+                        continue;
                     }
                 }
-                
-                if (true == Evidence.isPaint(cc) && (false == isPaintAnnot)) {
-                    String q = qualifier;
-                    if (null == q) {
-                        q = term;
-                    } else {
-                        q = term + "(" + q + ")";
-                    }                     
+
+                boolean isLeaf = pantherTree.isLeaf(accession);
+                if (true == isPaintAnnot && true == Evidence.isPaint(cc) && false == Evidence.isPAINTCodeValidForNode(cc, isLeaf)) {
+                    errorBuf.append(accToPTNLookup.get(accession) + " with evidence code " + cc + " for annotation id " + annotationId + " with evidence id " + evidenceId + " is to a leaf node \n");
+                    continue;
+                }
+                if (false == Evidence.isExperimental(cc) && (false == isPaintAnnot)) {
+//                    String q = qualifier;
+//                    if (null == q) {
+//                        q = term;
+//                    } else {
+//                        q = term + "(" + q + ")";
+//                    }                     
 //                    System.out.println("Annotation " + annotationId + " has paint evidence code but not paint evidence type");
 //                    errorBuf.append(accToPTNLookup.get(accession) + " annotated to " + q + " with evidence code " + cc + " for annotation id " + annotationId + " has paint evidence code but informaion found with Full GO data - evidence type " + evidence_type + " evidence is " + evidence + " \n");
 //                    annotsToIgnore.add(annotationId);
                     continue;
-                }                
+                }                   
+                    
+
+                
+//                if (true == Evidence.isPaint(cc) && (false == isPaintAnnot)) {
+//                    if (true == (Evidence.CODE_IKR.equalsIgnoreCase(cc) && Evidence.isExperimental(cc))) {
+//                        PANTHERTreeNode node = pantherTree.getNodesTbl().get(accession);
+//                        if (null == node) {
+//                            continue;
+//                        }
+//                        Vector<PANTHERTreeNode> children = node.getChildren();
+//                        if (null != children && 0 < children.size()) {
+//                            continue;
+//                        }
+//                    }
+//                    else {
+//                    String q = qualifier;
+//                    if (null == q) {
+//                        q = term;
+//                    } else {
+//                        q = term + "(" + q + ")";
+//                    }                     
+//                    System.out.println("Annotation " + annotationId + " has paint evidence code but not paint evidence type");
+//                    errorBuf.append(accToPTNLookup.get(accession) + " annotated to " + q + " with evidence code " + cc + " for annotation id " + annotationId + " has paint evidence code but informaion found with Full GO data - evidence type " + evidence_type + " evidence is " + evidence + " \n");
+//                    annotsToIgnore.add(annotationId);
+//                        continue;
+//                    }
+//                }                
                 
 
                 
@@ -2306,6 +2529,9 @@ public class DataIO {
                 parts[6] = cc;
                 parts[7] = qualifier;                
                 parts[8] = Boolean.valueOf(isPaintAnnot);
+//                if (true == "384251118".equals(annotationId)) {
+//                    System.out.println("Here");
+//                }                
                 
                 data.add(parts);
                 validAnnots.add(annotationId);
@@ -2368,8 +2594,11 @@ public class DataIO {
             for (int i = 0; i < data.size(); i++) {
                 Object parts[] = data.get(i);
                 boolean isPaintAnnot = ((Boolean)parts[8]).booleanValue();                
-
+                String term = (String) parts[2];
                 String annotationId = (String)parts[0];
+//                if (true == "384251118".equals(annotationId)) {
+//                    System.out.println("Here");
+//                }                
 
 //                if ("194473506".equals(annotationId)) {
 //                    System.out.println("194473506");
@@ -2381,9 +2610,18 @@ public class DataIO {
                     if (associatedAnnots.contains(evidence.toString())) {
                         data.remove(i);
                         i--;
-                        errorBuf.append(accToPTNLookup.get((String)parts[1]) + " annotated to term " + (String)parts[2] + " for annotation id " + annotationId + " using with evidence (an annotation id) " + evidence + " is invalid, since there is no information about annotation id " + evidence + "\n");
+                        errorBuf.append(accToPTNLookup.get((String)parts[1]) + " annotated to term " + (String)parts[2] + " for annotation id " + annotationId + " using with evidence (an annotation id) " + evidence + " is invalid, since this annotation was removed due to validity checks or there is no information about annotation id " + evidence + "\n");
+                        Annotation removed = new Annotation();
+                        removed.setAnnotationId(annotationId);
+                        removed.setGoTerm(term);
                         if (true == isPaintAnnot) {
-                            removedAnnotSet.add(annotationId);
+                            if (false == containsAnnot(removedAnnotSet, annotationId)) {
+                                removedAnnotSet.add(removed);
+                            }
+                        } else {
+                            if (false == containsAnnot(removedFromGOAnnot, annotationId)) {
+                                removedFromGOAnnot.add(removed);
+                            }
                         }
                         continue;                        
                     }
@@ -2393,9 +2631,8 @@ public class DataIO {
 //                    System.out.println("Here");
 //                }
                 String cc = (String) parts[6];
-                if (validAnnots.contains(annotationId) && true == expAnnot.contains(annotationId) && false == Evidence.isPaint(cc)) {
+                if (validAnnots.contains(annotationId) && true == expAnnot.contains(annotationId) && false == isPaintAnnot) {
                     String accession = (String) parts[1];
-                    String term = (String) parts[2];
                     String evidence_type = (String) parts[3];
                     String evidence = (String) parts[4];
                     int evidenceId = ((Integer)parts[5]).intValue(); 
@@ -2404,6 +2641,7 @@ public class DataIO {
                     Annotation a = annotLookup.get(annotationId);
                     if (null == a) {
                         a = new Annotation();
+                        a.setExperimental(true);
                         a.setAnnotationId(annotationId);
                         annotLookup.put(annotationId, a);
                     }
@@ -2411,10 +2649,9 @@ public class DataIO {
                     a.setGoTerm(term);
                     
                     // We may have removed an annotatoin id due to some invalid data.  However, there exists valid data as well.  So remove the annotation id from the removed list
-                    if (removedAnnotSet.contains(annotationId)) {
-                        removedAnnotSet.remove(annotationId);
-                    }
-
+                    removeAnnot(removedAnnotSet, annotationId);
+                    removeAnnot(removedFromGOAnnot, annotationId);
+                    
                     if (null != qualifier) {
                         Qualifier q = new Qualifier();
                         q.setText(qualifier);
@@ -2440,6 +2677,7 @@ public class DataIO {
                         nsi = new NodeStaticInfo();
                         n.setStaticInfo(nsi);
                         nsi.setNodeAcc(accession);
+                        nsi.setPublicId(accToPTNLookup.get(accession));
                     }
                     NodeVariableInfo nvi = n.getVariableInfo();
                     if (nvi == null) {
@@ -2481,13 +2719,26 @@ public class DataIO {
                 int evidenceId = ((Integer)parts[5]).intValue(); 
                 String qualifier = (String) parts[7];
                 boolean isPaintAnnot = ((Boolean)parts[8]).booleanValue();
+                boolean isLeaf = pantherTree.isLeaf(accession);
+//                if (true == "384251118".equals(annotationId)) {
+//                    System.out.println("Here");
+//                }
                 
-                if (false == Evidence.isPaint(cc) || true == Evidence.isExperimental(cc)) {
+                if (false == Evidence.isPAINTCodeValidForNode(cc, isLeaf) || true == Evidence.isExperimentalCodeValidForNode(cc, isLeaf)) {
                     data.remove(i);
                     i--;
                     errorBuf.append(cc + " to " + accToPTNLookup.get(accession) + " for annotation id " + annotationId + " is not from PAINT or is experimental.\n");
+                    Annotation removed = new Annotation();
+                    removed.setAnnotationId(annotationId);
+                    removed.setGoTerm(term);
                     if (true == isPaintAnnot) {
-                        removedAnnotSet.add(annotationId);
+                        if (false == containsAnnot(removedAnnotSet, annotationId)) {
+                            removedAnnotSet.add(removed);
+                        }
+                    } else {
+                        if (false == containsAnnot(removedFromGOAnnot, annotationId)) {
+                            removedFromGOAnnot.add(removed);
+                        }
                     }
                     continue;
                 }
@@ -2497,8 +2748,17 @@ public class DataIO {
                     data.remove(i);
                     i--;
                     errorBuf.append(StringUtils.listToString(codes, STR_EMPTY, STR_COMMA) + " to " + accToPTNLookup.get(accession) + " for PAINT annotation id " + annotationId + " has multiple evidence codes.\n");
+                    Annotation removed = new Annotation();
+                    removed.setAnnotationId(annotationId);
+                    removed.setGoTerm(term);
                     if (true == isPaintAnnot) {
-                        removedAnnotSet.add(annotationId);
+                        if (false == containsAnnot(removedAnnotSet, annotationId)) {
+                            removedAnnotSet.add(removed);
+                        }
+                    } else {
+                        if (false == containsAnnot(removedFromGOAnnot, annotationId)) {
+                            removedFromGOAnnot.add(removed);
+                        }
                     }
                     continue;                    
                 }
@@ -2521,7 +2781,7 @@ public class DataIO {
                 if (Evidence.CODE_IBD.equals(cc)) {
                     ibdAnnotSet.add(annotationId);
                 }
-                else if (Evidence.CODE_IKR.equals(cc)) {
+                else if (Evidence.CODE_IKR.equals(cc) && true == isPaintAnnot) {
                     ikrAnnotSet.add(annotationId);
                 }
                 else if (Evidence.CODE_IRD.equals(cc)) {
@@ -2583,8 +2843,17 @@ public class DataIO {
                     data.remove(i);
                     i--;
                     errorBuf.append(StringUtils.listToString(codes, STR_EMPTY, STR_COMMA) + " to " + accToPTNLookup.get(accession) + " for PAINT annotation id " + annotationId + " has unsupported type " + evidence_type + "\n");
+                    Annotation removed = new Annotation();
+                    removed.setAnnotationId(annotationId);
+                    removed.setGoTerm(term);
                     if (true == isPaintAnnot) {
-                        removedAnnotSet.add(annotationId);
+                        if (false == containsAnnot(removedAnnotSet, annotationId)) {
+                            removedAnnotSet.add(removed);
+                        }
+                    } else {
+                        if (false == containsAnnot(removedFromGOAnnot, annotationId)) {
+                            removedFromGOAnnot.add(removed);
+                        }
                     }
                     continue;                     
                 }
@@ -2599,6 +2868,10 @@ public class DataIO {
 //                    n = new Node();
 //                    nodeLookup.put(accession, n);
 //                }
+                if (n == null) {
+                    System.out.println("Did not find " + accession + " for " + book);
+                    return false;
+                }
                 NodeStaticInfo nsi = n.getStaticInfo();
                 if (nsi == null) {
                     nsi = new NodeStaticInfo();
@@ -2633,8 +2906,8 @@ public class DataIO {
             validatePAINTAnnotations(pantherTree, pantherTree.getRoot(), ibdAnnotSet, ikrAnnotSet, irdAnnotSet, ibaAnnotSet,
                                         accToAnnot, annotLookup, nodeLookup, annotToPosWithLookup, removedAnnotSet, modifiedAnnotSet, paintErrBuf);
             
-            for (String annotId: removedAnnotSet) {
-                Annotation annot = annotLookup.get(annotId);
+            for (Annotation a: removedAnnotSet) {
+                Annotation annot = annotLookup.get(a.getAnnotationId());
                 if (null == annot) {
                     // This is okay - We have not added it
 //                    System.out.println("Here");
@@ -2655,7 +2928,7 @@ public class DataIO {
                 HashSet<Annotation> removeAnnots = new HashSet<Annotation>();
                 for (Annotation cur: annotList) {
                     String id = cur.getAnnotationId();
-                    if (null != id && id.equals(annotId)) {
+                    if (null != id && id.equals(a.getAnnotationId())) {
                         removeAnnots.add(cur);
                     }
                 }
@@ -2678,7 +2951,7 @@ public class DataIO {
     }
     
     public void validatePAINTAnnotations(PANTHERTree pt, PANTHERTreeNode node, HashSet<String> ibdAnnotSet, HashSet<String> ikrAnnotSet, HashSet<String> irdAnnotSet, HashSet<String> ibaAnnotSet,
-                                        HashMap<String, HashSet<String>> accToAnnot, HashMap<String, Annotation> annotLookup, HashMap<String, Node> nodeLookup, HashMap<Annotation, ArrayList<IWith>> annotToPosWithLookup, HashSet<String> removedAnnotSet, HashSet<String> modifiedAnnotSet, StringBuffer errorBuf) {
+                                        HashMap<String, HashSet<String>> accToAnnot, HashMap<String, Annotation> annotLookup, HashMap<String, Node> nodeLookup, HashMap<Annotation, ArrayList<IWith>> annotToPosWithLookup, HashSet<Annotation> removedAnnotSet, HashSet<String> modifiedAnnotSet, StringBuffer errorBuf) {
         String acc = node.getAccession();
         HashSet<String> annots = accToAnnot.get(acc);
         if (null != annots && 0 < annots.size()) {
@@ -2687,12 +2960,10 @@ public class DataIO {
                 if (true == ibdAnnotSet.contains(annotId)) {
                     Annotation ibdAnnot = annotLookup.get(annotId);
                     if (false == isIBDValidAndFix(ibdAnnot, pt, nodeLookup, annotToPosWithLookup, modifiedAnnotSet, errorBuf))  {
-                        removedAnnotSet.add(annotId);
+                        removedAnnotSet.add(ibdAnnot);
                     }
                     else {
-                        if (removedAnnotSet.contains(annotId)) {
-                            removedAnnotSet.remove(annotId);
-                        }
+                        removeAnnot(removedAnnotSet, annotId);
                     }
                 }
             }
@@ -2701,23 +2972,19 @@ public class DataIO {
                 if (true == ikrAnnotSet.contains(annotId)) {
                     Annotation ikrAnnot = annotLookup.get(annotId);
                     if (false == isIKRIRDValidAndFix(ikrAnnot, annotLookup, pt, nodeLookup, removedAnnotSet, errorBuf))  {
-                        removedAnnotSet.add(annotId);
+                        removedAnnotSet.add(ikrAnnot);
                     }
                     else {
-                        if (removedAnnotSet.contains(annotId)) {
-                            removedAnnotSet.remove(annotId);
-                        }
+                        removeAnnot(removedAnnotSet, annotId);
                     }                    
                 }
                 if (true == irdAnnotSet.contains(annotId)) {
                     Annotation irdAnnot = annotLookup.get(annotId);
                     if (false == isIKRIRDValidAndFix(irdAnnot, annotLookup, pt, nodeLookup, removedAnnotSet, errorBuf))  {
-                        removedAnnotSet.add(annotId);
+                        removedAnnotSet.add(irdAnnot);
                     }
                     else {
-                        if (removedAnnotSet.contains(annotId)) {
-                            removedAnnotSet.remove(annotId);
-                        }
+                        removeAnnot(removedAnnotSet, annotId);
                     }            
                 }                
             }
@@ -2727,12 +2994,10 @@ public class DataIO {
                 if (true == ibaAnnotSet.contains(annotId)) {
                     Annotation ibaAnnot = annotLookup.get(annotId);
                     if (false == isIBAValidAndFix(ibaAnnot, annotLookup, pt, nodeLookup, removedAnnotSet, errorBuf))  {
-                        removedAnnotSet.add(annotId);
+                        removedAnnotSet.add(ibaAnnot);
                     }
                     else {
-                        if (removedAnnotSet.contains(annotId)) {
-                            removedAnnotSet.remove(annotId);
-                        }
+                        removeAnnot(removedAnnotSet, annotId);
                     }            
                 }
             }            
@@ -2747,14 +3012,16 @@ public class DataIO {
         }       
     }
     
-    public boolean isIBAValidAndFix(Annotation ibaAnnotation, HashMap<String, Annotation> annotLookup, PANTHERTree pt, HashMap<String, Node> nodeLookup, HashSet<String> removedAnnotSet, StringBuffer errorBuf) {
+    public boolean isIBAValidAndFix(Annotation ibaAnnotation, HashMap<String, Annotation> annotLookup, PANTHERTree pt, HashMap<String, Node> nodeLookup, HashSet<Annotation> removedAnnotSet, StringBuffer errorBuf) {
         AnnotationDetail ad = ibaAnnotation.getAnnotationDetail();
         HashSet<Annotation> withSet = ad.getWithAnnotSet();
         if (null == withSet) {
             errorBuf.insert(0, StringUtils.listToString(ibaAnnotation.getEvidenceCodeSet(), STR_EMPTY, STR_COMMA) + " to " + ad.getAnnotatedNode().getStaticInfo().getPublicId()+ " for annotation " + ibaAnnotation.getAnnotationId() +  " does not have a propagator \n");            
             return false;
         }
-        withSet.removeAll(removedAnnotSet);
+        for (Annotation a: removedAnnotSet) {
+            removeAnnot(withSet, a.getAnnotationId());
+        }
         
         // Ensure no pruned nodes between propagator and with
         Node node = ad.getAnnotatedNode();
@@ -2784,7 +3051,7 @@ public class DataIO {
         return true;
     }
     
-    public boolean isIKRIRDValidAndFix(Annotation ikrIrdAnnotation, HashMap<String, Annotation> annotLookup, PANTHERTree pt, HashMap<String, Node> nodeLookup, HashSet<String> removedAnnotSet, StringBuffer errorBuf) {
+    public boolean isIKRIRDValidAndFix(Annotation ikrIrdAnnotation, HashMap<String, Annotation> annotLookup, PANTHERTree pt, HashMap<String, Node> nodeLookup, HashSet<Annotation> removedAnnotSet, StringBuffer errorBuf) {
         AnnotationDetail ad = ikrIrdAnnotation.getAnnotationDetail();
         Node node = ad.getAnnotatedNode();
         String term = ikrIrdAnnotation.getGoTerm();
@@ -2795,7 +3062,7 @@ public class DataIO {
         Annotation propagator = null;
         String errMsg = null;
         for (Annotation with: withs) {
-            if (removedAnnotSet.contains(with.getAnnotationId())) {
+            if (true == containsAnnot(removedAnnotSet, with.getAnnotationId())) {
                 continue;
             }
             // Check for NOT between IBD and IKR/IRD
@@ -2951,19 +3218,29 @@ public class DataIO {
         if (true == addSet.isEmpty()) {
             errorBuf.insert(0, StringUtils.listToString(ibdAnnotation.getEvidenceCodeSet(), STR_EMPTY, STR_COMMA) + " to " + ibdAnnotation.getAnnotationDetail().getAnnotatedNode().getStaticInfo().getPublicId() + " for annotation " + ibdAnnotation.getAnnotationId() + " to term " + ibdAnnotation.getGoTerm() + " does not have any associated experimental evidence \n");    
             StringBuffer annotBuf = new StringBuffer();
+            StringBuffer matchAnnotBuf = new StringBuffer();            
             for (Annotation with: allAnnots) {
-                if (0 != annotBuf.length()) {
-                    annotBuf.append(",");
+                if (term != null && term.equalsIgnoreCase(with.getGoTerm())) {
+                    if (0 != matchAnnotBuf.length()) {
+                        matchAnnotBuf.append(",");
+                    }
+                    matchAnnotBuf.append(with.getAnnotationId());
+                } else {
+                    if (0 != annotBuf.length()) {
+                        annotBuf.append(",");
+                    }
+                    annotBuf.append(with.getAnnotationId() + "(" + with.getGoTerm() + ")");
                 }
-                annotBuf.append(with.getAnnotationId());
             }
-            errorBuf.insert(0, StringUtils.listToString(ibdAnnotation.getEvidenceCodeSet(), STR_EMPTY, STR_COMMA) + " to " + ibdAnnotation.getAnnotationDetail().getAnnotatedNode().getStaticInfo().getPublicId() + " for annotation " + ibdAnnotation.getAnnotationId() + " to term " + ibdAnnotation.getGoTerm() + " can use the annotation ids " + annotBuf.toString() + " as withs\n");    
-            
+            if (0 != matchAnnotBuf.length()) {
+                errorBuf.insert(0, StringUtils.listToString(ibdAnnotation.getEvidenceCodeSet(), STR_EMPTY, STR_COMMA) + " to " + ibdAnnotation.getAnnotationDetail().getAnnotatedNode().getStaticInfo().getPublicId() + " for annotation " + ibdAnnotation.getAnnotationId() + " to term " + ibdAnnotation.getGoTerm() + " can use the annotation ids " + matchAnnotBuf.toString() + " as withs with matching GO Terms\n");    
+            }
+            if (0 != annotBuf.length()) {
+                errorBuf.insert(0, StringUtils.listToString(ibdAnnotation.getEvidenceCodeSet(), STR_EMPTY, STR_COMMA) + " to " + ibdAnnotation.getAnnotationDetail().getAnnotatedNode().getStaticInfo().getPublicId() + " for annotation " + ibdAnnotation.getAnnotationId() + " to term " + ibdAnnotation.getGoTerm() + " can use the annotation ids " + annotBuf.toString() + " as withs\n");    
+            }
             return false;
         }
-        
-
-        
+                
         // Set the withs
         ad.setWithEvidenceAnnotSet(addSet);
         return true;
@@ -3003,6 +3280,34 @@ public class DataIO {
 //        }
 //        return annots;
 //    }
+    
+    public static void removeAnnot(HashSet<Annotation> annotSet, String annotId) {
+        if (null == annotSet || null == annotId) {
+            return;
+        }
+        Annotation toRemove = null;
+        for (Annotation a: annotSet) {
+            if (annotId.equals(a.getAnnotationId())) {
+                toRemove = a;
+                break;
+            }
+        }
+        if (null != toRemove) {
+            annotSet.remove(toRemove);
+        }
+    }
+    
+    public boolean containsAnnot(HashSet<Annotation> annotSet, String annotId) {
+        if (null == annotSet || null == annotId) {
+            return false;
+        }
+        for (Annotation a: annotSet) {
+            if (annotId.equals(a.getAnnotationId())) {
+                return true;
+            }
+        }
+        return false;
+    }
     
     public static void getAllNonPrunedLeaves(HashMap<String, Node> nodeLookup, PANTHERTreeNode ptn, ArrayList<Node> leaves) {
         if (null == ptn) {
@@ -3327,6 +3632,78 @@ public class DataIO {
         return null;
     }
     
+    /*
+    // save - true for save, false for obsolete
+    */
+    
+    public void updateCommentUpdateHistory(Comment comment, boolean save, Annotation a, GOTermHelper gth, Date date, String userName) {
+        String term = a.getGoTerm();
+        String ecStr = CODE_UNKNOWN;
+        HashSet<String> evSet = a.getEvidenceCodeSet();
+        if(null != evSet && 0 != evSet.size()) {
+            ecStr = Utils.listToString(new Vector(evSet), STR_EMPTY, STR_COMMA);
+        } 
+        
+        String publicId = NODE_UNKNOWN;        
+        AnnotationDetail ad = a.getAnnotationDetail();
+        if (null != ad) {
+            Node n = ad.getAnnotatedNode();
+            if (n != null) {
+                publicId = n.getStaticInfo().getPublicId();
+            }
+        }
+        String operation = OP_SAVE;
+        if (false == save) {
+            operation = OP_OBSOLETE;
+        }
+        String qualifierStr = getQualifierString(a.getQualifierSet());
+        if (null != qualifierStr) {
+            qualifierStr = STR_HYPHEN + qualifierStr;
+        }
+        else {
+            qualifierStr = STR_EMPTY;
+        }
+        String saveStr = DATE_FORMATTER_COMMENT.format(date) + STR_TAB + userName + STR_TAB + operation + STR_TAB + ecStr + STR_TAB + publicId + STR_TAB + term + qualifierStr + STR_NEWLINE;
+        GOTerm t = gth.getTerm(term);
+        if (null != t) {
+            if (ASPECT_FUNCTION.equalsIgnoreCase(t.getAspect())) {
+                comment.prependCommentMfSection(saveStr);
+            }
+            else if (ASPECT_PROCESS.equalsIgnoreCase(t.getAspect())) {
+                comment.prependCommentBpSection(saveStr);
+            }
+            else if (ASPECT_CELL_LOC.equalsIgnoreCase(t.getAspect())) {
+                comment.prependCommentCcSection(saveStr);
+            }
+            else {
+                saveStr = DATE_FORMATTER_COMMENT.format(date) + STR_TAB + userName + STR_TAB + operation + STR_TAB + ecStr + STR_TAB + publicId + STR_TAB + ANNOTATION_ID + STR_TAB + a.getAnnotationId() + STR_TAB + TERM_UNDEFINED + STR_NEWLINE;
+                comment.prependCommentUserNotes(saveStr);
+            }
+        }
+        else {
+            saveStr = DATE_FORMATTER_COMMENT.format(date) + STR_TAB + userName + STR_TAB + operation + STR_TAB + ecStr + STR_TAB + publicId + STR_TAB + ANNOTATION_ID + STR_TAB + a.getAnnotationId() + STR_TAB + TERM_UNDEFINED + STR_NEWLINE;
+            comment.prependCommentUserNotes(saveStr);
+        }
+    }
+    
+    private String getQualifierString(HashSet<Qualifier> qualifierSet) {
+        if (null == qualifierSet || 0 == qualifierSet.size()) {
+            return null;
+        }
+        StringBuffer sb = new StringBuffer(STR_BRACKET_START);
+        boolean added = false;
+        for (Iterator<Qualifier> iter = qualifierSet.iterator(); iter.hasNext();) {
+            if (true == added) {
+                sb.append(STR_COMMA);
+            }
+            Qualifier q = iter.next();
+            sb.append(q.getText().toUpperCase());
+            added = true;
+        }
+        sb.append(STR_BRACKET_END);
+        return sb.toString();
+    }    
+    
     public synchronized String saveBook(SaveBookInfo sbi, String uplVersion) throws Exception {
         Integer saveStatus = sbi.getSaveStatus();
         if (null == saveStatus) {
@@ -3402,32 +3779,7 @@ public class DataIO {
         if (clsInfo.size() < 1 || null != clsInfo.get(1)) {
             return MSG_SAVE_FAILED_UPL_RELEASED;
         }
-        
-        
-        // Handle comments
-        boolean commentUpdate = false;
-        Integer obsoleteCommentId = null;
-        Integer newCommentId = null;
-        ArrayList<Integer> commentArray = new ArrayList<Integer>();
-        String oldComment = getFamilyComment(bookId, uplVersion, commentArray);
-        String newComment = sbi.getComment();
-        if (null == oldComment && null == newComment) {
-            // No Changes
-//            System.out.println("comments are null");
-        }
-        else if (null != oldComment && oldComment.equals(newComment)) {
-//            System.out.println("Comment not changed");
-        }
-        else {
-            commentUpdate = true;
-            if (false == commentArray.isEmpty()) {
-                obsoleteCommentId = commentArray.get(0);
-            }
-            if (null != newComment && false == newComment.isEmpty()) {
-                newCommentId = new Integer(getUids(1)[0]);
-            }
-        }
-        
+              
         // Handle family name
         boolean familyNameUpdate = false;
         String newFamilyName = sbi.getFamilyName();
@@ -3437,7 +3789,7 @@ public class DataIO {
             System.out.println("famliy names still null");
         }
         else if (null != oldFamilyName && oldFamilyName.equals(newFamilyName)) {
-            System.out.println("No family name change");
+//            System.out.println("No family name change");
         }
         else {
             familyNameUpdate = true;
@@ -3490,12 +3842,13 @@ public class DataIO {
         // Handle Annotations
         ArrayList<Annotation> obsoleteAnnotList = new ArrayList<Annotation>();
         ArrayList<Annotation> toSaveList = new ArrayList<Annotation>();
-        HashSet<String> removedAnnotSet = new HashSet<String>();
+        HashSet<Annotation> removedAnnotSet = new HashSet<Annotation>();
         // Some annotations are modified (for example removal of some of the withs from IBD).  We want to save the updated annotations instead of the existing one in the database.
         // If user does not do anything with the annotation, the comparison logic will not flag the modified annotations.
         HashSet<String> modifiedAnnotSet = new HashSet<String>();
+        HashSet<Annotation> removedFromGOAnnotSet = new HashSet<Annotation>();
         
-        ArrayList<Annotation> curAnnotList = getSavedAnnotations(uplVersion, bookId, removedAnnotSet, modifiedAnnotSet);  // Disable temporarily   new ArrayList<Annotation>();
+        ArrayList<Annotation> curAnnotList = getSavedAnnotations(uplVersion, bookId, removedAnnotSet, modifiedAnnotSet, removedFromGOAnnotSet);  // Disable temporarily   new ArrayList<Annotation>();
         for (int i = 0 ; i < newAnnotationList.size(); i++) {
             Annotation a = newAnnotationList.get(i);
             boolean found = false;
@@ -3585,10 +3938,24 @@ public class DataIO {
         }
         
         if (false == removedAnnotSet.isEmpty()) {
-            for (String id: removedAnnotSet) {
-                Annotation toRemove = new Annotation();
-                toRemove.setAnnotationId(id);
-                obsoleteAnnotList.add(toRemove);
+            for (Annotation a: removedAnnotSet) {
+                String id = a.getAnnotationId();
+                if (null == id) {
+                    continue;
+                }
+                // Do not remove annotations from go annotation table
+                // Only modify paint annotation table
+                boolean found = false;
+                for (Annotation removedFromGO: removedFromGOAnnotSet) {
+                    String removedGOId = removedFromGO.getAnnotationId();
+                    if (true == id.equals(removedGOId)) {
+                        found = true;
+                        break;
+                    }
+                }
+                if (false == found) {
+                    obsoleteAnnotList.add(a);
+                }
             }
         }
         
@@ -3604,7 +3971,57 @@ public class DataIO {
         boolean updateAnnot = false;
         if (false == obsoleteAnnotList.isEmpty() || false == toSaveList.isEmpty()) {
             updateAnnot = true;
-        }     
+            
+            Date date = new Date(System.currentTimeMillis());
+            // Updating annotations.  Need to save history of annotation updates
+            Comment comment = sbi.getComment();
+            if (null == comment) {
+                comment = new Comment(null, null, null);
+                sbi.setComment(comment);
+            }
+            if (null != obsoleteAnnotList) {
+                for (Annotation a: obsoleteAnnotList) {
+                    updateCommentUpdateHistory(comment, false, a, goTermHelper, date, user.getLoginName());
+                }
+            }
+            if (null != toSaveList) {
+                for (Annotation a: toSaveList) {
+                    updateCommentUpdateHistory(comment, true, a, goTermHelper, date, user.getLoginName());
+                }                
+            }
+            
+        }
+        
+        // Handle comments
+        boolean commentUpdate = false;
+        Integer obsoleteCommentId = null;
+        Integer newCommentId = null;
+        ArrayList<Integer> commentArray = new ArrayList<Integer>();
+        String oldComment = getFamilyComment(bookId, uplVersion, commentArray);
+        String newComment = null;
+        Comment comment = sbi.getComment();
+        if (null != comment) {
+            newComment = comment.getFormattedComment();
+        }
+        if (null == oldComment && null == newComment) {
+            // No Changes
+//            System.out.println("comments are null");
+        }
+        else if (null != oldComment && oldComment.equals(newComment)) {
+//            System.out.println("Comment not changed");
+        }
+        else {
+            commentUpdate = true;
+            if (false == commentArray.isEmpty()) {
+                obsoleteCommentId = commentArray.get(0);
+            }
+            if (null != newComment && false == newComment.isEmpty()) {
+                newCommentId = new Integer(getUids(1)[0]);
+            }
+        }        
+        
+        
+        
 //        if (0 == 0) {
 //            return "Testing";
 //        }
@@ -3621,6 +4038,7 @@ public class DataIO {
             System.out.println(new java.util.Date(System.currentTimeMillis()) + " Going to attempt to save information for book id " + bookId);
             // handle comments
             if (true == commentUpdate) {
+                System.out.println("Comment is " + newComment);
                 obsoleteInsertComment (updateCon, bookClsId, obsoleteCommentId, newCommentId, newComment, userIdStr);
             }
             
@@ -3650,19 +4068,19 @@ public class DataIO {
             
             
 //             Rollback for testing purposes
-//            updateCon.rollback();
-//            if (0 == 0) {
-//                updateCon.rollback();
-//                updateCon.setAutoCommit(true);
-//                return " testing, not saving for now = No errors";
-//            }
-//            return " testing, not saving for now - No errors";
+            updateCon.rollback();
+            if (0 == 0) {
+                updateCon.rollback();
+                updateCon.setAutoCommit(true);
+                return " testing, not saving for now = No errors";
+            }
+            return " testing, not saving for now - No errors";
             
             // Save the book
-            updateCon.commit();
-            updateCon.setAutoCommit(true);
-            System.out.println(DATE_FORMATTER.format(new java.util.Date(System.currentTimeMillis())) + "***** Committed save information for book id " + bookId);            
-            return Constant.STR_EMPTY;            
+//            updateCon.commit();
+//            updateCon.setAutoCommit(true);
+//            System.out.println(DATE_FORMATTER.format(new java.util.Date(System.currentTimeMillis())) + "***** Committed save information for book id " + bookId);            
+//            return Constant.STR_EMPTY;            
         }
         catch(Exception e) {
             e.printStackTrace();
@@ -3670,9 +4088,7 @@ public class DataIO {
                 if (null != updateCon) {
                     updateCon.rollback();
                     updateCon.setAutoCommit(true);
-                    
                 }
-
             }
             catch(Exception ex) {
                 System.out.println(ex);
@@ -4097,13 +4513,13 @@ public class DataIO {
         }
     }
         
-    protected ArrayList<Annotation> getSavedAnnotations(String uplVersion, String book, HashSet<String> removedAnnotSet, HashSet<String> modifiedAnnotSet) throws Exception {
+    protected ArrayList<Annotation> getSavedAnnotations(String uplVersion, String book, HashSet<Annotation> removedAnnotSet, HashSet<String> modifiedAnnotSet, HashSet<Annotation> removedFromGOAnnot) throws Exception {
         HashMap<String, Node> treeNodeLookup = new HashMap<String, Node>();
         getAnnotationNodeLookup(book, uplVersion, treeNodeLookup);
         StringBuffer errorBuf = new StringBuffer();
         StringBuffer paintErrBuf = new StringBuffer();
         HashMap<Annotation, ArrayList<IWith>> annotToPosWithLookup = new HashMap<Annotation, ArrayList<IWith>>();
-        getFullGOAnnotations(book, uplVersion, treeNodeLookup, annotToPosWithLookup, errorBuf, paintErrBuf, removedAnnotSet, modifiedAnnotSet, false);
+        getFullGOAnnotations(book, uplVersion, treeNodeLookup, annotToPosWithLookup, errorBuf, paintErrBuf, removedAnnotSet, modifiedAnnotSet, removedFromGOAnnot, false);
         
         ArrayList<Annotation> rtnList = new ArrayList<Annotation>();
         for (Node n: treeNodeLookup.values()) {
@@ -4117,7 +4533,8 @@ public class DataIO {
             }
             for (Annotation a: annotList) {
                 String code = a.getSingleEvidenceCodeFromSet();
-                if (true == Evidence.CODE_IBD.equals(code) || true == Evidence.CODE_IKR.equals(code) || true == Evidence.CODE_IRD.equals(code)) {
+//                if (false == a.isExperimental() && true == Evidence.isPaint(code))
+                if ((true == Evidence.CODE_IBD.equals(code) || true == Evidence.CODE_IKR.equals(code) || true == Evidence.CODE_IRD.equals(code)) && false == a.isExperimental()) {
                     rtnList.add(a);
                     continue;
                 }
@@ -4158,6 +4575,9 @@ public class DataIO {
             return null;
         }
         for (Annotation a: annotList) {
+            if (true == a.isExperimental()) {
+                continue;
+            }
             String code = a.getSingleEvidenceCodeFromSet();
             if (true == Evidence.CODE_IKR.equals(code) || true == Evidence.CODE_IRD.equals(code)) {
                 if (true == a.getAnnotationDetail().getWithAnnotSet().contains(with)) {
@@ -4268,14 +4688,17 @@ public class DataIO {
             addPruned(book, uplVersion, treeNodeLookup);
             //getEvidence(book, uplVersion, treeNodeLookup);
             HashMap<Annotation, ArrayList<IWith>> annotToPosWithLookup = new HashMap<Annotation, ArrayList<IWith>>();
-            HashSet<String> removedAnnotSet = new HashSet<String>();
+            HashSet<Annotation> removedAnnotSet = new HashSet<Annotation>();
             HashSet<String> modifiedAnnotSet = new HashSet<String>();
-            if (false == getFullGOAnnotations(book, uplVersion, treeNodeLookup, annotToPosWithLookup, errorBuf, paintErrBuf, removedAnnotSet, modifiedAnnotSet, false)) {
+            HashSet<Annotation> removedFromGOAnnot = new HashSet<Annotation>();
+            if (false == getFullGOAnnotations(book, uplVersion, treeNodeLookup, annotToPosWithLookup, errorBuf, paintErrBuf, removedAnnotSet, modifiedAnnotSet, removedFromGOAnnot, false)) {
+                System.gc();
                 throw new Exception("Error retrieving annotation information");
             }
             //System.out.println(errorBuf.toString());
             long endTime = System.currentTimeMillis();
             System.out.println("It took " + (endTime - startTime) / 1000 + " secs to retrieve node information for book " + book);
+            System.gc();
             return treeNodeLookup;
         }
         catch (Exception e) {
@@ -4577,17 +5000,17 @@ public class DataIO {
   }    
     
     public Hashtable<String, Book> getListOfBooksAndStatus(String uplVersion) {
-    
+
         String query = addVersionReleaseClause(uplVersion, Constant.STR_EMPTY, TABLE_NAME_c);
         query = GET_LIST_OF_BOOKS + query;
 
-        query = Utils.replace(query,QUERY_PARAMETER_1, ConfigFile.getProperty(uplVersion + LEVEL_FAMILY));
-        query = Utils.replace(query,QUERY_PARAMETER_2, uplVersion);  
-        
+        query = Utils.replace(query, QUERY_PARAMETER_1, ConfigFile.getProperty(uplVersion + LEVEL_FAMILY));
+        query = Utils.replace(query, QUERY_PARAMETER_2, uplVersion);
+
         Connection con = null;
-            Statement stmt = null;
-            ResultSet rst = null;
-             ResultSet irslt = null;         
+        Statement stmt = null;
+        ResultSet rst = null;
+        ResultSet irslt = null;
         Hashtable<String, Book> bookTbl = new Hashtable<String, Book>();
         HashMap<String, Book> leafCountLookup = FamilyManager.getInstance().getBookLookup();
         HashMap<String, HashSet<String>> orgLookup = FamilyManager.getInstance().getOrgLookup();
@@ -4596,7 +5019,7 @@ public class DataIO {
             if (null == con) {
                 return null;
             }
-            
+
             // Get list of books
             stmt = con.createStatement();
             rst = stmt.executeQuery(query);
@@ -4609,17 +5032,16 @@ public class DataIO {
                 bookTbl.put(accession, b);
             }
             rst.close();
-            
-            
-            // Get status and user information
-             String checkOutStatus = ConfigFile.getProperty(CURATION_STATUS_CHECKOUT);
-             query = addVersionReleaseClause(uplVersion, Constant.STR_EMPTY, TABLE_NAME_c);
-             query = GET_STATUS_USER_INFO + query;
 
-             query = Utils.replace(query,QUERY_PARAMETER_1, ConfigFile.getProperty(uplVersion + LEVEL_FAMILY));
-             query = Utils.replace(query,QUERY_PARAMETER_2, uplVersion); 
-             
-             irslt = stmt.executeQuery(query);
+            // Get status and user information
+            String checkOutStatus = ConfigFile.getProperty(CURATION_STATUS_CHECKOUT);
+            query = addVersionReleaseClause(uplVersion, Constant.STR_EMPTY, TABLE_NAME_c);
+            query = GET_STATUS_USER_INFO + query;
+
+            query = Utils.replace(query, QUERY_PARAMETER_1, ConfigFile.getProperty(uplVersion + LEVEL_FAMILY));
+            query = Utils.replace(query, QUERY_PARAMETER_2, uplVersion);
+
+            irslt = stmt.executeQuery(query);
             while (irslt.next()) {
                 String accession = irslt.getString(1);
 
@@ -4673,22 +5095,70 @@ public class DataIO {
                     }
                 }
             }
-            
+
             irslt.close();
             stmt.close();
-        }
-        catch (SQLException se){
-          log.error(MSG_ERROR_UNABLE_TO_RETRIEVE_INFO_ERROR_RETURNED + se.getMessage());
-          se.printStackTrace();
-        }
-        finally{
+        } catch (SQLException se) {
+            log.error(MSG_ERROR_UNABLE_TO_RETRIEVE_INFO_ERROR_RETURNED + se.getMessage());
+            se.printStackTrace();
+        } finally {
             ReleaseResources.releaseDBResources(rst, stmt, con);
-            ReleaseResources.releaseDBResources(irslt, null, null);            
+            ReleaseResources.releaseDBResources(irslt, null, null);
         }
         
+        setCommentForBooks(bookTbl, uplVersion);    // Add comment
         return bookTbl;
 
-    }    
+    }
+    
+    public void setCommentForBooks(Hashtable<String, Book> bookLookup, String uplVersion) {
+        if (null == bookLookup) {
+            return;
+        }
+
+        Connection con = null;
+        Statement stmt = null;
+        ResultSet rst = null;
+        try {
+            con = getConnection();
+            if (null == con) {
+                return;
+            }
+            stmt = con.createStatement();
+            String query = FAMILY_COMMENT_FOR_ALL.replace(QUERY_PARAMETER_1, uplVersion);
+            query = query.replace(QUERY_PARAMETER_2, ConfigFile.getProperty(uplVersion + LEVEL_FAMILY));
+
+            rst = stmt.executeQuery(query);
+
+            
+            while (rst.next()) {
+                String accession = rst.getString(COLUMN_NAME_ACCESSION);
+                String comment = rst.getString(COLUMN_NAME_REMARK);
+                if (null != comment) {
+                    comment = comment.trim();
+                }
+                if (null == comment || comment.isEmpty()) {
+                    continue;
+                }
+                Book b = bookLookup.get(accession);
+                if (null == b) {
+                    continue;
+                }
+                Comment c = new Comment(null, null, comment);
+                b.setCommentUser(c.getCommentUserNotes());
+//                b.setCommentOp(c.getRevisionHistoryInfo());
+            }
+
+        } catch (SQLException se) {
+            System.out.println("Unable to retrieve comment information, exception " + se.getMessage()
+                    + " has been returned.");
+        } finally {
+            if (null != con) {
+                ReleaseResources.releaseDBResources(rst, stmt, con);
+            }
+        }        
+        
+    }
     
     public String[] getBookAccession(String query) {
         Connection  con = null;
@@ -5108,7 +5578,7 @@ public class DataIO {
             
             if (rst.next()) {
                 commentArray.add(new Integer(rst.getInt(COLUMN_NAME_COMMENT_ID)));
-                return rst.getString(COMUMN_NAME_REMARK);
+                return rst.getString(COLUMN_NAME_REMARK);
             }
 
         } catch (SQLException se) {
@@ -5205,7 +5675,7 @@ public class DataIO {
 //      rst.setFetchSize(100);
 //      StringBuffer  commentBfr = new StringBuffer();
             while (rst.next()) {
-                comment = rst.getString(COMUMN_NAME_REMARK);
+                comment = rst.getString(COLUMN_NAME_REMARK);
                 int comment_id = rst.getInt(COLUMN_NAME_COMMENT_ID);
                 commentArray.add(new Integer(comment_id));
 //        Integer           protId = new Integer(rst.getInt(1));
@@ -5432,7 +5902,7 @@ public class DataIO {
     
     private boolean annotationsSame(Annotation a1, Annotation a2) {
         if (null == a1.getGoTerm() || null == a2.getGoTerm()) {
-            System.out.println("Here");
+//            System.out.println("Here");
         }
         if (false == a1.getGoTerm().equals(a2.getGoTerm())) {
             return false;
@@ -6190,10 +6660,10 @@ public class DataIO {
         SaveBookInfo sbi = null;
         
             try {
-                FileInputStream fin = new FileInputStream("C:\\Temp\\huaiyu_save\\PTHR24416");
+                FileInputStream fin = new FileInputStream("C:\\Temp\\marc_save\\20190626\\PTHR23255");
                 ObjectInputStream ois = new ObjectInputStream(fin);
                 sbi = (SaveBookInfo) ois.readObject();
-                di.saveBook(sbi, "24");
+                di.saveBook(sbi, "26");
             }
             catch (Exception e) {
                 e.printStackTrace();
