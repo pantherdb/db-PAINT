@@ -1,3 +1,18 @@
+/**
+ *  Copyright 2019 University Of Southern California
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing,
+ *  software distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ */
 package org.paint.util;
 
 import java.awt.Color;
@@ -11,6 +26,7 @@ public class DuplicationColor {
 	private List<Color> pastelColors = new ArrayList<Color>();
 	private static Logger log = Logger.getLogger(DuplicationColor.class);
 	private int color_index;
+        public static Color LIGHT_STEEL_BLUE = new Color(176,196,222);
 
 	private DuplicationColor() {
 		color_index = 0;
@@ -78,6 +94,17 @@ public class DuplicationColor {
         
         public List<Color> getPastelColors() {
             return pastelColors;
+        }
+        
+        public Color getDarkerColor(Color c) {
+            if (null == c) {
+                return null;
+            }
+            int red = c.getRed();
+            int green = c.getGreen();
+            int blue = c.getBlue();
+            
+            return new Color(red - (int)(red * 0.1), green - (int)(green * 0.1), blue - (int)(blue * 0.1));
         }
 
 	public Color getDupColor(int dupColorIndex) {
