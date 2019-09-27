@@ -1,5 +1,5 @@
 /**
- * Copyright 2018 University Of Southern California
+ * Copyright 2019 University Of Southern California
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -19,6 +19,7 @@ import com.sri.panther.paintCommon.Book;
 import com.sri.panther.paintCommon.util.FileUtils;
 import com.sri.panther.paintServer.database.DataIO;
 import com.sri.panther.paintServer.util.ConfigFile;
+import edu.usc.ksom.pm.panther.paintCommon.Annotation;
 import edu.usc.ksom.pm.panther.paintCommon.IWith;
 import edu.usc.ksom.pm.panther.paintCommon.Node;
 import edu.usc.ksom.pm.panther.paintServer.servlet.DataServlet;
@@ -57,10 +58,11 @@ public class AnnotUtil {
 
             StringBuffer errorBuf = new StringBuffer();
             StringBuffer paintErrBuf = new StringBuffer();
-            HashSet<String> removeSet = new HashSet<String>();
+            HashSet<Annotation> removeSet = new HashSet<Annotation>();
             HashSet<String> modifySet = new HashSet<String>();
+            HashSet<Annotation> removedFromGOAnnot = new HashSet<Annotation>();
             try {
-                dataIO.getFullGOAnnotations(id, DataServlet.CLASSIFICATION_VERSION_SID, treeNodeLookup, annotToPosWithLookup, errorBuf, paintErrBuf, removeSet, modifySet, false);
+                dataIO.getFullGOAnnotations(id, DataServlet.CLASSIFICATION_VERSION_SID, treeNodeLookup, annotToPosWithLookup, errorBuf, paintErrBuf, removeSet, modifySet, removedFromGOAnnot, false);
                 if (errorBuf.length() > 0) {
                     FileUtils.writeBufferToFile(otherErrName, errorBuf);
                 }
