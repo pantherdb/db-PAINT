@@ -1,21 +1,17 @@
-/* 
- * 
- * Copyright (c) 2018, Regents of the University of California 
- * All rights reserved.
+/**
+ *  Copyright 2019 University Of Southern California
  *
- * Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
- * 
- * Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.
- * Neither the name of the Lawrence Berkeley National Lab nor the names of its contributors may be used to endorse 
- * or promote products derived from this software without specific prior written permission.
- * 
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, 
- * INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. 
- * IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, 
- * OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; 
- * OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) 
- * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- * 
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing,
+ *  software distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
  */
 package org.paint.gui.evidence;
 
@@ -107,10 +103,10 @@ public class PaintAction {
         }
         
         // Check for ancestor node with less specific annotation for NOT annotation
-        HashSet<Qualifier> applicableQset = new HashSet<Qualifier>();
-        for (Annotation a: annotsForTerm) {
-            QualifierDif.addIfNotPresent(applicableQset, a.getQualifierSet());
-        }        
+//        HashSet<Qualifier> applicableQset = new HashSet<Qualifier>();
+//        for (Annotation a: annotsForTerm) {
+//            QualifierDif.addIfNotPresent(applicableQset, a.getQualifierSet());
+//        }        
 //        if (true == QualifierDif.containsNegative(applicableQset)) {
 //            
 //        }
@@ -531,58 +527,58 @@ public class PaintAction {
 //		return assoc;
 //	}
 
-	private Association _propagateAssociation(GeneNode node, 
-			Term term, 
-			Set<GeneNode> top_with, 
-			Set<GeneNode> exp_withs, 
-			boolean negate,
-			Integer date, 
-			Set<Term> quals) {
-
-		Association top_assoc = null;
-		if (node.getGeneProduct() == null) {
-			GeneProduct gp = GO_Util.inst().createGeneProduct(node);
-			node.setGeneProduct(gp);
-		}
-		/**
-		 * Only proceed if this is not one of the original sources of information for this association
-		 * and this node is not yet annotated to either this term
-		 */
-		if (!exp_withs.contains(node) && GO_Util.inst().isAnnotatedToTerm(node, term) == null) {
-			Association assoc;
-			if (top_with.contains(node)) {
-				assoc = GO_Util.inst().createAssociation(term, exp_withs, date, true, quals);
-				// not dirty if this is restoring annotations from a saved file
-				DirtyIndicator.inst().dirtyGenes(date == null);
-				top_assoc = assoc;
-			} else {
-				assoc = GO_Util.inst().createAssociation(term, top_with, date, false, quals);				
-			}
-
-			/*
-			 * Doing this afterwards to avoid examining it in the above operation
-			 */
-			node.getGeneProduct().addAssociation(assoc);
-
-			/*
-			 * propagate negation...
-			 */
-			assoc.setNot(negate);
-
-			/*
-			 * Make the top ancestral gene in this branch of the gene family the source of information
-			 */
-			List<GeneNode> children = node.getChildren();
-			if (children != null) {
-				for (GeneNode child : children) {
-					if (!child.isPruned()) {
-						_propagateAssociation(child, term, top_with, exp_withs, negate, date, quals);
-					}
-				}
-			}
-		}
-		return top_assoc;
-	}
+//	private Association _propagateAssociation(GeneNode node, 
+//			Term term, 
+//			Set<GeneNode> top_with, 
+//			Set<GeneNode> exp_withs, 
+//			boolean negate,
+//			Integer date, 
+//			Set<Term> quals) {
+//
+//		Association top_assoc = null;
+//		if (node.getGeneProduct() == null) {
+//			GeneProduct gp = GO_Util.inst().createGeneProduct(node);
+//			node.setGeneProduct(gp);
+//		}
+//		/**
+//		 * Only proceed if this is not one of the original sources of information for this association
+//		 * and this node is not yet annotated to either this term
+//		 */
+//		if (!exp_withs.contains(node) && GO_Util.inst().isAnnotatedToTerm(node, term) == null) {
+//			Association assoc;
+//			if (top_with.contains(node)) {
+//				assoc = GO_Util.inst().createAssociation(term, exp_withs, date, true, quals);
+//				// not dirty if this is restoring annotations from a saved file
+//				DirtyIndicator.inst().dirtyGenes(date == null);
+//				top_assoc = assoc;
+//			} else {
+//				assoc = GO_Util.inst().createAssociation(term, top_with, date, false, quals);				
+//			}
+//
+//			/*
+//			 * Doing this afterwards to avoid examining it in the above operation
+//			 */
+//			node.getGeneProduct().addAssociation(assoc);
+//
+//			/*
+//			 * propagate negation...
+//			 */
+//			assoc.setNot(negate);
+//
+//			/*
+//			 * Make the top ancestral gene in this branch of the gene family the source of information
+//			 */
+//			List<GeneNode> children = node.getChildren();
+//			if (children != null) {
+//				for (GeneNode child : children) {
+//					if (!child.isPruned()) {
+//						_propagateAssociation(child, term, top_with, exp_withs, negate, date, quals);
+//					}
+//				}
+//			}
+//		}
+//		return top_assoc;
+//	}
 
 	private void removeMoreGeneralTerms(GeneNode node, Term term, List<LogAssociation> removed) {
 		removeMoreGeneralTermsFromNode(node, term, removed);
@@ -1084,7 +1080,7 @@ public class PaintAction {
 		TreePanel tree = PaintManager.inst().getTree();
 		tree.handlePruning(node);
 		if (node.isLeaf()) {
-			MSAPanel msa = PaintManager.inst().getMSA();
+			MSAPanel msa = PaintManager.inst().getMSAPanel();
 			msa.handlePruning(node);
 		}
 		EventManager.inst().fireAnnotationChangeEvent(new AnnotationChangeEvent(node));
@@ -1814,20 +1810,25 @@ public class PaintAction {
     }
     
     public Annotation getPropagatorForIKR_IRD(Annotation ikrIrd) {
-         HashSet<WithEvidence> withEvSet = ikrIrd.getAnnotationDetail().getWithEvidenceSet();
-         if (null == withEvSet) {
-             return null;
-         }
-         for (WithEvidence we: withEvSet) {
-             Annotation a = (Annotation)we.getWith();
-             if (a == ikrIrd) {
-                 continue;
-             }
-             if (true == QualifierDif.areOpposite(a.getQualifierSet(), ikrIrd.getQualifierSet())) {
+        HashSet<WithEvidence> withEvSet = ikrIrd.getAnnotationDetail().getWithEvidenceSet();
+        if (null == withEvSet) {
+            return null;
+        }
+        for (WithEvidence we : withEvSet) {
+            Annotation a = (Annotation) we.getWith();
+            Node n = a.getAnnotationDetail().getAnnotatedNode();
+            GeneNode gn = PaintManager.inst().getGeneByPTNId(n.getStaticInfo().getPublicId());
+            if (gn.isLeaf()) {
+                continue;
+            }
+            if (a == ikrIrd) {
+                continue;
+            }
+            if (true == QualifierDif.areOpposite(a.getQualifierSet(), ikrIrd.getQualifierSet())) {
                 return a;
-             }
-         }
-         return null;
+            }
+        }
+        return null;
     }
     
     public boolean deleteIKR(GeneNode gNode, Annotation a) {
@@ -1841,7 +1842,7 @@ public class PaintAction {
         // Get information about the propagator
         Node propagatorNode = propagatorsAnnotation.getAnnotationDetail().getAnnotatedNode();
         GeneNode propagator = PaintManager.inst().getGeneByPTNId(propagatorNode.getStaticInfo().getPublicId());
-        if (null == propagator) {
+        if (null == propagator || true == propagator.isLeaf()) {
             return false;
         }
 //        String goTerm = a.getGoTerm();
@@ -2036,7 +2037,7 @@ public class PaintAction {
         // Get information about the propagator
         Node propagatorNode = propagatorsAnnotation.getAnnotationDetail().getAnnotatedNode();
         GeneNode propagator = PaintManager.inst().getGeneByPTNId(propagatorNode.getStaticInfo().getPublicId());
-        if (null == propagator) {
+        if (null == propagator || true == propagator.isLeaf()) {
             return false;
         }
         
@@ -2268,14 +2269,14 @@ public class PaintAction {
             }
             return null;
         }
-        else if (GOConstants.KEY_RESIDUES_EC.equals(evidenceCode)) {
+        else if (edu.usc.ksom.pm.panther.paintCommon.Evidence.CODE_IKR.equals(evidenceCode)) {
             if (false != deleteIKR(gNode, a)) {
 //            EventManager.inst().fireAnnotationChangeEvent(new AnnotationChangeEvent(gNode));            
                 return a;
             }
             return null;
         }
-        else if (GOConstants.ANCESTRAL_EVIDENCE_CODE.equals(evidenceCode)) {
+        else if (edu.usc.ksom.pm.panther.paintCommon.Evidence.CODE_IBA.equals(evidenceCode)) {
             if (false == AnnotationUtil.isIBAForIKRorIRD(a, gNode)) {
                 Node n = gNode.getNode();
                 NodeVariableInfo nvi = n.getVariableInfo();
