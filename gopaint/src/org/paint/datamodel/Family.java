@@ -1,5 +1,5 @@
 /**
- * Copyright 2016 University Of Southern California
+ * Copyright 2019 University Of Southern California
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -15,7 +15,9 @@
  */
 package org.paint.datamodel;
 
+import edu.usc.ksom.pm.panther.paintCommon.Comment;
 import edu.usc.ksom.pm.panther.paintCommon.DataTransferObj;
+import edu.usc.ksom.pm.panther.paintCommon.Domain;
 import edu.usc.ksom.pm.panther.paintCommon.MSA;
 import edu.usc.ksom.pm.panther.paintCommon.Node;
 import edu.usc.ksom.pm.panther.paintCommon.SaveBookInfo;
@@ -24,13 +26,18 @@ import java.io.FileOutputStream;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.Serializable;
+import java.util.ArrayList;
 import org.paint.dataadapter.FamilyAdapter;
 import org.paint.dataadapter.PantherAdapter;
 import java.util.HashMap;
+import java.util.Vector;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import javax.swing.JOptionPane;
+import org.bbop.framework.GUIManager;
 import org.paint.config.Preferences;
 import org.paint.dataadapter.PantherServer;
+import org.paint.main.PaintManager;
 
 public class Family implements Serializable {
 
@@ -55,9 +62,21 @@ public class Family implements Serializable {
 
     private String familyID;
     private String name;
-    private String familyComment;
-//	private RawComponentContainer rcc;
+    private Comment familyComment;
+    private  LoadFamilyDomain familyDomainWorker;
 
+//	private RawComponentContainer rcc;
+    
+    public static final String MSG_ERROR = "Error";
+    public static final String MSG_ERROR_CANNOT_ACCESS_INFORMATION_FROM_SERVER = "Error cannot access information from server";    
+    public static final String MSG_ERROR_CANNOT_ACCESS_VERSION_INFO_COMMENT = "Unable to retrieve comment information from server";
+    public static final String MSG_ERROR_CANNOT_ACCESS_VERSION_INFO_FAMILY_NAME = "Unable to retrieve family name from server";
+    public static final String MSG_ERROR_CANNOT_ACCESS_VERSION_INFO_FAMILY_DOMAIN = "Unable to retrieve family domain info from server";
+    public static final String MSG_ERROR_CANNOT_ACCESS_VERSION_INFO_TREE = "Unable to retrieve tree info from server";    
+    public static final String MSG_ERROR_CANNOT_ACCESS_VERSION_INFO_MSA = "Unable to retrieve MSA info from server"; 
+    public static final String MSG_ERROR_CANNOT_ACCESS_VERSION_INFO_NODE_INFO = "Unable to retrieve node info from server";
+    public static final String MSG_ERROR_CANNOT_SAVE_BOOK = "Unable to save information";    
+    
     public Family() {
     }
 
@@ -74,11 +93,15 @@ public class Family implements Serializable {
         FamilyAdapter adapter = new PantherAdapter(familyID);
 
         ExecutorService executor = Executors.newFixedThreadPool(5);
+
+        
         LoadTreeNodes nodesWorker = new LoadTreeNodes(familyID);
         executor.execute(nodesWorker);
 
         LoadFamilyName familyNameWorker = new LoadFamilyName(familyID);
         executor.execute(familyNameWorker);
+        
+       
         
         LoadFamilyComment familyCommentWorker = new LoadFamilyComment(familyID);
         executor.execute(familyCommentWorker);
@@ -88,8 +111,11 @@ public class Family implements Serializable {
 
         LoadMSA msaWorker = new LoadMSA(familyID);
         executor.execute(msaWorker);
-
+        
+        loadDomain(familyID);
+ 
         executor.shutdown();
+        
         // Wait until all threads finish
         while (!executor.isTerminated()) {
 
@@ -106,17 +132,44 @@ public class Family implements Serializable {
         }
         this.name = familyNameWorker.familyName;
 
+
         MSA msa = msaWorker.msa;
         if (null != msa) {
             this.msa_content = msa.getMsaContents();
             this.wts_content = msa.getWeightsContents();
         }
-        this.familyID = familyID;
         this.familyComment  = familyCommentWorker.familyComment;
-
+        this.familyID = familyID;
+        
         // Force garbage collection after a new book is opened
         System.gc();
         return isLoaded();
+    }
+    
+    public void loadDomain(String familyID){
+        ExecutorService domainExecutor = Executors.newFixedThreadPool(1);      // Do domain processing in a separate thread. The system can process the book independently
+                                                                               // of the domain information. When the domain information becomes available, update as necessary
+       
+        familyDomainWorker = new LoadFamilyDomain(familyID);
+        domainExecutor.execute(familyDomainWorker);         
+        domainExecutor.shutdown();        
+    }
+    
+    public String getDomainFamId() {
+        if (null == familyDomainWorker) {
+            return null;
+        }
+        return familyDomainWorker.familyId;
+    }
+    
+    public HashMap<String, HashMap<String, ArrayList<Domain>>> getNodeToDomainLookup(String famId) {
+        if (null == familyDomainWorker || null == famId) {
+            return null;
+        }
+        if (false == famId.equals(familyDomainWorker.familyId)) {
+            return null;
+        }
+        return familyDomainWorker.nodeToDomainLookup;
     }
 
     public boolean isLoaded() {
@@ -146,6 +199,7 @@ public class Family implements Serializable {
         this.wts_content = wts_content;
     }
 
+
 //	public String[] getTxtContent() {
 //		return txt_content;
 //	}
@@ -161,11 +215,11 @@ public class Family implements Serializable {
         this.name = name;
     }
 
-    public String getFamilyComment() {
+    public Comment getFamilyComment() {
         return familyComment;
     }
 
-    public void setFamilyComment(String familyComment) {
+    public void setFamilyComment(Comment familyComment) {
         this.familyComment = familyComment;
     }
     
@@ -223,14 +277,27 @@ public class Family implements Serializable {
     public String saveBookToDatabase(SaveBookInfo sbi) {
         java.text.SimpleDateFormat df = new java.text.SimpleDateFormat("hh:mm:ss:SSS");
         System.out.println("Start of save execution " + df.format(new java.util.Date(System.currentTimeMillis())));
-        String saveInfo = PantherServer.inst().saveBook(Preferences.inst().getPantherURL(), sbi);
+            DataTransferObj dto = new DataTransferObj();
+            dto.setVc(PaintManager.inst().getVersionContainer());
+            dto.setObj(sbi);
+            DataTransferObj serverOutput = PantherServer.inst().saveBook(Preferences.inst().getPantherURL(), dto);
+                if (null == serverOutput) {
+                    JOptionPane.showMessageDialog(GUIManager.getManager().getFrame(), MSG_ERROR_CANNOT_ACCESS_VERSION_INFO_COMMENT, MSG_ERROR, JOptionPane.ERROR_MESSAGE);
+//                    System.exit(-1);
+                }
+                StringBuffer sb = serverOutput.getMsg();
+                if (null != sb && 0 != sb.length()) {
+                    JOptionPane.showMessageDialog(GUIManager.getManager().getFrame(), sb.toString(), MSG_ERROR, JOptionPane.ERROR_MESSAGE);
+//                    System.exit(-1);
+                }             
+            String saveInfo = (String)serverOutput.getObj();
         System.out.println("End of save execution " + df.format(new java.util.Date(System.currentTimeMillis())));
         return saveInfo;
     }
     
     public class LoadFamilyComment implements Runnable {
         private final String familyId;
-        public String familyComment = null;
+        public Comment familyComment = null;
 
         LoadFamilyComment(String familyId) {
             this.familyId = familyId;
@@ -239,11 +306,21 @@ public class Family implements Serializable {
         @Override
         public void run() {
             java.text.SimpleDateFormat df = new java.text.SimpleDateFormat("hh:mm:ss:SSS");
-            System.out.println("Start of get comment execution for " + familyId + " at " + df.format(new java.util.Date(System.currentTimeMillis())));            
-            familyComment = PantherServer.inst().getFamilyComment(Preferences.inst().getPantherURL(), familyId);
-            if (null != familyComment && true == familyComment.isEmpty()) {
-                familyComment = null;
+            System.out.println("Start of get comment execution for " + familyId + " at " + df.format(new java.util.Date(System.currentTimeMillis())));
+            DataTransferObj dto = new DataTransferObj();
+            dto.setVc(PaintManager.inst().getVersionContainer());
+            dto.setObj(familyId);
+            DataTransferObj serverOutput = PantherServer.inst().getFamilyComment(Preferences.inst().getPantherURL(), dto);
+            if (null == serverOutput) {
+                JOptionPane.showMessageDialog(GUIManager.getManager().getFrame(), MSG_ERROR_CANNOT_ACCESS_VERSION_INFO_COMMENT, MSG_ERROR, JOptionPane.ERROR_MESSAGE);
+                System.exit(-1);
             }
+            StringBuffer sb = serverOutput.getMsg();
+            if (null != sb && 0 != sb.length()) {
+                JOptionPane.showMessageDialog(GUIManager.getManager().getFrame(), sb.toString(), MSG_ERROR, JOptionPane.ERROR_MESSAGE);
+                System.exit(-1);
+            }           
+            familyComment = (Comment)serverOutput.getObj();
             System.out.println("End of get comment execution for " + familyId + " at " + df.format(new java.util.Date(System.currentTimeMillis())));              
         }
     }
@@ -260,11 +337,101 @@ public class Family implements Serializable {
         @Override
         public void run() {
             java.text.SimpleDateFormat df = new java.text.SimpleDateFormat("hh:mm:ss:SSS");
-            System.out.println("Start of get family name  execution for " + familyId + " at " + df.format(new java.util.Date(System.currentTimeMillis())));               
-            familyName = PantherServer.inst().getFamilyName(Preferences.inst().getPantherURL(), familyId);
+            System.out.println("Start of get family name  execution for " + familyId + " at " + df.format(new java.util.Date(System.currentTimeMillis())));
+            DataTransferObj dto = new DataTransferObj();
+            dto.setVc(PaintManager.inst().getVersionContainer());
+            dto.setObj(familyId);            
+            DataTransferObj serverOutput = PantherServer.inst().getFamilyName(Preferences.inst().getPantherURL(), dto);
+            if (null == serverOutput) {
+                JOptionPane.showMessageDialog(GUIManager.getManager().getFrame(), MSG_ERROR_CANNOT_ACCESS_VERSION_INFO_FAMILY_NAME, MSG_ERROR, JOptionPane.ERROR_MESSAGE);
+                System.exit(-1);
+            }
+            StringBuffer sb = serverOutput.getMsg();
+            if (null != sb && 0 != sb.length()) {
+                JOptionPane.showMessageDialog(GUIManager.getManager().getFrame(), sb.toString(), MSG_ERROR, JOptionPane.ERROR_MESSAGE);
+                System.exit(-1);
+            }             
+            familyName = (String)serverOutput.getObj();
             System.out.println("End of get family name execution for " + familyId + " at " + df.format(new java.util.Date(System.currentTimeMillis())));              
         }
     }
+    
+    public class LoadFamilyDomain implements Runnable {
+
+        private final String familyId;
+        public HashMap<String, HashMap<String, ArrayList<Domain>>> nodeToDomainLookup;
+
+        LoadFamilyDomain(String familyId) {
+            this.familyId = familyId;
+        }
+
+        @Override
+        public void run() {
+//            String fileName = "C:\\usc\\svn\\new_panther\\curation\\paint\\gopaint\\trunk\\gopaint\\" + familyId + ".ser";
+//            Object o = null;
+//            ObjectInputStream objectinputstream = null;
+//            try {
+//                FileInputStream streamIn = new FileInputStream(fileName);
+//                objectinputstream = new ObjectInputStream(streamIn);
+//                o = (HashMap<String, HashMap<String, ArrayList<Domain>>>) objectinputstream.readObject();
+//            } catch (Exception e) {
+//                e.printStackTrace();
+//            } finally {
+//                if (objectinputstream != null) {
+//                    try {
+//                        objectinputstream.close();
+//                    }
+//                    catch(Exception e) {
+//                        
+//                    }
+//                }
+//            }
+//            
+//            if (null != o) {
+//                nodeToDomainLookup = (HashMap<String, HashMap<String, ArrayList<Domain>>>)o;
+//                PaintManager.inst().handleDomainInfo(this.familyId, nodeToDomainLookup);
+//                return;
+//            }
+            
+            java.text.SimpleDateFormat df = new java.text.SimpleDateFormat("hh:mm:ss:SSS");
+            System.out.println("Start of get family domain  execution for " + familyId + " at " + df.format(new java.util.Date(System.currentTimeMillis())));
+            DataTransferObj dto = new DataTransferObj();
+            dto.setVc(PaintManager.inst().getVersionContainer());
+            dto.setObj(familyId);            
+            DataTransferObj serverOutput = PantherServer.inst().getFamilyDomain(Preferences.inst().getPantherURL(), dto);
+            if (null == serverOutput) {
+                JOptionPane.showMessageDialog(GUIManager.getManager().getFrame(), MSG_ERROR_CANNOT_ACCESS_VERSION_INFO_FAMILY_DOMAIN, MSG_ERROR, JOptionPane.ERROR_MESSAGE);
+                System.exit(-1);
+            }
+            StringBuffer sb = serverOutput.getMsg();
+            if (null != sb && 0 != sb.length()) {
+                JOptionPane.showMessageDialog(GUIManager.getManager().getFrame(), sb.toString(), MSG_ERROR, JOptionPane.ERROR_MESSAGE);
+                System.exit(-1);
+            }             
+            nodeToDomainLookup = (HashMap<String, HashMap<String, ArrayList<Domain>>>)serverOutput.getObj();
+            System.out.println("End of get family domain execution for " + familyId + " at " + df.format(new java.util.Date(System.currentTimeMillis())));
+            PaintManager.inst().handleDomainInfo(this.familyId, this.nodeToDomainLookup);
+//            ObjectOutputStream oos = null;
+//            FileOutputStream fout = null;
+//            try {
+//                fout = new FileOutputStream(fileName, true);
+//                oos = new ObjectOutputStream(fout);
+//                oos.writeObject(nodeToDomainLookup);
+//                
+//            } catch (Exception ex) {
+//                ex.printStackTrace();
+//            } finally {
+//                if (oos != null) {
+//                    try {
+//                        oos.close();
+//                    }
+//                    catch(Exception e) {
+//                        
+//                    }
+//                }
+//            } 
+        }
+    }    
 
     public class LoadTreeStrings implements Runnable {
 
@@ -278,8 +445,21 @@ public class Family implements Serializable {
         @Override
         public void run() {
             java.text.SimpleDateFormat df = new java.text.SimpleDateFormat("hh:mm:ss:SSS");
-            System.out.println("Start of get tree  execution for " + familyId + " at " + df.format(new java.util.Date(System.currentTimeMillis())));              
-            treeStrings = PantherServer.inst().getTree(Preferences.inst().getPantherURL(), familyId);
+            System.out.println("Start of get tree  execution for " + familyId + " at " + df.format(new java.util.Date(System.currentTimeMillis())));
+            DataTransferObj dto = new DataTransferObj();
+            dto.setVc(PaintManager.inst().getVersionContainer());
+            dto.setObj(familyId);
+            DataTransferObj serverOutput = PantherServer.inst().getTree(Preferences.inst().getPantherURL(), dto);            
+            if (null == serverOutput) {
+                JOptionPane.showMessageDialog(GUIManager.getManager().getFrame(), MSG_ERROR_CANNOT_ACCESS_VERSION_INFO_TREE, MSG_ERROR, JOptionPane.ERROR_MESSAGE);
+                System.exit(-1);
+            }
+            StringBuffer sb = serverOutput.getMsg();
+            if (null != sb && 0 != sb.length()) {
+                JOptionPane.showMessageDialog(GUIManager.getManager().getFrame(), sb.toString(), MSG_ERROR, JOptionPane.ERROR_MESSAGE);
+                System.exit(-1);
+            }             
+            treeStrings = (String[])serverOutput.getObj();
             System.out.println("End of get tree  execution for " + familyId + " at " + df.format(new java.util.Date(System.currentTimeMillis())));              
         }
     }
@@ -297,7 +477,20 @@ public class Family implements Serializable {
         public void run() {
             java.text.SimpleDateFormat df = new java.text.SimpleDateFormat("hh:mm:ss:SSS");
             System.out.println("Start of get msa  execution for " + familyId + " at " + df.format(new java.util.Date(System.currentTimeMillis())));              
-            msa = PantherServer.inst().getMSA(Preferences.inst().getPantherURL(), familyId);
+            DataTransferObj dto = new DataTransferObj();
+            dto.setVc(PaintManager.inst().getVersionContainer());
+            dto.setObj(familyId);
+            DataTransferObj serverOutput = PantherServer.inst().getMSA(Preferences.inst().getPantherURL(), dto);
+            if (null == serverOutput) {
+                JOptionPane.showMessageDialog(GUIManager.getManager().getFrame(), MSG_ERROR_CANNOT_ACCESS_VERSION_INFO_MSA, MSG_ERROR, JOptionPane.ERROR_MESSAGE);
+                System.exit(-1);
+            }
+            StringBuffer sb = serverOutput.getMsg();
+            if (null != sb && 0 != sb.length()) {
+                JOptionPane.showMessageDialog(GUIManager.getManager().getFrame(), sb.toString(), MSG_ERROR, JOptionPane.ERROR_MESSAGE);
+                System.exit(-1);
+            }
+            msa = (MSA)serverOutput.getObj();
 //            msa = null;
             System.out.println("End of get msa  execution for " + familyId + " at " + df.format(new java.util.Date(System.currentTimeMillis())));              
         }
@@ -317,9 +510,23 @@ public class Family implements Serializable {
         public void run() {
             java.text.SimpleDateFormat df = new java.text.SimpleDateFormat("hh:mm:ss:SSS");
             System.out.println("Start of get nodes execution for " + familyId + " at " + df.format(new java.util.Date(System.currentTimeMillis())));             
-            DataTransferObj dto = PantherServer.inst().getNodes(Preferences.inst().getPantherURL(), familyId);
-            nodeLookup = (HashMap<String, Node>)dto.getObj();
-            errorBuf = dto.getMsg();
+//            System.out.println("Start of get msa  execution for " + familyId + " at " + df.format(new java.util.Date(System.currentTimeMillis())));              
+            DataTransferObj serverInput = new DataTransferObj();
+            serverInput.setVc(PaintManager.inst().getVersionContainer());
+            serverInput.setObj(familyId);
+            DataTransferObj serverOutput = PantherServer.inst().getNodes(Preferences.inst().getPantherURL(), serverInput);
+            if (null == serverOutput) {
+                JOptionPane.showMessageDialog(GUIManager.getManager().getFrame(), MSG_ERROR_CANNOT_ACCESS_VERSION_INFO_NODE_INFO, MSG_ERROR, JOptionPane.ERROR_MESSAGE);
+                System.exit(-1);
+            }
+            StringBuffer sb = serverOutput.getMsg();
+            if (null != sb && 0 != sb.length()) {
+                JOptionPane.showMessageDialog(GUIManager.getManager().getFrame(), sb.toString(), MSG_ERROR, JOptionPane.ERROR_MESSAGE);
+                System.exit(-1);
+            }
+            Vector outputInfo = (Vector)serverOutput.getObj();
+            nodeLookup = (HashMap<String, Node>)outputInfo.get(0);
+            errorBuf = (StringBuffer)outputInfo.get(1);
 //            System.out.println(errorBuf);
 //            try {
 //                FileInputStream fin = new FileInputStream("C:\\Temp\\new_paint\\" + familyId + ".ser");
