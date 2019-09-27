@@ -1,5 +1,5 @@
 /**
- *  Copyright 2017 University Of Southern California
+ *  Copyright 2019 University Of Southern California
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -17,7 +17,9 @@ package org.paint.dialog;
 
 import com.sri.panther.paintCommon.Book;
 import com.sri.panther.paintCommon.Constant;
+import com.sri.panther.paintCommon.TransferInfo;
 import com.sri.panther.paintCommon.User;
+import edu.usc.ksom.pm.panther.paintCommon.DataTransferObj;
 
 import java.awt.BorderLayout;
 import java.awt.Component;
@@ -56,6 +58,7 @@ import javax.swing.event.TableModelEvent;
 import javax.swing.table.AbstractTableModel;
 import javax.swing.table.TableCellRenderer;
 import javax.swing.table.TableModel;
+import javax.swing.table.TableRowSorter;
 import org.paint.dataadapter.PantherServer;
 import org.paint.main.PaintManager;
 
@@ -138,6 +141,7 @@ public class ManageBooksDlg extends JDialog {
     private static final String COLUMN_NAME_NAME = "Name";
     private static final String COLUMN_NAME_CURATION_STATUS = "Curation status";
     private static final String COLUMN_NAME_EXP_EVDNCE = "Experimental";
+    private static final String COLUMN_NAME_NOTES = "Notes";      // Curator notes
     private static final String COLUMN_NAME_ORG = "Organism";
     private static final String COLUMN_NUM_LEAVES = "# leaves";
     private static final String COLUMN_NAME_LOCKED_BY = "Locked by";
@@ -146,12 +150,18 @@ public class ManageBooksDlg extends JDialog {
     private static final String COLUMN_NAME_LOCK_UNLOCK = "Lock/UnLock";
     private static final String COLUMN_NAME_UNLOCK = "Unlock";
     private static final String[] COLUMN_NAMES_SEARCH =
-    { COLUMN_NAME_BOOK_ID, COLUMN_NAME_NAME, COLUMN_NAME_CURATION_STATUS, COLUMN_NAME_DATE, COLUMN_NAME_EXP_EVDNCE, COLUMN_NAME_ORG, COLUMN_NUM_LEAVES, COLUMN_NAME_OPEN,  COLUMN_NAME_LOCK_UNLOCK, COLUMN_NAME_LOCKED_BY};
+    { COLUMN_NAME_BOOK_ID, COLUMN_NAME_NAME, COLUMN_NAME_CURATION_STATUS, COLUMN_NAME_DATE, COLUMN_NAME_EXP_EVDNCE, COLUMN_NAME_NOTES, COLUMN_NAME_ORG, COLUMN_NUM_LEAVES, COLUMN_NAME_OPEN,  COLUMN_NAME_LOCK_UNLOCK, COLUMN_NAME_LOCKED_BY};
     
-    public static final Class[] COLUMN_TYPES_SEARCH = {String.class, String.class, String.class, Date.class, Boolean.class, String.class, String.class, JButton.class, Boolean.class, String.class};
+    public static final Class[] COLUMN_TYPES_SEARCH = {String.class, String.class, String.class, Date.class, Boolean.class, Boolean.class, String.class, Integer.class, JButton.class, Boolean.class, String.class};
 
-
+    public static final String LINE_BREAK = "\\\\n";
+    public static final String HTML_LINEBREAK = "<BR>";
+    public static final String HTML_START = "<HTML>";
+    public static final String HTML_END = "</HTML>";
     
+    int defaultSortColSearchTbl = 7;
+    int nonSortCol = 6;
+    int COL_INDEX_COMMENT = 5;
     private static final String[] COLUMN_NAMES_MY_BOOKS =     { COLUMN_NAME_BOOK_ID, COLUMN_NAME_NAME, COLUMN_NAME_CURATION_STATUS, COLUMN_NAME_OPEN, COLUMN_NAME_UNLOCK};
     private static final Class[] COLUMN_TYPES_MY_BOOKS = {String.class, String.class, String.class, JButton.class, Boolean.class};
     
@@ -235,34 +245,34 @@ public class ManageBooksDlg extends JDialog {
         gl.setHgap(0);        
         JPanel searchTypePanel = new JPanel(gl);
         searchTypePanel.setComponentOrientation(ComponentOrientation.LEFT_TO_RIGHT);
+        getBookByIdBtn = new JRadioButton(LABEL_GET_BOOK_BY_ID);
+        getBookByIdBtn.setSelected(true);        
         geneSymbolBtn = new JRadioButton(LABEL_SEARCH_GENE_SYMBOL);
-        geneSymbolBtn.setSelected(true);
         geneIdentifierBtn = new JRadioButton(LABEL_SEARCH_GENE_IDENTIFIER);
         proteinIdentifierBtn = new JRadioButton(LABEL_SEARCH_PROTEIN_IDENTIFIER);
         definitionBtn = new JRadioButton(LABEL_SEARCH_DEFINITION);
         getAllBooksBtn = new JRadioButton(LABEL_GET_FULL_LIST);
-        getBookByIdBtn = new JRadioButton(LABEL_GET_BOOK_BY_ID);
         getAllUncurtedBtn = new JRadioButton(LABEL_GET_UNCURATED_LIST);
         getRequirePaintReviewBtn = new JRadioButton(LABEL_GET_REQUIRE_PAINT_REVIEW_LIST);        
         getBooksByPTNBtn = new JRadioButton(LABEL_GET_BOOK_BY_PTN);        
         
 
         ButtonGroup bg = new ButtonGroup();
+        bg.add(getBookByIdBtn);
         bg.add(geneSymbolBtn);
         bg.add(geneIdentifierBtn);
         bg.add(proteinIdentifierBtn);
         bg.add(definitionBtn);
         bg.add(getAllBooksBtn);
-        bg.add(getBookByIdBtn);
         bg.add(getAllUncurtedBtn);
         bg.add(getRequirePaintReviewBtn);
-        bg.add(getBooksByPTNBtn);        
+        bg.add(getBooksByPTNBtn);
+        searchTypePanel.add(getBookByIdBtn);        
         searchTypePanel.add(geneSymbolBtn);
         searchTypePanel.add(geneIdentifierBtn);
         searchTypePanel.add(proteinIdentifierBtn);
         searchTypePanel.add(definitionBtn);
         searchTypePanel.add(getAllBooksBtn);
-        searchTypePanel.add(getBookByIdBtn);
         searchTypePanel.add(getAllUncurtedBtn);
         searchTypePanel.add(getRequirePaintReviewBtn);
         searchTypePanel.add(getBooksByPTNBtn);        
@@ -376,25 +386,40 @@ public class ManageBooksDlg extends JDialog {
         MyBooksTableModel mbtm =
             new MyBooksTableModel(myBooks, COLUMN_NAMES_MY_BOOKS, COLUMN_TYPES_MY_BOOKS);
         myBooksTable.setModel(mbtm);
+        myBooksTable.setAutoCreateRowSorter(true);
         TableModelEvent le = new TableModelEvent(mbtm);
         mbtm.fireTableChanged(le);
 
 
     }
-    
+
     public ArrayList<Book> getMyBooks() {
+
         Vector sendInfo = new Vector(2);
         sendInfo.add(userInfo);
         //sendInfo.add(dbClsId);
-        ArrayList<Book> infoFromServer = PantherServer.inst().getMyBooks(servletUrl, sendInfo, null, null);
-        if (null == infoFromServer ) {
+        DataTransferObj dto = new DataTransferObj();
+        dto.setVc(PaintManager.inst().getVersionContainer());
+        dto.setObj(sendInfo);
+        DataTransferObj serverObj = PantherServer.inst().getMyBooks(servletUrl, dto, null, null);
+     
+        //ArrayList<Book> infoFromServer = PantherServer.inst().getMyBooks(servletUrl, dto, null, null);
+        if (null == serverObj ) {
             JOptionPane.showMessageDialog(ManageBooksDlg.this.frame,
                                           MSG_SERVER_ERROR_CANNOT_ACCESS_LOCKED_BOOKS,
                                           MSG_HEADER_MY_BOOKS,
                                           JOptionPane.ERROR_MESSAGE);
             return new ArrayList<Book>();
         }
-        return infoFromServer;
+        StringBuffer sb = serverObj.getMsg();
+        if (null != sb && 0 != sb.length()) {
+            JOptionPane.showMessageDialog(ManageBooksDlg.this.frame,
+                                          sb.toString(),
+                                          MSG_HEADER_MY_BOOKS,
+                                          JOptionPane.ERROR_MESSAGE);
+            return new ArrayList<Book>();            
+        }
+        return (ArrayList<Book>)serverObj.getObj();
 //        Vector myBooks = new Vector(size);
 //        for (int i = 0; i < size; i++) {
 //            Book aBook = (Book)lockedBooks.elementAt(i);
@@ -441,7 +466,68 @@ public class ManageBooksDlg extends JDialog {
         
 
         
-    }
+    }    
+    
+//    public ArrayList<Book> getMyBooksOrig() {
+//        Vector sendInfo = new Vector(2);
+//        sendInfo.add(userInfo);
+//        //sendInfo.add(dbClsId);
+//        ArrayList<Book> infoFromServer = PantherServer.inst().getMyBooks(servletUrl, sendInfo, null, null);
+//        if (null == infoFromServer ) {
+//            JOptionPane.showMessageDialog(ManageBooksDlg.this.frame,
+//                                          MSG_SERVER_ERROR_CANNOT_ACCESS_LOCKED_BOOKS,
+//                                          MSG_HEADER_MY_BOOKS,
+//                                          JOptionPane.ERROR_MESSAGE);
+//            return new ArrayList<Book>();
+//        }
+//        return infoFromServer;
+////        Vector myBooks = new Vector(size);
+////        for (int i = 0; i < size; i++) {
+////            Book aBook = (Book)lockedBooks.elementAt(i);
+////            Vector info = new Vector(4);
+////            info.add(aBook.getId());
+////            info.add(aBook.getName());
+////            info.add(Book.getCurationStatusString(aBook.getCurationStatus()));
+////            info.add(Boolean.FALSE);
+////            myBooks.add(info);
+////        }
+////        return myBooks;
+//        
+////        Vector myBooksList = new Vector(4);
+////        
+////        Vector book200 = new Vector();
+////        book200.add("PTHR20000");
+////        book200.add("Title of book PTHR20000");
+////        book200.add("Uncurated");
+////        book200.add(Boolean.FALSE);
+////        
+////        Vector book201 = new Vector();
+////        book201.add("PTHR20000");
+////        book201.add("Title of book PTHR20001");
+////        book201.add("Curated");
+////        book201.add(Boolean.FALSE);
+////        
+////        Vector book202 = new Vector();
+////        book202.add("PTHR20000");
+////        book202.add("Title of book PTHR20002");
+////        book202.add("Uncurated");
+////        book202.add(Boolean.FALSE);
+////        
+////        Vector book203 = new Vector();
+////        book203.add("PTHR20000");
+////        book203.add("Title of book PTHR20003");
+////        book203.add("Uncurated");
+////        book203.add(Boolean.FALSE);
+////        
+////        myBooksList.add(book200);
+////        myBooksList.add(book201);
+////        myBooksList.add(book202);
+////        myBooksList.add(book203);
+////        return myBooksList;
+//        
+//
+//        
+//    }
     
 
     protected void initializeBooksList() {
@@ -451,6 +537,16 @@ public class ManageBooksDlg extends JDialog {
     protected void setData(ArrayList <Book> books) {
         SearchBookTableModel sbtm = new SearchBookTableModel(books, COLUMN_NAMES_SEARCH, COLUMN_TYPES_SEARCH);
         searchBooksTable.setModel(sbtm);
+        searchBooksTable.setAutoCreateRowSorter(true);
+        TableRowSorter<TableModel> sorter = new TableRowSorter<>(searchBooksTable.getModel());
+        searchBooksTable.setRowSorter(sorter);
+//        List<RowSorter.SortKey> sortKeys = new ArrayList<>();
+//        int columnIndexToSort = defaultSortColSearchTbl;
+//        sortKeys.add(new RowSorter.SortKey(columnIndexToSort, SortOrder.DESCENDING));
+
+//        sorter.setSortKeys(sortKeys);
+        sorter.setSortable(nonSortCol, false);
+//        sorter.sort();
         TableModelEvent le = new TableModelEvent(sbtm);
         sbtm.fireTableChanged(le);
 //        adjustColumnWidths(searchBooksTable);
@@ -502,11 +598,34 @@ public class ManageBooksDlg extends JDialog {
                                                     BoxLayout.Y_AXIS));
 
 
-        searchBooksTable = new JTable(new SearchBookTableModel(new ArrayList<Book>(), COLUMN_NAMES_SEARCH, COLUMN_TYPES_SEARCH));
+        searchBooksTable = new JTable(new SearchBookTableModel(new ArrayList<Book>(), COLUMN_NAMES_SEARCH, COLUMN_TYPES_SEARCH)) {
+            public String getToolTipText(MouseEvent e) {
+                String tip = null;
+                java.awt.Point p = e.getPoint();
+                int rowIndex = ManageBooksDlg.this.searchBooksTable.rowAtPoint(p);
+                int colIndex = ManageBooksDlg.this.searchBooksTable.columnAtPoint(p);
+                JTable source = (JTable)e.getSource();
+            int row = ManageBooksDlg.this.searchBooksTable.convertRowIndexToModel(rowIndex);
+                int realColumnIndex = ManageBooksDlg.this.searchBooksTable.convertColumnIndexToModel(colIndex);
+
+                if (realColumnIndex == COL_INDEX_COMMENT) {
+                    BookTableModel model = (BookTableModel) searchBooksTable.getModel();
+                    Book aBook = model.data.get(row);
+                    tip = aBook.getCommentUser();
+                    if (null != tip) {
+                        tip = tip.replaceAll(LINE_BREAK, HTML_LINEBREAK);
+                        tip = HTML_START + tip + HTML_END;
+                    }
+                }
+                if (null == tip) {
+                    return Constant.STR_EMPTY;
+                }
+                return tip;
+            }            
+        };
         searchBooksTable.setDefaultRenderer(JButton.class, new ButtonCellRenderer(BUTTON_LABEL_VIEW));    
         searchBooksTable.addMouseListener(new LaunchBtnMouseAdapter(searchBooksTable));        
-        searchBooksTable.setPreferredScrollableViewportSize(new Dimension(750,
-                                                                          90));
+        searchBooksTable.setPreferredScrollableViewportSize(new Dimension(750, 90));
 
 
         JScrollPane lockedScrollPane = new JScrollPane(searchBooksTable);
@@ -737,6 +856,10 @@ public class ManageBooksDlg extends JDialog {
                 return false;
             }
             
+            if (COLUMN_NAME_NOTES.equals(header)) {
+                return false;
+            }
+            
             if (COLUMN_NAME_ORG.equals(header)) {
                 return false;
             }
@@ -774,6 +897,15 @@ public class ManageBooksDlg extends JDialog {
                 }
                 return Boolean.valueOf(false);   
             }
+            else if (COLUMN_NAME_NOTES.equals(header)) {
+                String comment = aBook.getCommentUser();
+                if (null != comment && 0 != comment.trim().length()) {
+                    return Boolean.valueOf(true);
+                }
+                else {
+                    return Boolean.valueOf(false);
+                }
+            }
             else if (COLUMN_NAME_ORG.equals(header)) {
                 HashSet<String> orgSet = aBook.getOrgSet();
                 if (null == orgSet || 0 == orgSet.size()) {
@@ -792,7 +924,7 @@ public class ManageBooksDlg extends JDialog {
                 return sb.toString();
             }
             else if (COLUMN_NUM_LEAVES.equals(header)) {
-                return Integer.toString(aBook.getNumLeaves());
+                return aBook.getNumLeaves();
             }
             else if (COLUMN_NAME_CURATION_STATUS.equals(header)) {
                 return aBook.getCurationStatusString(aBook.getCurationStatus());              
@@ -821,8 +953,7 @@ public class ManageBooksDlg extends JDialog {
                 return null;
             }
         }
-
-
+        
 
     }
 //
@@ -977,8 +1108,6 @@ public class ManageBooksDlg extends JDialog {
 
 
     public class SearchActionListener implements ActionListener {
-
-
         public void actionPerformed(ActionEvent e) {
             String searchStr = ManageBooksDlg.this.searchTerm.getText();
             if ((null == searchStr || 0 == searchStr.length()) &&
@@ -992,40 +1121,41 @@ public class ManageBooksDlg extends JDialog {
                 return;
             }
 
-
             Vector sendInfo = new Vector(2);
             sendInfo.add(searchStr);
             //sendInfo.add(dbClsId);
-            ArrayList<Book> infoFromServer = null;
+            DataTransferObj dto = new DataTransferObj();
+            dto.setVc(PaintManager.inst().getVersionContainer());
+            dto.setObj(sendInfo);            
+            DataTransferObj infoFromServer = null;
             ArrayList<Book> books = null;
 
             
             if (ManageBooksDlg.this.geneSymbolBtn.isSelected()) {
-        
-                infoFromServer = PantherServer.inst().searchGeneName(servletUrl, sendInfo, null, null);
+                infoFromServer = PantherServer.inst().searchGeneName(servletUrl, dto, null, null);
             } else if (ManageBooksDlg.this.geneIdentifierBtn.isSelected()) {
-                infoFromServer = PantherServer.inst().searchGeneExtId(servletUrl, sendInfo, null, null);
+                infoFromServer = PantherServer.inst().searchGeneExtId(servletUrl, dto, null, null);
             } else if (ManageBooksDlg.this.proteinIdentifierBtn.isSelected()) {
-                infoFromServer = PantherServer.inst().searchProteinExtId(servletUrl, sendInfo, null, null);
+                infoFromServer = PantherServer.inst().searchProteinExtId(servletUrl, dto, null, null);
             }
             else if(ManageBooksDlg.this.definitionBtn.isSelected()) {
-                infoFromServer = PantherServer.inst().searchDefinition(servletUrl, sendInfo, null, null); 
+                infoFromServer = PantherServer.inst().searchDefinition(servletUrl, dto, null, null); 
             }
             else if (ManageBooksDlg.this.getBookByIdBtn.isSelected()) {
-                infoFromServer = PantherServer.inst().searchBookId(servletUrl, sendInfo, null, null); 
+                infoFromServer = PantherServer.inst().searchBookId(servletUrl, dto, null, null); 
             }
             else if (ManageBooksDlg.this.getBooksByPTNBtn.isSelected()) {
-                infoFromServer = PantherServer.inst().searchBookPTN(servletUrl, sendInfo, null, null); 
+                infoFromServer = PantherServer.inst().searchBookPTN(servletUrl, dto, null, null); 
             }            
             else if(ManageBooksDlg.this.getAllBooksBtn.isSelected()) {
                 
-                infoFromServer = PantherServer.inst().searchAllBooks(servletUrl, sendInfo, null, null); 
+                infoFromServer = PantherServer.inst().searchAllBooks(servletUrl, dto, null, null); 
             }
             else if (ManageBooksDlg.this.getAllUncurtedBtn.isSelected()) {
-                infoFromServer = PantherServer.inst().searchUncuratedBooks(servletUrl, sendInfo, null, null); 
+                infoFromServer = PantherServer.inst().searchUncuratedBooks(servletUrl, dto, null, null); 
             }
             else if (ManageBooksDlg.this.getRequirePaintReviewBtn.isSelected()) {
-                infoFromServer = PantherServer.inst().searchRequirePaintReviewUnlocked(servletUrl, sendInfo, null, null); 
+                infoFromServer = PantherServer.inst().searchRequirePaintReviewUnlocked(servletUrl, dto, null, null); 
             }
             
 
@@ -1037,8 +1167,29 @@ public class ManageBooksDlg extends JDialog {
                 ManageBooksDlg.this.setData(new ArrayList<Book>());
                 return;
             }
+            StringBuffer sb = infoFromServer.getMsg();
+            if (null != sb && 0 != sb.length()) {
+                JOptionPane.showMessageDialog(ManageBooksDlg.this.frame,
+                        sb.toString(),
+                        MSG_HEADER_MY_BOOKS,
+                        JOptionPane.ERROR_MESSAGE);
+                ManageBooksDlg.this.setData(new ArrayList<Book>());
+                return;
+            }
 
-            if (0 == infoFromServer.size()) {
+
+            Vector serverRtnList = (Vector)infoFromServer.getObj();
+            if (null == serverRtnList || 2 < serverRtnList.size()) {
+                        JOptionPane.showMessageDialog(ManageBooksDlg.this.frame,
+                        MSG_SERVER_ERROR_CANNOT_SEARCH_BOOKS,
+                        MSG_HEADER_SEARCH_BOOKS,
+                        JOptionPane.ERROR_MESSAGE);
+                ManageBooksDlg.this.setData(new ArrayList<Book>());                
+                return;
+            }
+
+            ArrayList<Book> bookList = (ArrayList<Book>) serverRtnList.get(1);
+            if (0 == bookList.size()) {
                 JOptionPane.showMessageDialog(ManageBooksDlg.this.frame,
                                               MSG_NO_BOOKS_FOR_SEARCH_CRITERIA,
                                               MSG_HEADER_SEARCH_BOOKS,
@@ -1051,7 +1202,6 @@ public class ManageBooksDlg extends JDialog {
             // Save the last valid search parameters.  When user locks or unlocks books, this data is needed to refresh the book list
             lastValidSearchStr = searchStr;
             if (ManageBooksDlg.this.geneSymbolBtn.isSelected()) {
-            
                 lastValidSearchBtn = ManageBooksDlg.this.geneSymbolBtn;
             } else if (ManageBooksDlg.this.geneIdentifierBtn.isSelected()) {
                 lastValidSearchBtn = ManageBooksDlg.this.geneIdentifierBtn;
@@ -1068,13 +1218,11 @@ public class ManageBooksDlg extends JDialog {
                 lastValidSearchBtn = ManageBooksDlg.this.getAllBooksBtn;
             }
             else {
-                
                 lastValidSearchBtn = ManageBooksDlg.this.getAllUncurtedBtn;
             }
             
             // Update table
-
-            books = infoFromServer;
+            books = bookList;
 
             ManageBooksDlg.this.setData(books);
             
@@ -1130,24 +1278,45 @@ public class ManageBooksDlg extends JDialog {
             //sendInfo.add(dbClsId);
             sendInfo.add(booksForLocking);
             sendInfo.add(booksForUnlocking);
-            String infoFromServer = PantherServer.inst().lockAndUnLockBooks(servletUrl, PantherServer.REQUEST_LOCK_UNLOCK_BOOKS, sendInfo, null, null);
-            
-            if (null == infoFromServer) {
+            DataTransferObj dto = new DataTransferObj();
+            dto.setVc(PaintManager.inst().getVersionContainer());
+            dto.setObj(sendInfo);
+            DataTransferObj infoFromServer = PantherServer.inst().lockAndUnLockBooks(servletUrl, PantherServer.REQUEST_LOCK_UNLOCK_BOOKS, dto, null, null);
+        if (null == infoFromServer) {
+            JOptionPane.showMessageDialog(ManageBooksDlg.this.frame,
+                    MSG_SERVER_ERROR_CANNOT_LOCK_UNLOCK_BOOKS,
+                    MSG_HEADER_LOCK_UNLOCK_BOOKS,
+                    JOptionPane.ERROR_MESSAGE);
+            searchAgain();  
+        }
+        StringBuffer sb = infoFromServer.getMsg();
+        if (null != sb && 0 != sb.length()) {
+            JOptionPane.showMessageDialog(ManageBooksDlg.this.frame,
+                    sb.toString(),
+                    MSG_HEADER_LOCK_UNLOCK_BOOKS,
+                    JOptionPane.ERROR_MESSAGE);
+            searchAgain();  
+        }
+        
+        Vector serverRtnList = (Vector) infoFromServer.getObj();            
+        TransferInfo ti = (TransferInfo) ((Vector) serverRtnList).elementAt(0);
+        String msg = ti.getInfo();            
+
+            if (null == msg) {
                 JOptionPane.showMessageDialog(ManageBooksDlg.this.frame,
                                               MSG_SERVER_ERROR_CANNOT_LOCK_UNLOCK_BOOKS,
                                               MSG_HEADER_LOCK_UNLOCK_BOOKS,
                                               JOptionPane.ERROR_MESSAGE);
 
             }
-            else if (0 != infoFromServer.length()) {
+            else if (0 != msg.length()) {
                 JOptionPane.showMessageDialog(ManageBooksDlg.this.frame,
                                               infoFromServer,
                                               MSG_HEADER_LOCK_UNLOCK_BOOKS,
                                               JOptionPane.ERROR_MESSAGE);            
 
             }
-            searchAgain();
-                                          
+            searchAgain();                            
         }
     }
     
@@ -1253,14 +1422,15 @@ public class ManageBooksDlg extends JDialog {
             Point p = e.getPoint();
             int column = table.columnAtPoint(p);
             int row = table.rowAtPoint(p);
-            if (column < 0 || row < 0) {
+            int convertRow = table.convertRowIndexToModel(row);  
+            if (column < 0 || convertRow < 0) {
                 return;
             }
             if (tm instanceof MyBooksTableModel) {
                 String header = COLUMN_NAMES_MY_BOOKS[column];
                 if (true == header.equals(COLUMN_NAME_OPEN)) {
                     
-                    Book aBook = ((BookTableModel)tm).getBookAtRow(row);
+                    Book aBook = ((BookTableModel)tm).getBookAtRow(convertRow);
                     openBook(aBook);
                 }
             }
@@ -1268,7 +1438,7 @@ public class ManageBooksDlg extends JDialog {
                 String header = COLUMN_NAMES_SEARCH[column];
                 if (true == header.equals(COLUMN_NAME_OPEN)) {
                     
-                    Book aBook = ((BookTableModel)tm).getBookAtRow(row);
+                    Book aBook = ((BookTableModel)tm).getBookAtRow(convertRow);
                     openBook(aBook);
                 }
             }
@@ -1344,33 +1514,55 @@ public class ManageBooksDlg extends JDialog {
                 return;
                 
             }
+            
             Vector sendInfo = new Vector(3);
             sendInfo.add(userInfo);
             //sendInfo.add(dbClsId);
             sendInfo.add(booksForUnlocking);
-            String infoFromServer = PantherServer.inst().unlockBooks(servletUrl, sendInfo, null, null);
-            if (null == infoFromServer) {
+
+            DataTransferObj dto = new DataTransferObj();
+            dto.setVc(PaintManager.inst().getVersionContainer());
+            dto.setObj(sendInfo);
+            
+            DataTransferObj infoFromServer = PantherServer.inst().unlockBooks(servletUrl, dto, null, null);
+        if (null == infoFromServer) {
+            JOptionPane.showMessageDialog(ManageBooksDlg.this.frame,
+                    MSG_SERVER_ERROR_CANNOT_UNLOCK_BOOKS,
+                    MSG_HEADER_UNLOCK_BOOKS,
+                    JOptionPane.ERROR_MESSAGE);
+                populateMyBooksList();
+                return;
+        }
+        StringBuffer sb = infoFromServer.getMsg();
+        if (null != sb && 0 != sb.length()) {
+            JOptionPane.showMessageDialog(ManageBooksDlg.this.frame,
+                    sb.toString(),
+                    MSG_HEADER_UNLOCK_BOOKS,
+                    JOptionPane.ERROR_MESSAGE);
+                populateMyBooksList();
+                return;
+        }
+        
+        Vector serverRtnList = (Vector) infoFromServer.getObj();            
+        TransferInfo ti = (TransferInfo) ((Vector) serverRtnList).elementAt(0);
+        String msg = ti.getInfo();               
+            
+
+            if (null == msg) {
                 JOptionPane.showMessageDialog(ManageBooksDlg.this.frame,
                                               MSG_SERVER_ERROR_CANNOT_UNLOCK_BOOKS,
                                               MSG_HEADER_UNLOCK_BOOKS,
                                               JOptionPane.ERROR_MESSAGE);
-                populateMyBooksList();
-                return;
 
             }
-            else if (0 != infoFromServer.length()) {
+            else if (0 != msg.length()) {
                 JOptionPane.showMessageDialog(ManageBooksDlg.this.frame,
                                               infoFromServer,
                                               MSG_HEADER_UNLOCK_BOOKS,
                                               JOptionPane.ERROR_MESSAGE);
-                populateMyBooksList();
-                return;
+
             }
             populateMyBooksList();
-
-
-             
-
         }
     }
     
@@ -1381,31 +1573,68 @@ public class ManageBooksDlg extends JDialog {
         Vector sendInfo = new Vector(2);
         sendInfo.add(lastValidSearchStr);
         //sendInfo.add(dbClsId);
-        ArrayList<Book> infoFromServer = null;
+
+        DataTransferObj dto = new DataTransferObj();
+        dto.setVc(PaintManager.inst().getVersionContainer());
+        dto.setObj(sendInfo);
+        DataTransferObj infoFromServer = null;
         ArrayList<Book> books = null;
-        if (geneSymbolBtn.equals(lastValidSearchBtn)) {
+
+        if (ManageBooksDlg.this.geneSymbolBtn.equals(lastValidSearchBtn)) {
+            infoFromServer = PantherServer.inst().searchGeneName(servletUrl, dto, null, null);
+        } else if (ManageBooksDlg.this.geneIdentifierBtn.equals(lastValidSearchBtn)) {
+            infoFromServer = PantherServer.inst().searchGeneExtId(servletUrl, dto, null, null);
+        } else if (ManageBooksDlg.this.proteinIdentifierBtn.equals(lastValidSearchBtn)) {
+            infoFromServer = PantherServer.inst().searchProteinExtId(servletUrl, dto, null, null);
+        } else if (ManageBooksDlg.this.definitionBtn.equals(lastValidSearchBtn)) {
+            infoFromServer = PantherServer.inst().searchDefinition(servletUrl, dto, null, null);
+        } else if (ManageBooksDlg.this.getBookByIdBtn.equals(lastValidSearchBtn)) {
+            infoFromServer = PantherServer.inst().searchBookId(servletUrl, dto, null, null);
+        } else if (ManageBooksDlg.this.getBooksByPTNBtn.equals(lastValidSearchBtn)) {
+            infoFromServer = PantherServer.inst().searchBookPTN(servletUrl, dto, null, null);
+        } else if (ManageBooksDlg.this.getAllBooksBtn.equals(lastValidSearchBtn)) {
+
+            infoFromServer = PantherServer.inst().searchAllBooks(servletUrl, dto, null, null);
+        } else if (ManageBooksDlg.this.getAllUncurtedBtn.equals(lastValidSearchBtn)) {
+            infoFromServer = PantherServer.inst().searchUncuratedBooks(servletUrl, dto, null, null);
+        } else if (ManageBooksDlg.this.getRequirePaintReviewBtn.equals(lastValidSearchBtn)) {
+            infoFromServer = PantherServer.inst().searchRequirePaintReviewUnlocked(servletUrl, dto, null, null);
+        }
+
+        if (null == infoFromServer) {
+            JOptionPane.showMessageDialog(ManageBooksDlg.this.frame,
+                    MSG_SERVER_ERROR_CANNOT_SEARCH_BOOKS,
+                    MSG_HEADER_SEARCH_BOOKS,
+                    JOptionPane.ERROR_MESSAGE);
+            ManageBooksDlg.this.setData(new ArrayList<Book>());
+            return;
+        }
+        StringBuffer sb = infoFromServer.getMsg();
+        if (null != sb && 0 != sb.length()) {
+            JOptionPane.showMessageDialog(ManageBooksDlg.this.frame,
+                    sb.toString(),
+                    MSG_HEADER_MY_BOOKS,
+                    JOptionPane.ERROR_MESSAGE);
+            ManageBooksDlg.this.setData(new ArrayList<Book>());
+            return;
+        }
         
-            infoFromServer = PantherServer.inst().searchGeneName(servletUrl, sendInfo, null, null);
-        } else if (geneIdentifierBtn.equals(lastValidSearchBtn)) {
-            infoFromServer = PantherServer.inst().searchGeneExtId(servletUrl, sendInfo, null, null);
-        } else if (proteinIdentifierBtn.equals(lastValidSearchBtn)) {
-            infoFromServer = PantherServer.inst().searchProteinExtId(servletUrl, sendInfo, null, null);
+        Vector serverRtnList = (Vector) infoFromServer.getObj();
+        if (null == serverRtnList || 2 < serverRtnList.size()) {
+            JOptionPane.showMessageDialog(ManageBooksDlg.this.frame,
+                    MSG_SERVER_ERROR_CANNOT_SEARCH_BOOKS,
+                    MSG_HEADER_SEARCH_BOOKS,
+                    JOptionPane.ERROR_MESSAGE);
+            ManageBooksDlg.this.setData(new ArrayList<Book>());
+            return;
         }
-        else if(definitionBtn.equals(lastValidSearchBtn)) {
-            infoFromServer = PantherServer.inst().searchDefinition(servletUrl, sendInfo, null, null); 
-        }
-        else if(getBookByIdBtn.equals(lastValidSearchBtn)) {
-            infoFromServer = PantherServer.inst().searchBookId(servletUrl, sendInfo, null, null); 
-        }        
-        else {
-            
-            infoFromServer = PantherServer.inst().searchAllBooks(servletUrl, sendInfo, null, null); 
-        }
-        books = infoFromServer;        
+
+        ArrayList<Book> bookList = (ArrayList<Book>) serverRtnList.get(1);
+        books = bookList;
         if (null != books) {
             setData(books);
         }
-     }
+    }
 
 }
 
