@@ -1,5 +1,5 @@
 /**
- *  Copyright 2018 University Of Southern California
+ *  Copyright 2019 University Of Southern California
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -17,9 +17,11 @@ package edu.usc.ksom.pm.panther.paintCommon;
 
 import java.io.Serializable;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Set;
 
 
@@ -34,7 +36,9 @@ public class GOTermHelper implements Serializable{
     
     public static final String ASPECT_MF = "F";
     public static final String ASPECT_BP = "P";
-    public static final String ASPECT_CC = "C";       
+    public static final String ASPECT_CC = "C";
+    
+    public static final HashSet<String> NON_ALLOWED_TERM_SET = new HashSet<String>(Arrays.asList("GO:0005515", "GO:0005488"));
     
     private HashMap<String, GOTerm> clsToTerm;
     private ArrayList<GOTerm> topLevelTerms;
@@ -50,15 +54,37 @@ public class GOTermHelper implements Serializable{
         }
         return clsToTerm.get(goId);
     }
-    
     public ArrayList<GOTerm> getAncestors(GOTerm term) {
         ArrayList<GOTerm> parents = new ArrayList<GOTerm>();
         getUniqueAncestors(term, parents);
         return parents;
     }
+    
+    private void getUniqueAncestors(GOTerm term, ArrayList<GOTerm> parents) {
+        List<GOTerm> curParents = term.getParents();
+        if (null == curParents) {
+            return;
+        }
+        for (GOTerm parent: curParents) {
+            if (parents.contains(parent) || false == term.aspectSame(parent)) {
+                continue;
+            }
+            parents.add(parent);
+            getUniqueAncestors(parent, parents);
+        }
+    }    
+    
+    
+    // UPDATED PAINT FUNCTIONALITY TO ONLY CONSIDER ANCESTORS THAT SHARE SAME ASPECT
+    public ArrayList<GOTerm> getAncestorsDoNotUse(GOTerm term) {
+        ArrayList<GOTerm> parents = new ArrayList<GOTerm>();
+        getUniqueAncestorsDoNotUse(term, parents);
+        return parents;
+    }
   
-    public void getUniqueAncestors(GOTerm term, ArrayList<GOTerm> parents) {
-        ArrayList<GOTerm> curParents = term.getParents();
+    // UPDATED PAINT FUNCTIONALITY TO ONLY CONSIDER ANCESTORS THAT SHARE SAME ASPECT
+    private void getUniqueAncestorsDoNotUse(GOTerm term, ArrayList<GOTerm> parents) {
+        List<GOTerm> curParents = term.getParents();
         if (null == curParents) {
             return;
         }
@@ -67,18 +93,39 @@ public class GOTermHelper implements Serializable{
                 continue;
             }
             parents.add(parent);
-            getUniqueAncestors(parent, parents);
+            getUniqueAncestorsDoNotUse(parent, parents);
         }
     }
-    
-    public HashSet<GOTerm> getChildren(GOTerm term) {
+        // UPDATED PAINT FUNCTIONALITY TO ONLY CONSIDER DESCENDANTS THAT SHARE SAME ASPECT
+    public HashSet<GOTerm> getDescendants(GOTerm term) {
         HashSet<GOTerm> children = new HashSet<GOTerm>();
         getUniqueChildren(term, children);
         return children;
     }
     
-    public void getUniqueChildren(GOTerm term, HashSet<GOTerm> children) {
-        ArrayList<GOTerm> curChildren = term.getChildren();
+    private void getUniqueChildren(GOTerm term, HashSet<GOTerm> children) {
+        List<GOTerm> curChildren = term.getChildren();
+        if (null == curChildren) {
+            return;
+        }
+        
+        for (GOTerm child: curChildren) {
+            if (children.contains(child) && false == term.aspectSame(child)) {
+                continue;
+            }
+            children.add(child);
+            getUniqueChildren(child, children);
+        }
+    }    
+    
+    public HashSet<GOTerm> getChildrenDoNotUse(GOTerm term) {
+        HashSet<GOTerm> children = new HashSet<GOTerm>();
+        getUniqueChildrenDoNotUse(term, children);
+        return children;
+    }
+    
+    private void getUniqueChildrenDoNotUse(GOTerm term, HashSet<GOTerm> children) {
+        List<GOTerm> curChildren = term.getChildren();
         if (null == curChildren) {
             return;
         }
@@ -88,7 +135,7 @@ public class GOTermHelper implements Serializable{
                 continue;
             }
             children.add(child);
-            getUniqueChildren(child, children);
+            getUniqueChildrenDoNotUse(child, children);
         }
     }
     
@@ -173,7 +220,7 @@ public class GOTermHelper implements Serializable{
             return;
         }
         GOTerm curTerm = groupList.get(index);
-        ArrayList<GOTerm> parents = curTerm.getParents();
+        List<GOTerm> parents = curTerm.getParents();
         if (null == parents) {
             return;
         }
@@ -236,25 +283,16 @@ public class GOTermHelper implements Serializable{
  
     public boolean isQualifierValidForTerm(GOTerm term, Qualifier q) {
         return canTermHaveQualifier(term, q.getText());
-//        String text = q.getText();
-//        if (null == text) {
-//            return true;
-//        }
-//        if (q.isNot()) {
-//            return true;
-//        }
-//        String aspect = term.getAspect();
-//        
-//        if (null == aspect) {
-//            return false;
-//        }
-//        if ((false == ASPECT_MF.equalsIgnoreCase(aspect)) && (true == q.isContributesTo())) {
-//            return false;
-//        }
-//        if ((false == ASPECT_CC.equalsIgnoreCase(aspect)) && (true == q.isColocalizesWith())) {
-//            return false;
-//        }
-//        return true;
+    }
+    
+    public static boolean isAnnotAllowedForTerm(String term) {
+        if (null == term) {
+            return false;
+        }
+        if (true == NON_ALLOWED_TERM_SET.contains(term)) {
+            return false;
+        }
+        return true;
     }
     
     
