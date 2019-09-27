@@ -1,5 +1,5 @@
 /**
- * Copyright 2016 University Of Southern California
+ * Copyright 2019 University Of Southern California
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -28,7 +28,7 @@ public class SaveBookInfo implements Serializable {
     private ArrayList <Node> prunedList;
     private ArrayList<Annotation> annotationList;
     private String bookId;
-    private String comment;
+    private Comment comment;
     private String familyName;
     private User user;
     private Integer saveStatus;
@@ -59,11 +59,11 @@ public class SaveBookInfo implements Serializable {
         this.bookId = bookId;
     }
 
-    public String getComment() {
+    public Comment getComment() {
         return comment;
     }
 
-    public void setComment(String comment) {
+    public void setComment(Comment comment) {
         this.comment = comment;
     }
 
