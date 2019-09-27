@@ -1,5 +1,5 @@
 /**
- *  Copyright 2016 University Of Southern California
+ *  Copyright 2019 University Of Southern California
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -18,10 +18,12 @@ package org.paint.gui.matrix;
 import edu.usc.ksom.pm.panther.paintCommon.GOTerm;
 import edu.usc.ksom.pm.panther.paint.matrix.TermAncestor;
 import edu.usc.ksom.pm.panther.paint.matrix.TermToAssociation;
+import edu.usc.ksom.pm.panther.paintCommon.GOTermHelper;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.MouseEvent;
 import java.util.ArrayList;
+import java.util.List;
 import javax.swing.JCheckBoxMenuItem;
 import javax.swing.JOptionPane;
 import javax.swing.JPopupMenu;
@@ -29,10 +31,6 @@ import org.bbop.framework.GUIManager;
 import org.paint.datamodel.Association;
 import org.paint.main.PaintManager;
 
-/**
- *
- * @author muruganu
- */
 public class HeaderAncestor extends JPopupMenu implements ActionListener{
     private TermAncestor termAncestor;
     
@@ -44,6 +42,7 @@ public class HeaderAncestor extends JPopupMenu implements ActionListener{
     public void showMenu(MouseEvent e) {
         PaintManager pm = PaintManager.inst();
         AnnotationMatrix am = pm.getMatrix();
+        GOTermHelper gth = pm.goTermHelper();
         ArrayList<GOTerm> termList = termAncestor.getAncestorList();
         boolean added = false;
         for (GOTerm term : termList) {
@@ -52,11 +51,17 @@ public class HeaderAncestor extends JPopupMenu implements ActionListener{
                 continue;
             }
             // Skip top level terms
-            ArrayList<GOTerm> parents = term.getParents();
+            List<GOTerm> parents = term.getParents();
             if (null == parents || 0 == parents.size()) {
 //                System.out.println("Skipping for header " + term.getName() + " " + term.getAcc());
                 continue;
             }
+            
+            // Skip terms that are not allowed
+            if (false == gth.isAnnotAllowedForTerm(term.getAcc())) {
+                continue;
+            }
+            
             JCheckBoxMenuItem menuItem = new JCheckBoxMenuItem(term.getName());
             menuItem.setSelected(false);
             menuItem.setActionCommand(term.getAcc());
