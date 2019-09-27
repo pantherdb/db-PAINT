@@ -1,21 +1,17 @@
-/* 
- * 
- * Copyright (c) 2010, Regents of the University of California 
- * All rights reserved.
+/**
+ *  Copyright 2019 University Of Southern California
  *
- * Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
- * 
- * Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.
- * Neither the name of the Lawrence Berkeley National Lab nor the names of its contributors may be used to endorse 
- * or promote products derived from this software without specific prior written permission.
- * 
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, 
- * INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. 
- * IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, 
- * OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; 
- * OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) 
- * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- * 
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing,
+ *  software distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
  */
 package org.paint.gui.msa;
 
@@ -25,10 +21,8 @@ import java.util.List;
 import org.apache.log4j.Logger;
 import org.paint.datamodel.GeneNode;
 import org.paint.main.PaintManager;
-import org.paint.util.PantherParseUtil;
 
 import com.sri.panther.paintCommon.Constant;
-import com.sri.panther.paintCommon.util.Utils;
 
 public class MSAParser{
 	private static final String PREFIX_SEQ_START = ">";
@@ -37,6 +31,9 @@ public class MSAParser{
 
 	private int seq_length;
 	private int hmm_length;
+        
+        private ArrayList<Boolean> matchPosList;
+        private ArrayList<Integer> matchPosIndex;
 
 	private final int    SEGMENTS = 25;
 	private final int    SUB_SEGMENTS = 5;
@@ -44,7 +41,7 @@ public class MSAParser{
 	private char [] full_ruler;
 	private char [] condense_ruler;		
 
-	private static MSAParser INSTANCE = null;
+
 
 	/**
 	 * Constructor declaration
@@ -53,15 +50,10 @@ public class MSAParser{
 	 * @see
 	 */
 	public MSAParser() {
-		// Exists only to defeat instantiation.
+
 	}
 
-	public static synchronized MSAParser inst() {
-		if (INSTANCE == null) {
-			INSTANCE = new MSAParser();
-		}
-		return INSTANCE;
-	}
+
 
 	/**
 	 * Method declaration
@@ -72,64 +64,72 @@ public class MSAParser{
 	 *
 	 * @see
 	 */
-	public void parseSeqs(String[] seqInfo){
+    public void parseSeqs(String[] seqInfo) {
 
-		seq_length = 0;
-		List<GeneNode> nodes = new ArrayList<GeneNode>();
+        seq_length = 0;
+        List<GeneNode> nodes = new ArrayList<GeneNode>();
 
-		if ((null == seqInfo) || (0 == seqInfo.length)){
-			return;
-		}
+        if ((null == seqInfo) || (0 == seqInfo.length)) {
+            return;
+        }
 
-		PaintManager manager = PaintManager.inst();
+        PaintManager manager = PaintManager.inst();
 
-		for (int line = 0; line < seqInfo.length; line++){
-			if ((seqInfo[line].startsWith(PREFIX_SEQ_START)) 
-					&& (line + 1 < seqInfo.length)
-					&& (!seqInfo[line + 1].startsWith(PREFIX_SEQ_START))) {
+        for (int line = 0; line < seqInfo.length; line++) {
+            if ((seqInfo[line].startsWith(PREFIX_SEQ_START))
+                    && (line + 1 < seqInfo.length)
+                    && (!seqInfo[line + 1].startsWith(PREFIX_SEQ_START))) {
 
-				String paint_id = seqInfo[line].replaceFirst(PREFIX_SEQ_START, Constant.STR_EMPTY);
+                String paint_id = seqInfo[line].replaceFirst(PREFIX_SEQ_START, Constant.STR_EMPTY);
 
-				GeneNode node = manager.getGeneByPaintId(paint_id);
-				if (node == null) {
-					log.error("Unable to get gene " + paint_id + " for MSA data");
+                GeneNode node = manager.getGeneByPaintId(paint_id);
+                if (node == null) {
+                    log.error("Unable to get gene " + paint_id + " for MSA data");
 
-					continue;
-				}
-				nodes.add(node);
-				// Check for case where sequence does not end in current line.
-				int           start = line + 1;
-				StringBuffer  sb = new StringBuffer();
+                    continue;
+                }
+                nodes.add(node);
+                // Check for case where sequence does not end in current line.
+                int start = line + 1;
+                StringBuffer sb = new StringBuffer();
 
-				while (start < seqInfo.length){
-					if (null != seqInfo[start]){
-						if (true == seqInfo[start].startsWith(PREFIX_SEQ_START)){
-							break;
-						}
-						sb.append(seqInfo[start].trim());
-						start++;
-						line++;
-					}
-				}
-				String seq = sb.toString();
-				node.setSequence(seq);
+                while (start < seqInfo.length) {
+                    if (null != seqInfo[start]) {
+                        if (true == seqInfo[start].startsWith(PREFIX_SEQ_START)) {
+                            break;
+                        }
+                        sb.append(seqInfo[start].trim());
+                        start++;
+                        line++;
+                    }
+                }
+                String seq = sb.toString();
+                node.setSequence(seq);
+                StringBuffer hmmBuf = new StringBuffer();
+                for (int i = 0; i < seq.length(); i++) {
+                    char c = seq.charAt(i);
+                    if (((c >= 'A') && (c <= 'Z')) || (c == '-')) {
+                        hmmBuf.append(c);
+                    }
+                }
+                node.setHMMSeq(hmmBuf.toString());
 
-				// Get the maximum sequence length
-				if (seq_length != 0 && seq_length != seq.length()) {
-					log.debug("The length of the MSA sequences are not the same");
-				}
-				if (seq_length < seq.length()){
-					seq_length = seq.length();
-				}
-			}
-		}
-		full_ruler = setRuler(seq_length);
-		condense_ruler = setCondensedSequences(nodes);
-		if (seq_length < SEGMENTS) {
-			condense_ruler = "Sequence".toCharArray();
-		}
-		return;
-	}
+                // Get the maximum sequence length
+                if (seq_length != 0 && seq_length != seq.length()) {
+                    log.debug("The length of the MSA sequences are not the same");
+                }
+                if (seq_length < seq.length()) {
+                    seq_length = seq.length();
+                }
+            }
+        }
+        full_ruler = setRuler(seq_length);
+        condense_ruler = setCondensedSequences(nodes);
+        if (seq_length < SEGMENTS) {
+            condense_ruler = "Sequence".toCharArray();
+        }
+        return;
+    }
 
 	private char [] setRuler(int seqMaxLen) {
 		char [] ruler;
@@ -191,8 +191,58 @@ public class MSAParser{
 //			return false;
 //		}
 //	}
+        
+        private char[] setCondensedSequences(List<GeneNode> nodes) {
+            GeneNode node = nodes.get(0);
+            String sequence = node.getSequence();
+            if (null == sequence) {
+                return null;
+            }
+            int seqLen = sequence.length();
+            if (seqLen != seq_length) {
+                return null;
+            }        
+            matchPosList = new ArrayList<Boolean>(sequence.length());
+            matchPosIndex = new ArrayList<Integer>();
+            for (int i = 0; i < seq_length; i++) {
+                char  c = sequence.charAt(i);
+                if (((c >= 'A') && (c <= 'Z')) || (c == '-')) {
+                    matchPosList.add(true);
+                    matchPosIndex.add(i);
+                }
+                else {
+                    matchPosList.add(false);
+                }
+            }
+            hmm_length = matchPosIndex.size();
+            
+            StringBuffer ruler = new StringBuffer();
+            int counter = 0;
+            for (int i = 0; i < matchPosList.size();i++) {
+                if (false == matchPosList.get(i)) {
+                    continue;
+                }
+                counter++;
 
-	private char [] setCondensedSequences(List<GeneNode> nodes) {
+                if (i > 0 && counter % 10 == 0) {
+                   ruler.append("|");
+                   String replace = Integer.toString(i) + "|";
+                   int length = replace.length();
+                   ruler.replace(ruler.length() - length, ruler.length(), replace);               
+                }
+                else {
+                    ruler.append(" ");
+                }
+            }
+            condense_ruler = new char[ruler.length()];
+            for (int i = 0; i < ruler.length(); i++) {
+                condense_ruler[i] = ruler.charAt(i);
+            }
+            return condense_ruler;
+        }
+        
+        // DOES NOT WORK - Includes dots, lower case letters
+	private char [] setCondensedSequencesOld(List<GeneNode> nodes) {
 		int gap_size = 0;
 		boolean column_needed;
 		StringBuffer ruler = new StringBuffer();
@@ -309,4 +359,16 @@ public class MSAParser{
 			condense_ruler[i] = ruler.charAt(i);
 		return condense_ruler;
 	}
+
+    public ArrayList<Integer> getMatchPosIndex() {
+        return matchPosIndex;
+    }
+
+    public int getSeq_length() {
+        return seq_length;
+    }
+
+    public int getHmm_length() {
+        return hmm_length;
+    }
 }
