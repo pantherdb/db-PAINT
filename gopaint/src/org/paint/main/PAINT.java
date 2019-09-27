@@ -1,5 +1,5 @@
 /**
- * Copyright 2017 University Of Southern California
+ * Copyright 2019 University Of Southern California
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -16,11 +16,13 @@
 
 package org.paint.main;
 
+import edu.usc.ksom.pm.panther.paintCommon.DataTransferObj;
 import edu.usc.ksom.pm.panther.paintCommon.GOTermHelper;
+import edu.usc.ksom.pm.panther.paintCommon.PAINTVersion;
 import edu.usc.ksom.pm.panther.paintCommon.TaxonomyHelper;
+import edu.usc.ksom.pm.panther.paintCommon.VersionContainer;
 import edu.usc.ksom.pm.panther.paintCommon.VersionInfo;
 import java.util.HashSet;
-import javax.swing.JFrame;
 import javax.swing.JOptionPane;
 import javax.swing.SwingUtilities;
 
@@ -62,49 +64,82 @@ public class PAINT {
 		SwingUtilities.invokeLater(theRunner.mainRun);
 	}
 
-	Runnable mainRun =
-		new Runnable() {
-		// this thread runs in the AWT event queue
-		public void run() {
-			try {                                                                
-                            GUIManager.getManager().addStartupTask(new PaintStartupTask(args));
-                            GUIManager.getManager().start();
+    Runnable mainRun = new Runnable() {
+        // this thread runs in the AWT event queue
+        public void run() {
+            try {
+                GUIManager.getManager().addStartupTask(new PaintStartupTask(args));
+                GUIManager.getManager().start();
 
-                            // While the GUI manager is initializing, get fixed information from the server.  If we cannot connect or get information exit.
-                            Preferences preference = Preferences.inst();
-                            PantherServer pServer = PantherServer.inst();
-                            String pantherURL = preference.getPantherURL();
-                            VersionInfo vi = pServer.getVersionInfo(pantherURL);
-                            GOTermHelper gth = pServer.getGOTermHelper(pantherURL);
-                            TaxonomyHelper th = pServer.getTaxonomyHelper(pantherURL);
-                            HashSet<String> bookSet = pServer.getCuratableBooks(pantherURL);
-                            if (null == vi || null == gth) {
-                                JOptionPane.showMessageDialog(GUIManager.getManager().getFrame(), "Unable to get static information from server", "Error", JOptionPane.ERROR_MESSAGE);
-                                System.exit(-1);
-                            }
-                            if (null == th) {
-                                int response = JOptionPane.showConfirmDialog(GUIManager.getManager().getFrame(), "Unable to retrieve taxonomy constraints information, annotate without taxonomy constraints?", "Warning", JOptionPane.YES_NO_OPTION);
-                                if (JOptionPane.NO_OPTION == response) {
-                                    System.exit(0);
-                                }
+                // While the GUI manager is initializing, get fixed information from the server.  If we cannot connect or get information exit.
+                Preferences preference = Preferences.inst();
+                PantherServer pServer = PantherServer.inst();
+                String pantherURL = preference.getPantherURL();
+                // Ensure client and server versions of data and software are in sync
+                VersionContainer vc = pServer.getVersions(pantherURL);
+                if (null == vc) {
+                    JOptionPane.showMessageDialog(GUIManager.getManager().getFrame(), "Unable to verify version information from server", "Error", JOptionPane.ERROR_MESSAGE);
+                    System.exit(-1);                    
+                }
+                boolean clientVersionOk = checkVersion(vc, PAINTVersion.getPAINTClientversion());
+                VersionInfo commonInfo = new VersionInfo();
+                commonInfo.setVersionId(PAINTVersion.getPAINTCommonVersion());
+                if (null != commonInfo.compareTo(vc.get(VersionContainer.VersionedObj.CLIENT_SERVER_COMMON_VERSION))) {
+                    JOptionPane.showMessageDialog(GUIManager.getManager().getFrame(), "Please download latest version of software", "Error", JOptionPane.ERROR_MESSAGE);
+                    System.exit(-1);
+                }
 
+                if (false == clientVersionOk) {
+                    int response = JOptionPane.showConfirmDialog(GUIManager.getManager().getFrame(), "PAINT version is not the same as version available for download from the server, continue?", "Warning", JOptionPane.YES_NO_OPTION);
+                    if (JOptionPane.NO_OPTION == response) {
+                        System.exit(0);
+                    }
+                }
+
+                GOTermHelper gth = pServer.getGOTermHelper(pantherURL);
+                TaxonomyHelper th = pServer.getTaxonomyHelper(pantherURL);
+                // Get list of curatable books
+                DataTransferObj dto = new DataTransferObj();
+                dto.setVc(vc);
+
+                DataTransferObj serverObj = pServer.getCuratableBooks(pantherURL, dto);
+                if (null == serverObj) {
+                    JOptionPane.showMessageDialog(GUIManager.getManager().getFrame(), "Unable to retrieve list of curatable books from server", "Error", JOptionPane.ERROR_MESSAGE);
+                    System.exit(-1);
+                }
+                StringBuffer sb = serverObj.getMsg();
+                if (null != sb && 0 != sb.length()) {
+                    JOptionPane.showMessageDialog(GUIManager.getManager().getFrame(), "Download new version from server \n" + sb.toString(), "Error", JOptionPane.ERROR_MESSAGE);
+                    System.exit(-1);
+                }
+                
+                HashSet<String> bookSet = (HashSet<String>)serverObj.getObj();
+                if (null == vc.get(VersionContainer.VersionedObj.CLS_VERSION) || null == gth) {
+                    JOptionPane.showMessageDialog(GUIManager.getManager().getFrame(), "Unable to get static information from server", "Error", JOptionPane.ERROR_MESSAGE);
+                    System.exit(-1);
+                }
+                if (null == th) {
+                    int response = JOptionPane.showConfirmDialog(GUIManager.getManager().getFrame(), "Unable to retrieve taxonomy constraints information, annotate without taxonomy constraints?", "Warning", JOptionPane.YES_NO_OPTION);
+                    if (JOptionPane.NO_OPTION == response) {
+                        System.exit(0);
+                    }
+
+                }
+                PaintManager pm = PaintManager.inst();
+                pm.setupFixedInfo(gth, th, vc, bookSet);
+
+                GUIManager.addVetoableShutdownListener(new VetoableShutdownListener() {
+                    public boolean willShutdown() {
+                        if (true == DirtyIndicator.inst().bookUpdated()) {
+                            if (JOptionPane.YES_OPTION == JOptionPane.showConfirmDialog(GUIManager.getManager().getFrame(), "Book has been updated, save before closing?", "Book Updated", JOptionPane.YES_NO_CANCEL_OPTION, JOptionPane.WARNING_MESSAGE)) {
+                                PaintManager.inst().saveCurrent();
                             }
-                            PaintManager pm = PaintManager.inst();
-                            pm.setupFixedInfo(vi, gth, th, bookSet);
-                            
-                            GUIManager.addVetoableShutdownListener(new VetoableShutdownListener () {
-                                public boolean willShutdown() {
-                                    if (true == DirtyIndicator.inst().bookUpdated()) {
-                                        if (JOptionPane.YES_OPTION == JOptionPane.showConfirmDialog(GUIManager.getManager().getFrame(), "Book has been updated, save before closing?", "Book Updated", JOptionPane.YES_NO_CANCEL_OPTION, JOptionPane.WARNING_MESSAGE)) {
-                                            PaintManager.inst().saveCurrent();
-                                        }
-                                    }
-                                    return true;
-                                }
-                            });
-                            
-                               // These don't seem to work
-                                
+                        }
+                        return true;
+                    }
+                });
+
+                // These don't seem to work
 //                            JFrame frame = GUIManager.getManager().getFrame();
 //                            frame.addWindowListener(new java.awt.event.WindowAdapter() {
 //                                @Override
@@ -114,7 +149,6 @@ public class PAINT {
 //                                    }
 //                                }
 //                            });                               
-                                
 //                                
 //                                GUIManager.addShutdownHook(new Runnable() {
 //                                        public void run() {
@@ -123,27 +157,36 @@ public class PAINT {
 //                                            }
 //                                        }
 //                                });                                
-                                
-                                
-                                
-			}
-			catch (Exception e) { // should catch RuntimeException
-				JOptionPane.showMessageDialog(
-						null,
-						e,
-						"Warning",
-						JOptionPane.WARNING_MESSAGE
-				);
-				e.printStackTrace();
-				System.exit(2);
-			}
-		}
-	};
+            } catch (Exception e) { // should catch RuntimeException
+                JOptionPane.showMessageDialog(
+                        null,
+                        e,
+                        "Warning",
+                        JOptionPane.WARNING_MESSAGE
+                );
+                e.printStackTrace();
+                System.exit(2);
+            }
+        }
+    };
+        
+        
+    public boolean checkVersion(VersionContainer vc, String clientVersion) {
+        VersionInfo vo = vc.get(VersionContainer.VersionedObj.CLIENT_VERSION);
+        if (null == vo) {
+            return false;
+        }
+        String versionId = vo.getVersionId();
+        if (null != versionId && null != clientVersion && versionId.equals(clientVersion)) {
+            return true;
+        }
+        return false;
+    }
 
-	public static String getAppName() {
-		/*
-		 * If you want the version # included, then use getAppId
-		 */
-		return "Paint";
-	}
+    public static String getAppName() {
+        /*
+         * If you want the version # included, then use getAppId
+         */
+        return "Paint";
+    }
 }
