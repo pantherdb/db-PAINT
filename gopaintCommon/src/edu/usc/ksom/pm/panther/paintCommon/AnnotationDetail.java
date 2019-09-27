@@ -1,5 +1,5 @@
 /**
- *  Copyright 2017 University Of Southern California
+ *  Copyright 2019 University Of Southern California
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -94,8 +94,8 @@ public class AnnotationDetail implements Serializable {
     
 
     
-    private HashSet<Annotation> withAnnotSet;
-    private HashSet<Node> withNodeSet;      // PANTHER node     // IKR, IRD
+    private HashSet<Annotation> withAnnotSet;// IKR, IRD
+    private HashSet<Node> withNodeSet;      // PANTHER node     
     private HashSet<DBReference> withOtherSet;          // PMID, etc
 
 
