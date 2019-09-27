@@ -1,5 +1,5 @@
 /**
- * Copyright 2017 University Of Southern California
+ * Copyright 2019 University Of Southern California
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -21,16 +21,16 @@ import java.util.Date;
  *
  * @author muruganu
  */
-public class ClassificationVersion {
+public class ClassificationVersion implements InterVersion{
     String clsId;
     String name;
     String releaseDate;
 
-    public String getClsId() {
+    public String getId() {
         return clsId;
     }
 
-    public void setClsId(String clsId) {
+    public void setId(String clsId) {
         this.clsId = clsId;
     }
 
