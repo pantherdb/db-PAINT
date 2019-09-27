@@ -1,21 +1,17 @@
-/* 
- * 
- * Copyright (c) 2018, Regents of the University of California 
- * All rights reserved.
+/**
+ * Copyright 2019 University Of Southern California
  *
- * Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
- * 
- * Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.
- * Neither the name of the Lawrence Berkeley National Lab nor the names of its contributors may be used to endorse 
- * or promote products derived from this software without specific prior written permission.
- * 
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, 
- * INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. 
- * IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, 
- * OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; 
- * OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) 
- * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- * 
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not
+ * use this file except in compliance with the License. You may obtain a copy of
+ * the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations under
+ * the License.
  */
 package org.paint.main;
 
@@ -27,10 +23,13 @@ import edu.usc.ksom.pm.panther.paint.matrix.MatrixBuilder;
 import edu.usc.ksom.pm.panther.paint.matrix.MatrixInfo;
 import edu.usc.ksom.pm.panther.paint.matrix.TermAncestor;
 import edu.usc.ksom.pm.panther.paintCommon.Annotation;
+import edu.usc.ksom.pm.panther.paintCommon.Comment;
+import edu.usc.ksom.pm.panther.paintCommon.Domain;
 import edu.usc.ksom.pm.panther.paintCommon.GOTermHelper;
 import edu.usc.ksom.pm.panther.paintCommon.Node;
 import edu.usc.ksom.pm.panther.paintCommon.NodeVariableInfo;
 import edu.usc.ksom.pm.panther.paintCommon.SaveBookInfo;
+import edu.usc.ksom.pm.panther.paintCommon.VersionContainer;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.ObjectOutputStream;
@@ -54,6 +53,7 @@ import org.paint.datamodel.Family;
 import org.paint.datamodel.GeneNode;
 import org.paint.go.GO_Util;
 import org.paint.gui.DirtyIndicator;
+import org.paint.gui.event.DomainChangeEvent;
 import org.paint.gui.event.EventManager;
 import org.paint.gui.event.ProgressEvent;
 import org.paint.gui.evidence.ActionLog;
@@ -104,6 +104,7 @@ public class PaintManager {
     private static OBOSession go_root;
 
     // Static information from server
+    private VersionContainer versinContainer;
     private VersionInfo versionInfo;
     private GOTermHelper goTermHelper;
     private TaxonomyHelper taxonHelper;
@@ -305,7 +306,7 @@ public class PaintManager {
         }
         GeneNode node = paintIdtoGene.get(id);
         if (node == null && id.startsWith(getFamily().getFamilyID())) {
-            id = id.substring(id.indexOf('_') + 1);
+            id = id.substring(id.indexOf(':') + 1);
             node = paintIdtoGene.get(id);
         }
         return node;
@@ -405,7 +406,8 @@ public class PaintManager {
             }
             for (Annotation a : annotList) {
                 String code = a.getSingleEvidenceCodeFromSet();
-                if (edu.usc.ksom.pm.panther.paintCommon.Evidence.CODE_IBD.equals(code) || edu.usc.ksom.pm.panther.paintCommon.Evidence.CODE_IKR.equals(code) || edu.usc.ksom.pm.panther.paintCommon.Evidence.CODE_IRD.equals(code)) {
+                GeneNode gn = PaintManager.inst().getGeneByPTNId(n.getStaticInfo().getPublicId());
+                if (edu.usc.ksom.pm.panther.paintCommon.Evidence.CODE_IBD.equals(code) || (edu.usc.ksom.pm.panther.paintCommon.Evidence.CODE_IKR.equals(code) && false == gn.isLeaf()) || edu.usc.ksom.pm.panther.paintCommon.Evidence.CODE_IRD.equals(code)) {
 //                        ArrayList<Annotation> astdList = saveNodeLookup.get(n);
 //                        if (null == astdList) {
 //                            astdList = new ArrayList<Annotation>();
@@ -455,7 +457,7 @@ public class PaintManager {
         sbi.setBookId(getFamily().getFamilyID());
         sbi.setPrunedList(prunedList);
         sbi.setAnnotationList(annotationList);
-        sbi.setComment(getComment());
+        sbi.setComment(getFamily().getFamilyComment());
         sbi.setFamilyName(getFamily().getName());
         sbi.setSaveStatus(new Integer(n));
 
@@ -507,6 +509,20 @@ public class PaintManager {
         DirtyIndicator.inst().setAnnotated(false);
         return true;
     }
+    
+    public void handleDomainInfo(String famId, HashMap<String, HashMap<String, ArrayList<Domain>>> nodeToDomainLookup) {
+        if (null == family) {
+            return;
+        }
+        String curId = family.getFamilyID();
+        if (null != curId && true == curId.equals(famId)) {
+            if (null == msa_pane) {
+                return;
+            }
+            msa_pane.handleDomainData(nodeToDomainLookup);
+            EventManager.inst().fireDomainChangeEvent(new DomainChangeEvent(this));
+        }
+    }
 
     /**
      * Method declaration
@@ -555,7 +571,7 @@ public class PaintManager {
             if (family.getMSAcontent() != null) {
                 progressMessage = "Initializing multiple sequence alignment";
                 fireProgressChange(progressMessage, 50, ProgressEvent.Status.START);
-                MSA msa = new MSA(family.getMSAcontent(), family.getWtsContent());
+                MSA msa = new MSA(family.getMSAcontent(), family.getWtsContent(), family.getNodeToDomainLookup(familyID));
                 msa_pane.setModel(msa);
             }
 
@@ -629,19 +645,51 @@ public class PaintManager {
 //		return term_list;
         return null;
     }
+    
 
-    public String getComment() {
+    public String getCuratorNotes() {
         if (null == family) {
             return null;
         }
-        return family.getFamilyComment();
+        Comment c = family.getFamilyComment();
+        if (null == c) {
+            return null;
+        }
+        return c.getCommentUserNotes();
     }
 
-    public void setComment(String comment) {
-        if (null == family) {
+    public void setCuratorNotes(String curatorNotes) {
+        if (null == family || null == curatorNotes) {
             return;
         }
-        family.setFamilyComment(comment);
+        Comment c = family.getFamilyComment();
+        if (null == c) {
+            c = new Comment(null, null, null);
+            family.setFamilyComment(c);
+        }
+        c.setCommentUserNotes(curatorNotes);
+    }
+    
+    public String getUpdateHistory() {
+        if (null == family) {
+            return null;
+        }
+        Comment c = family.getFamilyComment();
+        if (null == c) {
+            return null;
+        }
+        return c.getRevisionHistoryInfo();        
+    }
+    
+    public String getFullComment() {
+        if (null == family) {
+            return null;
+        }
+        Comment c = family.getFamilyComment();
+        if (null == c) {
+            return null;
+        }
+        return c.getFormattedComment();        
     }
 
     /**
@@ -684,7 +732,7 @@ public class PaintManager {
         return tree_pane;
     }
 
-    public MSAPanel getMSA() {
+    public MSAPanel getMSAPanel() {
         return msa_pane;
     }
 
@@ -696,15 +744,15 @@ public class PaintManager {
         return annot_matrix;
     }
 
-    public void setupFixedInfo(VersionInfo versionInfo, GOTermHelper goTermHelper, TaxonomyHelper taxonHelper, HashSet<String> curatableBookSet) {
-        this.versionInfo = versionInfo;
+    public void setupFixedInfo(GOTermHelper goTermHelper, TaxonomyHelper taxonHelper, VersionContainer vc, HashSet<String> curatableBookSet) {
         this.goTermHelper = goTermHelper;
         this.taxonHelper = taxonHelper;
+        this.versinContainer = vc;
         this.curatableBookSet = curatableBookSet;
     }
-
-    public VersionInfo getVersionInfo() {
-        return versionInfo;
+   
+    public VersionContainer getVersionContainer() {
+        return versinContainer;
     }
 
     public GOTermHelper goTermHelper() {
