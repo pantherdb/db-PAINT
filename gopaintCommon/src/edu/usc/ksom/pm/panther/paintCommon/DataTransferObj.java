@@ -1,5 +1,5 @@
 /**
- *  Copyright 2017 University Of Southern California
+ *  Copyright 2019 University Of Southern California
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -20,7 +20,16 @@ import java.io.Serializable;
 
 public class DataTransferObj implements Serializable {
     private Object obj;
+
+    public VersionContainer getVc() {
+        return vc;
+    }
+
+    public void setVc(VersionContainer vc) {
+        this.vc = vc;
+    }
     private StringBuffer msg;
+    private VersionContainer vc;
     
     public DataTransferObj() {
         
@@ -30,6 +39,12 @@ public class DataTransferObj implements Serializable {
         this.obj = obj;
         this.msg =  msg;
     }
+    
+    public DataTransferObj(VersionContainer vc, Object obj, StringBuffer msg) {
+        this.vc = vc;
+        this.obj = obj;
+        this.msg =  msg;
+    }    
 
     public Object getObj() {
         return obj;
