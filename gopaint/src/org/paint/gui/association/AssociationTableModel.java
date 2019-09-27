@@ -1,5 +1,5 @@
 /**
- *  Copyright 2018 University Of Southern California
+ *  Copyright 2019 University Of Southern California
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -238,7 +238,7 @@ public class AssociationTableModel extends AbstractTableModel implements PaintTa
 
 
         // NOT for IBA only.  IBA cannot be the result of an IKR or IRD (i.e. has parent)
-        if (true == tag.equals(COL_NAME_QUALIFIER_NOT) && true == GOConstants.ANCESTRAL_EVIDENCE_CODE.equals(code) && false == AnnotationUtil.isIBAForIKRorIRD(a, gNode)) {
+        if (true == tag.equals(COL_NAME_QUALIFIER_NOT) && true == Evidence.CODE_IBA.equals(code) && false == AnnotationUtil.isIBAForIKRorIRD(a, gNode)) {
 //        if (true == tag.equals(COL_NAME_QUALIFIER_NOT) && (true == GOConstants.ANCESTRAL_EVIDENCE_CODE.equals(code) || true == GOConstants.KEY_RESIDUES_EC.equals(code) || true == GOConstants.DIVERGENT_EC.equals(code))) {
             return true;
         }
@@ -446,7 +446,7 @@ public class AssociationTableModel extends AbstractTableModel implements PaintTa
         if (COL_NAME_DELETE.equals(tag)) {
             //Evidence e = a.getEvidence();
             String code = a.getSingleEvidenceCodeFromSet();
-            if (true == GOConstants.DESCENDANT_SEQUENCES_EC.equals(code) || true == GOConstants.KEY_RESIDUES_EC.equals(code) || true == GOConstants.DIVERGENT_EC.equals(code)) {
+            if (false == a.isExperimental() && true == Evidence.isPaint(code)) {
                 return Boolean.TRUE;
             }
             return null;
@@ -496,7 +496,9 @@ public class AssociationTableModel extends AbstractTableModel implements PaintTa
         if (null != withEvSet) {
             for (WithEvidence withEv : withEvSet) {
                 Annotation withAnnot = (Annotation) withEv.getWith();
-                if ((Evidence.CODE_IKR.equals(withAnnot.getSingleEvidenceCodeFromSet()) || Evidence.CODE_IRD.equals(a.getSingleEvidenceCodeFromSet())) && withAnnot == a) {
+                Node n = withAnnot.getAnnotationDetail().getAnnotatedNode();
+                GeneNode gn = PaintManager.inst().getGeneByPTNId(n.getStaticInfo().getPublicId());                
+                if (((Evidence.CODE_IKR.equals(withAnnot.getSingleEvidenceCodeFromSet()) && false == gn.isLeaf()) || Evidence.CODE_IRD.equals(a.getSingleEvidenceCodeFromSet())) && withAnnot == a) {
                     continue;
                 }
                 addedList.add(withAnnot.getAnnotationDetail().getAnnotatedNode());
@@ -555,7 +557,9 @@ public class AssociationTableModel extends AbstractTableModel implements PaintTa
         if (null != withEvSet) {
             for (WithEvidence withEv : withEvSet) {
                 Annotation withAnnot = (Annotation) withEv.getWith();
-                if ((Evidence.CODE_IKR.equals(withAnnot.getSingleEvidenceCodeFromSet()) || Evidence.CODE_IRD.equals(a.getSingleEvidenceCodeFromSet())) && withAnnot == a) {
+                Node n = withAnnot.getAnnotationDetail().getAnnotatedNode();
+                GeneNode gn = PaintManager.inst().getGeneByPTNId(n.getStaticInfo().getPublicId());
+                if (((Evidence.CODE_IKR.equals(withAnnot.getSingleEvidenceCodeFromSet()) && false == gn.isLeaf()) || Evidence.CODE_IRD.equals(a.getSingleEvidenceCodeFromSet())) && withAnnot == a) {
                     continue;
                 }
                 addedList.add(withAnnot.getAnnotationDetail().getAnnotatedNode());
@@ -634,7 +638,9 @@ public class AssociationTableModel extends AbstractTableModel implements PaintTa
             HashSet<Annotation> withs = ad.getWithAnnotSet();
             if (null != withs) {
                 for (Annotation with: withs) {
-                    if ((Evidence.CODE_IKR.equals(a.getSingleEvidenceCodeFromSet()) || Evidence.CODE_IRD.equals(a.getSingleEvidenceCodeFromSet())) && with == a) {
+                    Node n = with.getAnnotationDetail().getAnnotatedNode();
+                    GeneNode gn = PaintManager.inst().getGeneByPTNId(n.getStaticInfo().getPublicId());
+                    if (((Evidence.CODE_IKR.equals(a.getSingleEvidenceCodeFromSet()) && false == gn.isLeaf()) || Evidence.CODE_IRD.equals(a.getSingleEvidenceCodeFromSet())) && with == a) {
                         continue;
                     }
                     addedList.add(with.getAnnotationDetail().getAnnotatedNode());
