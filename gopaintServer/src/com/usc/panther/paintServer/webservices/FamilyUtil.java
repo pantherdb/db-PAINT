@@ -1,5 +1,5 @@
 /**
- *  Copyright 2018 University Of Southern California
+ *  Copyright 2019 University Of Southern California
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -278,9 +278,10 @@ public class FamilyUtil {
             HashMap<edu.usc.ksom.pm.panther.paintCommon.Annotation, ArrayList<IWith>> annotToPosWithLookup = new HashMap<edu.usc.ksom.pm.panther.paintCommon.Annotation, ArrayList<IWith>>();
             StringBuffer errorBuf = new StringBuffer();
             StringBuffer paintErrBuf = new StringBuffer();
-            HashSet<String> removeSet = new HashSet<String>();
+            HashSet<edu.usc.ksom.pm.panther.paintCommon.Annotation> removeSet = new HashSet<edu.usc.ksom.pm.panther.paintCommon.Annotation>();
             HashSet<String> modifySet = new HashSet<String>();
-            di.getFullGOAnnotations(familyId, uplVersion, nodeLookup, annotToPosWithLookup, errorBuf, paintErrBuf, removeSet, modifySet, false);
+            HashSet<edu.usc.ksom.pm.panther.paintCommon.Annotation> removedFromGOAnnot = new HashSet<edu.usc.ksom.pm.panther.paintCommon.Annotation>();
+            di.getFullGOAnnotations(familyId, uplVersion, nodeLookup, annotToPosWithLookup, errorBuf, paintErrBuf, removeSet, modifySet, removedFromGOAnnot, false);
         }
         catch(Exception e) {
             
@@ -1462,10 +1463,11 @@ public class FamilyUtil {
         HashMap<edu.usc.ksom.pm.panther.paintCommon.Annotation, ArrayList<IWith>> annotToPosWithLookup = new HashMap<edu.usc.ksom.pm.panther.paintCommon.Annotation, ArrayList<IWith>>();
         StringBuffer errorBuf = new StringBuffer();
         StringBuffer paintErrBuf = new StringBuffer();
-        HashSet<String> removeSet = new HashSet<String>();
+        HashSet<edu.usc.ksom.pm.panther.paintCommon.Annotation> removeSet = new HashSet<edu.usc.ksom.pm.panther.paintCommon.Annotation>();
         HashSet<String> modifySet = new HashSet<String>();
+        HashSet<edu.usc.ksom.pm.panther.paintCommon.Annotation> removedFromGOAnnot = new HashSet<edu.usc.ksom.pm.panther.paintCommon.Annotation>();
         try {
-            dataIO.getFullGOAnnotations(familyId, uplVersion, treeNodeLookup, annotToPosWithLookup, errorBuf, paintErrBuf, removeSet, modifySet, false);
+            dataIO.getFullGOAnnotations(familyId, uplVersion, treeNodeLookup, annotToPosWithLookup, errorBuf, paintErrBuf, removeSet, modifySet, removedFromGOAnnot, false);
             return outputFamilyAnnotationInfoStr(errorBuf, paintErrBuf, familyId, System.currentTimeMillis() - start, WSConstants.SEARCH_TYPE_FAMILY_ANNOTATION_INFO);
         } catch (Exception e) {
             e.printStackTrace();
@@ -1480,10 +1482,11 @@ public class FamilyUtil {
         HashMap<edu.usc.ksom.pm.panther.paintCommon.Annotation, ArrayList<IWith>> annotToPosWithLookup = new HashMap<edu.usc.ksom.pm.panther.paintCommon.Annotation, ArrayList<IWith>>();
         StringBuffer errorBuf = new StringBuffer();
         StringBuffer paintErrBuf = new StringBuffer();
-        HashSet<String> removeSet = new HashSet<String>();
+        HashSet<edu.usc.ksom.pm.panther.paintCommon.Annotation> removeSet = new HashSet<edu.usc.ksom.pm.panther.paintCommon.Annotation>();
         HashSet<String> modifySet = new HashSet<String>();
+        HashSet<edu.usc.ksom.pm.panther.paintCommon.Annotation> removedFromGOAnnot = new HashSet<edu.usc.ksom.pm.panther.paintCommon.Annotation>();
         try {
-            dataIO.getFullGOAnnotations(familyId, uplVersion, treeNodeLookup, annotToPosWithLookup, errorBuf, paintErrBuf, removeSet, modifySet, true);
+            dataIO.getFullGOAnnotations(familyId, uplVersion, treeNodeLookup, annotToPosWithLookup, errorBuf, paintErrBuf, removeSet, modifySet, removedFromGOAnnot, true);
             return outputFamilyAnnotationInfoStr(errorBuf, paintErrBuf, familyId, System.currentTimeMillis() - start, WSConstants.SEARCH_TYPE_AGG_FAMILY_ANNOTATION_INFO);
         } catch (Exception e) {
             e.printStackTrace();
@@ -1498,10 +1501,11 @@ public class FamilyUtil {
         HashMap<edu.usc.ksom.pm.panther.paintCommon.Annotation, ArrayList<IWith>> annotToPosWithLookup = new HashMap<edu.usc.ksom.pm.panther.paintCommon.Annotation, ArrayList<IWith>>();
         StringBuffer errorBuf = new StringBuffer();
         StringBuffer paintErrBuf = new StringBuffer();
-        HashSet<String> removeSet = new HashSet<String>();
+        HashSet<edu.usc.ksom.pm.panther.paintCommon.Annotation> removeSet = new HashSet<edu.usc.ksom.pm.panther.paintCommon.Annotation>();
         HashSet<String> modifySet = new HashSet<String>();
+        HashSet<edu.usc.ksom.pm.panther.paintCommon.Annotation> removedFromGOAnnot = new HashSet<edu.usc.ksom.pm.panther.paintCommon.Annotation>();
         try {
-            dataIO.getFullGOAnnotations(familyId, uplVersion, treeNodeLookup, annotToPosWithLookup, errorBuf, paintErrBuf, removeSet, modifySet, false);
+            dataIO.getFullGOAnnotations(familyId, uplVersion, treeNodeLookup, annotToPosWithLookup, errorBuf, paintErrBuf, removeSet, modifySet, removedFromGOAnnot, false);
             return outputFamilyOtherEvdnce(annotToPosWithLookup, familyId, System.currentTimeMillis() - start, WSConstants.SEARCH_TYPE_FAMILY_EVIDENCE_INFO);
         } catch (Exception e) {
             e.printStackTrace();
