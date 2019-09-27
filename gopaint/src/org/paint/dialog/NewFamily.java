@@ -1,23 +1,18 @@
-/* 
- * 
- * Copyright (c) 2010, Regents of the University of California 
- * All rights reserved.
+/**
+ *  Copyright 2019 University Of Southern California
  *
- * Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
- * 
- * Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.
- * Neither the name of the Lawrence Berkeley National Lab nor the names of its contributors may be used to endorse 
- * or promote products derived from this software without specific prior written permission.
- * 
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, 
- * INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. 
- * IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, 
- * OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; 
- * OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) 
- * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- * 
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing,
+ *  software distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
  */
-
 package org.paint.dialog;
 
 import java.awt.BorderLayout;
@@ -52,11 +47,12 @@ import org.apache.log4j.Logger;
 import org.paint.config.PantherDbInfo;
 import org.paint.config.Preferences;
 import org.paint.dataadapter.PantherServer;
-import org.paint.util.LoginUtil;
 import org.paint.util.SpringUtilities;
 
 import com.sri.panther.paintCommon.Book;
+import edu.usc.ksom.pm.panther.paintCommon.DataTransferObj;
 import java.util.ArrayList;
+import org.paint.main.PaintManager;
 
 
 public class NewFamily extends JDialog implements ActionListener {
@@ -319,62 +315,71 @@ public class NewFamily extends JDialog implements ActionListener {
 
 	}
 
-	public class BooksListActionListener implements ActionListener {
+    public class BooksListActionListener implements ActionListener {
 
-		public void actionPerformed(ActionEvent e) {
-			status_message.setText("");
-			String searchStr = NewFamily.this.searchTerm.getText();
-			if (null == searchStr || 0 == searchStr.length()) {
-				status_message.setText(MSG_PLEASE_ENTER_SEARCH_TERM);
-				return;
-			}
+        public void actionPerformed(ActionEvent e) {
+            status_message.setText("");
+            String searchStr = NewFamily.this.searchTerm.getText();
+            if (null == searchStr || 0 == searchStr.length()) {
+                status_message.setText(MSG_PLEASE_ENTER_SEARCH_TERM);
+                return;
+            }
 
-			Vector<String> sendInfo = new Vector<String> (2);
-			sendInfo.add(searchStr);
-			sendInfo.add(PantherDbInfo.getDbAndVersionKey());
-			String servletUrl = Preferences.inst().getPantherURL();
-			bookList.clear();
-			ArrayList<Book> infoFromServer = null;
-			submitBtn.setSelected(true);
-			PantherServer server = PantherServer.inst();
-			
-			if (NewFamily.this.geneSymbolBtn.isSelected()) {
-				infoFromServer = server.searchGeneName(servletUrl, sendInfo, null, null);
-			} else if (NewFamily.this.geneIdentifierBtn.isSelected()) {
-				infoFromServer = server.searchGeneExtId(servletUrl, sendInfo, null, null);
-			} else if (NewFamily.this.proteinIdentifierBtn.isSelected()) {
-				infoFromServer = server.searchProteinExtId(servletUrl, sendInfo, null, null);
-			}
-			else {
-				infoFromServer = server.searchDefinition(servletUrl, sendInfo, null, null); 
-			}
-			if ((null == infoFromServer) || (0 == infoFromServer.size())){
-				status_message.setText(MSG_SERVER_ERROR_CANNOT_SEARCH_BOOKS);
-				NewFamily.this.initializeBooksList(bookList);
-				submitBtn.setSelected(false);
-				return;
-			}
+            Vector<String> sendInfo = new Vector<String>(2);
+            sendInfo.add(searchStr);
+            sendInfo.add(PantherDbInfo.getDbAndVersionKey());
+            DataTransferObj dto = new DataTransferObj();
+            dto.setVc(PaintManager.inst().getVersionContainer());
+            dto.setObj(sendInfo);
+            String servletUrl = Preferences.inst().getPantherURL();
+            bookList.clear();
+            DataTransferObj infoFromServer = null;
+            submitBtn.setSelected(true);
+            PantherServer server = PantherServer.inst();
 
-//			String  errorMsg = (String) infoFromServer.elementAt(0);
-//
-//			if (0 != errorMsg.length()){
-//				status_message.setText(errorMsg);
-//				NewFamily.this.initializeBooksList(bookList);
-//				submitBtn.setSelected(false);
-//				return;
-//			}
+            if (NewFamily.this.geneSymbolBtn.isSelected()) {
+                infoFromServer = server.searchGeneName(servletUrl, dto, null, null);
+            } else if (NewFamily.this.geneIdentifierBtn.isSelected()) {
+                infoFromServer = server.searchGeneExtId(servletUrl, dto, null, null);
+            } else if (NewFamily.this.proteinIdentifierBtn.isSelected()) {
+                infoFromServer = server.searchProteinExtId(servletUrl, dto, null, null);
+            } else {
+                infoFromServer = server.searchDefinition(servletUrl, dto, null, null);
+            }
+            if ((null == infoFromServer)) {
+                status_message.setText(MSG_SERVER_ERROR_CANNOT_SEARCH_BOOKS);
+                NewFamily.this.initializeBooksList(bookList);
+                submitBtn.setSelected(false);
+                return;
+            }
 
-			bookList = infoFromServer;
+            StringBuffer sb = infoFromServer.getMsg();
+            if (null != sb && 0 != sb.length()) {
+                status_message.setText(sb.toString());
+                NewFamily.this.initializeBooksList(bookList);
+                submitBtn.setSelected(false);
+                return;
+            }
 
-			int numBooks = bookList.size();
-			if (0 == numBooks) {
-				status_message.setText(MSG_NO_BOOKS_FOR_SEARCH_CRITERIA);
-			}
+            Vector serverRtnList = (Vector) infoFromServer.getObj();
+            if (null == serverRtnList || 2 < serverRtnList.size()) {
+                status_message.setText(MSG_SERVER_ERROR_CANNOT_SEARCH_BOOKS);
+                NewFamily.this.initializeBooksList(bookList);
+                submitBtn.setSelected(false);
+                return;
+            }
 
-			NewFamily.this.initializeBooksList(bookList);
-			submitBtn.setSelected(false);
-		}
-	}
+            ArrayList<Book> bookList = (ArrayList<Book>) serverRtnList.get(1);
+
+            int numBooks = bookList.size();
+            if (0 == numBooks) {
+                status_message.setText(MSG_NO_BOOKS_FOR_SEARCH_CRITERIA);
+            }
+
+            NewFamily.this.initializeBooksList(bookList);
+            submitBtn.setSelected(false);
+        }
+    }
 
 	public void actionPerformed(ActionEvent e) {
 		if (LABEL_OPEN.equals(e.getActionCommand())) {
@@ -408,14 +413,40 @@ public class NewFamily extends JDialog implements ActionListener {
 	}
 
 	private String[]  getBooks() {
-		
-            ArrayList<Book> books = PantherServer.inst().searchAllBooks(Preferences.inst().getPantherURL(), new Vector(), null, null);
-            if (null == books) {
+            
+            Vector<String> sendInfo = new Vector<String>();
+            sendInfo.add(PantherDbInfo.getDbAndVersionKey());
+            DataTransferObj dto = new DataTransferObj();
+            dto.setVc(PaintManager.inst().getVersionContainer());
+            dto.setObj(sendInfo);
+            String servletUrl = Preferences.inst().getPantherURL();
+
+            DataTransferObj infoFromServer = PantherServer.inst().searchAllBooks(Preferences.inst().getPantherURL(), dto, null, null);
+            if ((null == infoFromServer)) {
+                status_message.setText(MSG_SERVER_ERROR_CANNOT_SEARCH_BOOKS);
                 return new String[0];
             }
-            String[] bookArray = new String[books.size()];
-            for (int i = 0; i < books.size(); i++) {
-                bookArray[i] = books.get(i).getId();
+
+            StringBuffer sb = infoFromServer.getMsg();
+            if (null != sb && 0 != sb.length()) {
+                status_message.setText(sb.toString());
+                return new String[0];
+            }
+
+            Vector serverRtnList = (Vector) infoFromServer.getObj();
+            if (null == serverRtnList || 2 < serverRtnList.size()) {
+                status_message.setText(MSG_SERVER_ERROR_CANNOT_SEARCH_BOOKS);
+                return new String[0];
+            }
+
+            ArrayList<Book> bookList = (ArrayList<Book>) serverRtnList.get(1);            
+
+            if (null == bookList) {
+                return new String[0];
+            }
+            String[] bookArray = new String[bookList.size()];
+            for (int i = 0; i < bookList.size(); i++) {
+                bookArray[i] = bookList.get(i).getId();
             }
             return bookArray;
 
