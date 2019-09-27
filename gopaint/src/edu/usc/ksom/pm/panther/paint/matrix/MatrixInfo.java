@@ -1,5 +1,5 @@
 /**
- *  Copyright 2018 University Of Southern California
+ *  Copyright 2019 University Of Southern California
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -19,7 +19,6 @@ import edu.usc.ksom.pm.panther.paintCommon.Annotation;
 import edu.usc.ksom.pm.panther.paintCommon.GOTerm;
 import edu.usc.ksom.pm.panther.paintCommon.GOTermHelper;
 import edu.usc.ksom.pm.panther.paintCommon.Node;
-import edu.usc.ksom.pm.panther.paintCommon.NodeStaticInfo;
 import edu.usc.ksom.pm.panther.paintCommon.NodeVariableInfo;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -89,8 +88,8 @@ public class MatrixInfo {
                 asn.setAnnotation(a);
                 asn.setNode(n);
 //                asnLst.add(asn);
-//                GOTerm term = gth.getTerm(a.getGoTerm());
-//                if (a.getGoTerm().equals("GO:0016791")) {
+                GOTerm term = gth.getTerm(a.getGoTerm());
+//                if ((a.getGoTerm().equals("GO:0006508") || a.getGoTerm().equals("GO:0008237")) && "PTN000054044".equals(n.getStaticInfo().getPublicId())) {
 //                    System.out.println("Here");
 //                }
                 //System.out.println("Processing " + a.getGoTerm() + " " + term.getName());
@@ -150,13 +149,6 @@ public class MatrixInfo {
                         if (null != annot) {
                             Association asn = new Association();
                             asn.setAnnotation(annot);
-                            //Annotation annotCopy = annot.makeCopy();
-                            //annotCopy.setAnnotIsToChildTerm(true);
-                            //asn.setAnnotation(annotCopy);
-//                            Annotation annotCopy = annot.makeCopy();
-//                            annotCopy.setGoTerm(term.getAcc());
-//                            annotCopy.setAnnotIsToChildTerm(true);
-//                            asn.setAnnotation(annot);
                             asn.setNode(n);
                             mg.addAssociation(term, asn);
                             //addAssociation(asn);
@@ -365,7 +357,7 @@ public class MatrixInfo {
             while (termIter.hasNext()) {
                 GOTerm ancestor = termIter.next();
                 // Remove top level ancestor nodes
-                ArrayList<GOTerm> curParents = ancestor.getParents();
+                List<GOTerm> curParents = ancestor.getParents();
                 if (null == curParents || 0 == curParents.size()) {
                     termIter.remove();
                 }
