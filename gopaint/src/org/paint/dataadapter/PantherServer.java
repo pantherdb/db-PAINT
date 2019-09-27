@@ -1,5 +1,5 @@
 /**
- *  Copyright 2018 University Of Southern California
+ *  Copyright 2019 University Of Southern California
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -26,6 +26,7 @@ import edu.usc.ksom.pm.panther.paintCommon.SaveBookInfo;
 import edu.usc.ksom.pm.panther.paintCommon.TaxonomyHelper;
 import com.sri.panther.paintCommon.TransferInfo;
 import com.sri.panther.paintCommon.User;
+import edu.usc.ksom.pm.panther.paintCommon.VersionContainer;
 import edu.usc.ksom.pm.panther.paintCommon.VersionInfo;
 import java.io.IOException;
 import java.io.ObjectInputStream;
@@ -38,15 +39,19 @@ import java.util.HashSet;
 import java.util.Vector;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
+import javax.swing.JOptionPane;
+import org.bbop.framework.GUIManager;
 import org.paint.config.PantherDbInfo;
 import org.paint.config.Preferences;
 import org.paint.gui.event.EventManager;
 import org.paint.gui.event.ProgressEvent;
+import org.paint.main.PaintManager;
 
 public class PantherServer {
 
     public static final String CHAR_ENCODING = "UTF-8";
     public static final String STRING_EMPTY = "";
+    private static final String SUFFIX_PATH_VERSIONS = "/servlet/edu.usc.ksom.pm.panther.paintServer.servlet.DataServlet?action=versions";    
 
     public static final String MSG_ERROR_UNABLE_TO_LOCK_BOOKS = "Error unable to lock books";
     public static final String MSG_ERROR_CONCAT = "Server has returned the following error:  ";
@@ -63,6 +68,7 @@ public class PantherServer {
     public static final String ACTION_GET_TREE = "tree";
     public static final String ACTION_GET_NODES = "nodes";
     public static final String ACTION_GET_FAMILY_NAME = "familyName";
+    public static final String ACTION_GET_FAMILY_DOMAIN = "familyDomain";    
     public static final String ACTION_GET_FAMILY_COMMENT = "familyComment";
     public static final String ACTION_SAVE_BOOK = "saveBook";
 
@@ -103,140 +109,152 @@ public class PantherServer {
         return INSTANCE;
     }
 
-	/**
-	 * Method declaration
-	 *
-	 *
-	 * @param fi
-	 * @param cp
-	 * @param userInfo
-	 * @param uplVersion
-	 * @param familyID
-	 *
-	 * @return
-	 *
-	 * @see
-	 */
-	public RawComponentContainer getRawPantherFam(Vector<? extends Object> userInfo, String familyID) {
+//	/**
+//	 * Method declaration
+//	 *
+//	 *
+//	 * @param fi
+//	 * @param cp
+//	 * @param userInfo
+//	 * @param uplVersion
+//	 * @param familyID
+//	 *
+//	 * @return
+//	 *
+//	 * @see
+//	 */
+//    public RawComponentContainer getRawPantherFam(Vector<? extends Object> userInfo, String familyID) {
+//
+//        String progressMessage = "Fetching protein family";
+//
+//        fireProgressChange(progressMessage, 0, ProgressEvent.Status.START);
+//
+//        Vector objs = new Vector();
+//
+//        objs.addElement(userInfo);
+//        objs.addElement(PantherDbInfo.getDbAndVersionKey());
+//        objs.addElement(familyID);
+//        DataTransferObj dto = new DataTransferObj();
+//        dto.setVc(PaintManager.inst().getVersionContainer());
+//        String servletURL = Preferences.inst().getPantherURL();
+//        DataTransferObj serverOutput = (DataTransferObj) sendAndReceive(servletURL, REQUEST_OPEN_BOOK, dto, null, null);
+//
+//        if (null == serverOutput) {
+//            JOptionPane.showMessageDialog(GUIManager.getManager().getFrame(),
+//                    "Unable to open book",
+//                    "Book Error",
+//                    JOptionPane.ERROR_MESSAGE);
+//            return null;
+//        }
+//        StringBuffer sb = serverOutput.getMsg();
+//        if (null != sb && 0 != sb.length()) {
+//            JOptionPane.showMessageDialog(GUIManager.getManager().getFrame(),
+//                    sb.toString(),
+//                    "Book Error",
+//                    JOptionPane.ERROR_MESSAGE);
+//            return null;
+//        }
+//
+//        Vector output = (Vector) serverOutput.getObj();
+//        TransferInfo ti = (TransferInfo) output.elementAt(0);
+//
+//        if (0 != ti.getInfo().length()) {
+//            System.out.println("Server cannot access information for transfer: " + ti.getInfo());
+//            return null;
+//        }
+//
+//        RawComponentContainer container = (RawComponentContainer) output.elementAt(1);
+//
+//        fireProgressChange(progressMessage, 100);
+//
+//        return container;
+//
+//    }
 
-		String progressMessage = "Fetching protein family";
-
-		fireProgressChange(progressMessage, 0, ProgressEvent.Status.START);
-
-		Vector  objs = new Vector();
-
-		objs.addElement(userInfo);
-		objs.addElement(PantherDbInfo.getDbAndVersionKey());
-		objs.addElement(familyID);
-		String servletURL = Preferences.inst().getPantherURL();
-		Object  o = sendAndReceive(servletURL, REQUEST_OPEN_BOOK, objs, null, null);
-
-
-		if (null == o){
-			return null;
-		}
-		
-		Vector  output = (Vector) o;
-
-		TransferInfo  ti = (TransferInfo) output.elementAt(0);
-
-		if (0 != ti.getInfo().length()){
-			System.out.println("Server cannot access information for transfer: " + ti.getInfo());
-			return null;
-		}
-
-		RawComponentContainer container = (RawComponentContainer) output.elementAt(1);
-
-		fireProgressChange(progressMessage, 100);
-
-		return container;
-
-	}
-
-	public ArrayList<Book> searchGeneName(String servletURL, Object sendInfo,
+	public DataTransferObj searchGeneName(String servletURL, Object sendInfo,
 			String sessionIdName,
 			String sessionIdValue) {
 		return doSearch(servletURL, REQUEST_SEARCH_GENE_NAME,
 				sendInfo, sessionIdName, sessionIdValue);
 	}
 
-	public ArrayList<Book> searchGeneExtId(String servletURL, Object sendInfo,
+	public DataTransferObj searchGeneExtId(String servletURL, Object sendInfo,
 			String sessionIdName,
 			String sessionIdValue) {
 		return doSearch(servletURL, REQUEST_SEARCH_GENE_EXT_ID,
 				sendInfo, sessionIdName, sessionIdValue);
 	}
 
-	public ArrayList<Book> searchProteinExtId(String servletURL, Object sendInfo,
+	public DataTransferObj searchProteinExtId(String servletURL, Object sendInfo,
 			String sessionIdName,
 			String sessionIdValue) {
 		return doSearch(servletURL, REQUEST_SEARCH_PROTEIN_EXT_ID,
 				sendInfo, sessionIdName, sessionIdValue);
 	}
 
-	public ArrayList<Book> searchDefinition(String servletURL, Object sendInfo,
+	public DataTransferObj searchDefinition(String servletURL, Object sendInfo,
 			String sessionIdName,
 			String sessionIdValue) {
 		return doSearch(servletURL, REQUEST_SEARCH_DEFINITION,
 				sendInfo, sessionIdName, sessionIdValue);
 	}
-	public ArrayList<Book> searchBookId(String servletURL, Object sendInfo,
+	public DataTransferObj searchBookId(String servletURL, Object sendInfo,
 			String sessionIdName,
 			String sessionIdValue) {
 		return doSearch(servletURL, REQUEST_SEARCH_BOOK_ID,
 				sendInfo, sessionIdName, sessionIdValue);
 	}        
-	public ArrayList<Book> searchBookPTN(String servletURL, Object sendInfo,
+	public DataTransferObj searchBookPTN(String servletURL, Object sendInfo,
 			String sessionIdName,
 			String sessionIdValue) {
 		return doSearch(servletURL, REQUEST_SEARCH_BOOK_PTN,
 				sendInfo, sessionIdName, sessionIdValue);
 	}
         
-        public ArrayList<Book> searchRequirePaintReviewUnlocked(String servletURL, Object sendInfo,
+        public DataTransferObj searchRequirePaintReviewUnlocked(String servletURL, Object sendInfo,
 			String sessionIdName,
 			String sessionIdValue) {
 		return doSearch(servletURL, REQUEST_SEARCH_REQUIRE_PAINT_REVIEW_UNLOCKED,
 				sendInfo, sessionIdName, sessionIdValue);
 	}
 
-	public ArrayList<Book> searchAllBooks(String servletURL, Object sendInfo,
+	public DataTransferObj searchAllBooks(String servletURL, Object sendInfo,
 			String sessionIdName,
 			String sessionIdValue) {
 		return doSearch(servletURL, REQUEST_SEARCH_ALL_BOOKS,
 				sendInfo, sessionIdName, sessionIdValue);
 	}
         
-    public  ArrayList<Book> getMyBooks(String servletURL, Object sendInfo,
+    public  DataTransferObj getMyBooks(String servletURL, Object sendInfo,
                                            String sessionIdName,
                                            String sessionIdValue) {
-        return (ArrayList<Book>)sendAndReceiveZip(servletURL, REQUEST_MY_BOOKS, sendInfo, sessionIdName, sessionIdValue);
+        return (DataTransferObj)sendAndReceiveZip(servletURL, REQUEST_MY_BOOKS, sendInfo, sessionIdName, sessionIdValue);
         
     }
     
-    public  ArrayList<Book> searchUncuratedBooks(String servletURL, Object sendInfo,
+    public  DataTransferObj searchUncuratedBooks(String servletURL, Object sendInfo,
                     String sessionIdName,
                     String sessionIdValue) {
             return doSearch(servletURL, REQUEST_SEARCH_UNCURATED_BOOKS,
                             sendInfo, sessionIdName, sessionIdValue);
     }
     
-    public String lockAndUnLockBooks(String servletURL, String actionRequest, Object sendInfo,
+    public DataTransferObj lockAndUnLockBooks(String servletURL, String actionRequest, Object sendInfo,
             String sessionIdName,
             String sessionIdValue) {
-        Object serverOutput = sendAndReceiveZip(servletURL, actionRequest, sendInfo, sessionIdName, sessionIdValue);
+        return (DataTransferObj)sendAndReceiveZip(servletURL, actionRequest, sendInfo, sessionIdName, sessionIdValue);
 
-        if (null == serverOutput) {
-            return SERVER_ERROR;
-        }
-        TransferInfo ti = (TransferInfo) ((Vector) serverOutput).elementAt(0);
-        return ti.getInfo();
+//        if (null == serverOutput) {
+//            return SERVER_ERROR;
+//        }
+//        TransferInfo ti = (TransferInfo) ((Vector) serverOutput).elementAt(0);
+//        return ti.getInfo();
     }
 
-    public String unlockBooks(String servletURL, Object sendInfo,
+    public DataTransferObj unlockBooks(String servletURL, Object sendInfo,
             String sessionIdName,
             String sessionIdValue) {
-        return lockAndUnLockBooks(servletURL, REQUEST_UNLOCK_BOOKS, sendInfo, sessionIdName, sessionIdValue);
+        return (DataTransferObj)lockAndUnLockBooks(servletURL, REQUEST_UNLOCK_BOOKS, sendInfo, sessionIdName, sessionIdValue);
     }
 
     private void fireProgressChange(String message, int percentageDone, ProgressEvent.Status status) {
@@ -248,13 +266,8 @@ public class PantherServer {
 //		fireProgressChange(message, percentageDone, ProgressEvent.Status.RUNNING);
     }
 
-    private ArrayList<Book> doSearch(String servletURL, String actionRequest, Object sendInfo, String sessionIdName, String sessionIdValue) {
-        Vector info = (Vector) sendAndReceiveZip(servletURL, actionRequest, sendInfo, sessionIdName, sessionIdValue);
-        if (null == info || 2 < info.size()) {
-            return null;
-        }
-        return (ArrayList<Book>) info.get(1);
-
+    private DataTransferObj doSearch(String servletURL, String actionRequest, Object sendInfo, String sessionIdName, String sessionIdValue) {
+        return (DataTransferObj) sendAndReceiveZip(servletURL, actionRequest, sendInfo, sessionIdName, sessionIdValue);
     }
 
     public String getServerStatus() {
@@ -460,44 +473,78 @@ public class PantherServer {
 		return outputFromServlet;			
 	}
         
-        public String getFamilyComment(String serverPath, String bookId) {
+        public DataTransferObj getFamilyComment(String serverPath, DataTransferObj dto) {
             server_status = "";
-            Object serverOutput = sendAndReceiveZip(serverPath, ACTION_GET_FAMILY_COMMENT, bookId, null, null);
-            return (String)serverOutput;
+            return (DataTransferObj)sendAndReceiveZip(serverPath, ACTION_GET_FAMILY_COMMENT, dto, null, null);
         }
         
-        public String getFamilyName(String serverPath, String bookId) {
+        public DataTransferObj getFamilyName(String serverPath, DataTransferObj dto) {
             server_status = "";
-            Object serverOutput = sendAndReceiveZip(serverPath, ACTION_GET_FAMILY_NAME, bookId, null, null);
-            return (String)serverOutput;
+            return (DataTransferObj)sendAndReceiveZip(serverPath, ACTION_GET_FAMILY_NAME, dto, null, null);
         }
         
-        public String[] getTree(String serverPath, String bookId) {
+        public DataTransferObj getFamilyDomain(String serverPath, DataTransferObj dto) {
             server_status = "";
-            Object serverOutput = sendAndReceiveZip(serverPath, ACTION_GET_TREE, bookId, null, null);
-            return (String[])serverOutput;
+            return (DataTransferObj)sendAndReceiveZip(serverPath, ACTION_GET_FAMILY_DOMAIN, dto, null, null);
+        }        
+        
+        public DataTransferObj getTree(String serverPath, DataTransferObj dto) {
+            server_status = "";
+            return (DataTransferObj)sendAndReceiveZip(serverPath, ACTION_GET_TREE, dto, null, null);
         }
         
-        public DataTransferObj getNodes(String serverPath, String bookId) {
+        public DataTransferObj getNodes(String serverPath, DataTransferObj dto) {
             server_status = "";
-            Object serverOutput = sendAndReceiveZip(serverPath, ACTION_GET_NODES, bookId, null, null);
+            Object serverOutput = sendAndReceiveZip(serverPath, ACTION_GET_NODES, dto, null, null);
             if (null == serverOutput) {
                 System.out.println("Nodes information from server is null");
             }
             return (DataTransferObj)serverOutput;
         }
         
-        public String saveBook(String serverPath, SaveBookInfo sbi) {
+        public DataTransferObj getMSA(String serverPath, DataTransferObj dto) {
             server_status = "";
-            Object serverOutput = sendAndReceiveZip(serverPath, ACTION_SAVE_BOOK, sbi, null, null);
-            return (String)serverOutput;
+            return (DataTransferObj)sendAndReceiveZip(serverPath, ACTION_GET_MSA, dto, null, null);
+//            return (MSA)serverOutput;
         }
-        
-        public MSA getMSA(String serverPath, String bookId) {
+
+        public DataTransferObj saveBook(String serverPath, DataTransferObj dto) {
             server_status = "";
-            Object serverOutput = sendAndReceiveZip(serverPath, ACTION_GET_MSA, bookId, null, null);
-            return (MSA)serverOutput;
+            return (DataTransferObj)sendAndReceiveZip(serverPath, ACTION_SAVE_BOOK, dto, null, null);
+//            return (String)serverOutput;
         }        
+
+    public VersionContainer getVersions(String serverPath) {
+        server_status = "";
+        try {
+			// try to get if from the session
+            // connect to the servlet
+            URL servlet = new URL(serverPath + SUFFIX_PATH_VERSIONS);
+            System.out.println("Getting versions from " + serverPath);
+            URLConnection servletConnection = servlet.openConnection();
+
+            // Don't used a cached version of URL connection.
+            servletConnection.setUseCaches(false);
+            servletConnection.setDefaultUseCaches(false);
+            //
+            // The servlet will return a Data Transfer Object 
+            //
+            ObjectInputStream inputFromServlet = new ObjectInputStream(new GZIPInputStream(servletConnection.getInputStream()));
+            DataTransferObj dto = (DataTransferObj) inputFromServlet.readObject();
+            inputFromServlet.close();
+            return dto.getVc();
+        } catch (MalformedURLException muex) {
+            muex.printStackTrace();
+            setServerStatus(muex.getLocalizedMessage());
+        } catch (IOException ioex) {
+            ioex.printStackTrace();
+            setServerStatus(ioex.getLocalizedMessage());
+        } catch (ClassNotFoundException cnfex) {
+            cnfex.printStackTrace();
+            setServerStatus(cnfex.getLocalizedMessage());
+        }
+        return null;
+    }  
         
         public VersionInfo getVersionInfo(String serverPath) {
 		VersionInfo vi = null;
@@ -567,38 +614,39 @@ public class PantherServer {
 		return goTermHelper;            
         }
         
-    public HashSet<String> getCuratableBooks(String serverPath) {
-        HashSet<String> bookSet = null;
-        try {
-			// try to get if from the session
-            // connect to the servlet
-            URL servlet = new URL(serverPath + "/servlet/edu.usc.ksom.pm.panther.paintServer.servlet.DataServlet?action=booksWithExpEvdnce");
-            System.out.println("Connecting to " + serverPath + " Get curatable books information");
-            URLConnection servletConnection = servlet.openConnection();
-
-            // Don't used a cached version of URL connection.
-            servletConnection.setUseCaches(false);
-            servletConnection.setDefaultUseCaches(false);
-            
-            // Read the input from the servlet.
-            ObjectInputStream inputFromServlet = new ObjectInputStream(new GZIPInputStream(servletConnection.getInputStream()));
-            bookSet = (HashSet<String>) inputFromServlet.readObject();
-            inputFromServlet.close();
-        } catch (MalformedURLException muex) {
-            setServerStatus(muex.getLocalizedMessage());
-            muex.printStackTrace();
-            bookSet = null;
-        } catch (IOException ioex) {
-            setServerStatus(ioex.getLocalizedMessage());
-            ioex.printStackTrace();
-            bookSet = null;
-        } catch (ClassNotFoundException cnfex) {
-            setServerStatus(cnfex.getLocalizedMessage());
-            cnfex.printStackTrace();
-            bookSet = null;
-        }
-
-        return bookSet;
+    public DataTransferObj getCuratableBooks(String serverPath, DataTransferObj dto) {
+        return (DataTransferObj)sendAndReceiveZip(serverPath + "/servlet/edu.usc.ksom.pm.panther.paintServer.servlet.DataServlet?action=booksWithExpEvdnce", dto, null, null);
+//        HashSet<String> bookSet = null;
+//        try {
+//			// try to get if from the session
+//            // connect to the servlet
+//            URL servlet = new URL(serverPath + "/servlet/edu.usc.ksom.pm.panther.paintServer.servlet.DataServlet?action=booksWithExpEvdnce");
+//            System.out.println("Connecting to " + serverPath + " Get curatable books information");
+//            URLConnection servletConnection = servlet.openConnection();
+//
+//            // Don't used a cached version of URL connection.
+//            servletConnection.setUseCaches(false);
+//            servletConnection.setDefaultUseCaches(false);
+//            
+//            // Read the input from the servlet.
+//            ObjectInputStream inputFromServlet = new ObjectInputStream(new GZIPInputStream(servletConnection.getInputStream()));
+//            bookSet = (HashSet<String>) inputFromServlet.readObject();
+//            inputFromServlet.close();
+//        } catch (MalformedURLException muex) {
+//            setServerStatus(muex.getLocalizedMessage());
+//            muex.printStackTrace();
+//            bookSet = null;
+//        } catch (IOException ioex) {
+//            setServerStatus(ioex.getLocalizedMessage());
+//            ioex.printStackTrace();
+//            bookSet = null;
+//        } catch (ClassNotFoundException cnfex) {
+//            setServerStatus(cnfex.getLocalizedMessage());
+//            cnfex.printStackTrace();
+//            bookSet = null;
+//        }
+//
+//        return bookSet;
     }    
         
     public TaxonomyHelper getTaxonomyHelper(String serverPath) {
