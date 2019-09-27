@@ -1,24 +1,22 @@
-/* 
- * 
- * Copyright (c) 2010, Regents of the University of California 
- * All rights reserved.
+/**
+ *  Copyright 2019 University Of Southern California
  *
- * Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
- * 
- * Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.
- * Neither the name of the Lawrence Berkeley National Lab nor the names of its contributors may be used to endorse 
- * or promote products derived from this software without specific prior written permission.
- * 
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, 
- * INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. 
- * IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, 
- * OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; 
- * OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) 
- * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- * 
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing,
+ *  software distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
  */
 package org.paint.gui.msa;
 
+import com.sri.panther.paintCommon.util.Utils;
+import edu.usc.ksom.pm.panther.paintCommon.Domain;
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Graphics;
@@ -27,9 +25,13 @@ import java.awt.Rectangle;
 import java.awt.event.InputEvent;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
+import java.awt.event.MouseMotionListener;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Vector;
 
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
@@ -46,13 +48,13 @@ import org.paint.gui.event.NodeReorderEvent;
 import org.paint.gui.event.NodeReorderListener;
 import org.paint.main.PaintManager;
 
-public class MSAPanel extends JPanel 
-implements 
-MouseListener, 
-Scrollable, 
-GeneSelectListener, 
-NodeReorderListener 
-{
+public class MSAPanel extends JPanel
+        implements
+        MouseListener,
+        MouseMotionListener,
+        Scrollable,
+        GeneSelectListener,
+        NodeReorderListener {
 	/**
 	 * 
 	 */
@@ -73,6 +75,7 @@ NodeReorderListener
 	public MSAPanel(){
 		setBackground(Color.white);
 		addMouseListener(this);
+                addMouseMotionListener(this);
 		EventManager manager = EventManager.inst();
 		manager.registerGeneListener(this);
 		manager.registerNodeReorderListener(this);
@@ -96,25 +99,32 @@ NodeReorderListener
 	 *
 	 * @see
 	 */
-	public void mouseClicked(MouseEvent e){
+    public void mouseClicked(MouseEvent e) {
+        if (null == msa) {
+            return;
+        }
+        if (MSA.MSA_DISPLAY.DOMAIN_TRIMMED == msa.getDisplayType()) {
+            return;
+        }
 
-		// Handle only right click
-		Graphics  g = this.getGraphics();
-		Point p = e.getPoint();
-		if (InputEvent.BUTTON3_MASK != (e.getModifiers() & InputEvent.BUTTON3_MASK)){
-			GeneNode node = msa.getSelectedGene(p, g);
-			if (node != null) {
-				ArrayList<GeneNode> selection = new ArrayList<GeneNode> ();
-				selection.add(node);
-				GeneSelectEvent ge = new GeneSelectEvent (this, selection, node);
-				EventManager.inst().fireGeneEvent(ge);
-			}
-		} else {
-			msa.setSelectedColInfo(p, g);
-			super.paintComponent(g);
-			msa.draw(g, ((JScrollPane) (this.getParent().getParent())).getViewport().getViewRect());
-		}
-	}
+        // Handle only right click
+        Graphics g = this.getGraphics();
+        Point p = e.getPoint();
+        if (InputEvent.BUTTON3_MASK != (e.getModifiers() & InputEvent.BUTTON3_MASK)) {
+            GeneNode node = msa.getSelectedGene(p, g);
+            if (node != null) {
+                ArrayList<GeneNode> selection = new ArrayList<GeneNode>();
+                selection.add(node);
+                GeneSelectEvent ge = new GeneSelectEvent(this, selection, node);
+                EventManager.inst().fireGeneEvent(ge);
+            }
+        } else {
+            if (true == msa.setSelectedColInfo(p, g)) {
+                super.paintComponent(g);
+                msa.draw(g, ((JScrollPane) (this.getParent().getParent())).getViewport().getViewRect());
+            }
+        }
+    }
 
 	/**
 	 * Method declaration
@@ -234,6 +244,14 @@ NodeReorderListener
 		this.msa = msa;
 		revalidate();
 	}
+        
+        public void handleDomainData(HashMap<String, HashMap<String, ArrayList<Domain>>> domainLookup) {
+            if (null == msa) {
+                return;
+            }
+            msa.handleDomainData(domainLookup);
+            revalidate();
+        }
 
 	public boolean isWeighted() {
 		if (msa != null)
@@ -267,10 +285,10 @@ NodeReorderListener
 	public void setFullLength(boolean full) {
 		if (msa != null) {
 			msa.setFullLength(full);
-			revalidate();
+			repaint();
 		}
 	}
-
+        
 	public Dimension getPreferredScrollableViewportSize() {
 		if (getGraphics() != null && msa != null) {
 			Rectangle msa_rect = msa.getGridSize(this.getGraphics());
@@ -326,5 +344,35 @@ NodeReorderListener
 		}
 		return increment;
 	}
+        
+        public MSA getModel() {
+            return msa;
+        }
+
+    @Override
+    public void mouseDragged(MouseEvent e) {
+        
+    }
+
+    @Override
+    public void mouseMoved(MouseEvent e) {
+        if (null != msa) {
+//            if (MSA.MSA_DISPLAY.DOMAIN != msa.getDisplayType()) {
+//                return;
+//            }
+            Graphics g = this.getGraphics();
+            Point p = e.getPoint();
+            ArrayList<Domain> domainList = msa.getDomains(p, g);
+            if (null == domainList) {
+                return;
+            }
+            HashSet<String> domainSet = new HashSet<String>();
+            for (Domain d : domainList) {
+                domainSet.add(d.getHmmName() + " (" + d.getHmmAcc() + " Range " + d.getStart() + " - " + d.getEnd() + " )");
+
+            }
+            this.setToolTipText(Utils.listToString(new Vector(domainSet), "", ", "));
+        }
+    }
 
 }
