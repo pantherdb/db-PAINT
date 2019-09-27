@@ -152,11 +152,57 @@ public class AnnotationHelper implements Serializable{
             allNonPrunedDescendents(child, nodeList);
         }
     }
+    
+    public static Annotation getSingleWithPropagatorAnnot(Annotation a) {
+        HashSet<WithEvidence> withAnnotSet = a.getAnnotationDetail().getWithEvidenceAnnotSet();
+        if (null == withAnnotSet || 1 !=  withAnnotSet.size()) {
+            return null;
+        }
+        for (WithEvidence we: withAnnotSet) {
+            return (Annotation)we.getWith();
+        }
+        return null;
+    }    
+    
+    public static boolean isIBAForIKRorIRD(Annotation ibaAnnot, Node node) {
+        if (null == node) {
+            return false;
+        }
+        Annotation ibaPropagator = getSingleWithPropagatorAnnot(ibaAnnot);
+        if (null == ibaPropagator) {
+            return false;
+        }
+
+        NodeVariableInfo nvi = node.getVariableInfo();
+        if (null == nvi) {
+            return false;
+        }
+        ArrayList<Annotation> annotList = nvi.getGoAnnotationList();
+        if (null == annotList) {
+            return false;
+        }
+        for (Annotation a: annotList) {
+            String code = a.getSingleEvidenceCodeFromSet();
+            if (Evidence.CODE_IKR.equals(code) || Evidence.CODE_IRD.equals(code)) {
+                HashSet<WithEvidence> withAnnotSet = a.getAnnotationDetail().getWithEvidenceAnnotSet();
+                if (null == withAnnotSet) {
+                    continue;
+                }
+                for (WithEvidence we: withAnnotSet) {
+                    Annotation withAnnot = (Annotation)we.getWith();
+                    if (ibaPropagator == withAnnot) {
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
+    }    
 
     private static ArrayList<Annotation> existingIBAannots(ArrayList<AnnotationNode> descendents) {
         ArrayList<Annotation> ibaAnnots = new ArrayList<Annotation>();
-        for (AnnotationNode gn : descendents) {
-            Node n = gn.getNode();
+        for (AnnotationNode an : descendents) {
+            Node n = an.getNode();
             NodeVariableInfo nvi = n.getVariableInfo();
             if (null == nvi) {
                 continue;
@@ -511,6 +557,9 @@ public class AnnotationHelper implements Serializable{
 
     // Return if a given term and associted qualifiers can be annotated using a with term and associated qualifiers
     public static boolean canCreateIBDAnnotUsingWith(GOTerm toTerm, Set<Qualifier> toQualifierSet, Annotation withAnnot, GOTermHelper gth) {
+        if (false == withAnnot.isExperimental()) {
+            return false;
+        }
         GOTerm withTerm = gth.getTerm(withAnnot.getGoTerm());
         if (null == withTerm) {
             return false;
