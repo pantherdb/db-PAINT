@@ -1,5 +1,5 @@
 /**
- *  Copyright 2018 niversity Of Southern California
+ *  Copyright 2019 University Of Southern California
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -64,8 +64,11 @@ public class AssociationTable extends JTable implements
     private GeneNode node;
     private AssociationTableModel associationModel;
     private boolean widthsInit = false;
-
     
+    public static final String URL_LINK_PREFIX_AMIGO = "http://amigo.geneontology.org/amigo/term/";
+    public static final String URL_LINK_PREFIX_PMID = "https://www.ncbi.nlm.nih.gov/pubmed/";
+    public static final String URL_LINK_PREFIX_PANTREE_NODE = "http://www.pantree.org/node/annotationNode.jsp?id=";
+        
     public AssociationTable() {
         super();
         associationModel = new AssociationTableModel();
@@ -176,9 +179,6 @@ public class AssociationTable extends JTable implements
         //throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
     }
     
-    public static final String URL_LINK_PREFIX_AMIGO = "http://amigo.geneontology.org/amigo/term/";
-    public static final String URL_LINK_PREFIX_PMID = "https://www.ncbi.nlm.nih.gov/pubmed/";
-    public static final String URL_LINK_PREFIX_PANTREE_NODE = "http://www.pantree.org/node/annotationNode.jsp?id=";
 
     @Override
     public void mousePressed(MouseEvent e) {
