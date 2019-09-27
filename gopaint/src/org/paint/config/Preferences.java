@@ -1,6 +1,6 @@
 /* 
  * 
- * Copyright (c) 2018, Regents of the University of California 
+ * Copyright (c) 2019, Regents of the University of California 
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
@@ -21,6 +21,7 @@
 package org.paint.config;
 
 import com.sri.panther.paintCommon.util.ReadResources;
+import edu.usc.ksom.pm.panther.paintCommon.PAINTVersion;
 import java.awt.Color;
 import java.awt.Font;
 import java.awt.Image;
@@ -123,7 +124,7 @@ public class Preferences {
 	};
 
 	private Color  msa_colors[] = {
-			new Color(51, 102, 77), new Color(112, 153, 92), new Color(204, 194, 143)
+			new Color(21, 138, 255), new Color(185, 220, 255), new Color(220, 233, 255)
 	};
 
 	private Color  msa_weighted_colors[] = {
@@ -287,7 +288,7 @@ public class Preferences {
 	}
         
         public String getPAINTversion() {
-            return "2018_08_30_1";
+            return PAINTVersion.getPAINTClientversion();
         }
 
 	public VersionNumber getVersion() {
