@@ -1189,7 +1189,7 @@ public class ManageBooksDlg extends JDialog {
             }
 
             ArrayList<Book> bookList = (ArrayList<Book>) serverRtnList.get(1);
-            if (0 == bookList.size()) {
+            if (null == bookList || 0 == bookList.size()) {
                 JOptionPane.showMessageDialog(ManageBooksDlg.this.frame,
                                               MSG_NO_BOOKS_FOR_SEARCH_CRITERIA,
                                               MSG_HEADER_SEARCH_BOOKS,

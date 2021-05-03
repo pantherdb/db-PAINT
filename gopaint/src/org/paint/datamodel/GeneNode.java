@@ -102,7 +102,7 @@ public class GeneNode {
     private String species_shortname;
     private String sequence;
     private HashMap<String, ArrayList<Domain>> domainLookup;
-    private ArrayList<ArrayList<String>> domainRows;
+    private ArrayList<ArrayList<Domain>> domainRows;
     private String nodeType;        // Indicates speciation, duplication, species, annotation id etc
     private String nodeNote;
     private String description;
@@ -733,11 +733,11 @@ public class GeneNode {
         return domainLookup;
     }
 
-    public ArrayList<ArrayList<String>> getDomainRows() {
+    public ArrayList<ArrayList<Domain>> getDomainRows() {
         return domainRows;
     }
 
-    public void setDomainRows(ArrayList<ArrayList<String>> domainRows) {
+    public void setDomainRows(ArrayList<ArrayList<Domain>> domainRows) {
         this.domainRows = domainRows;
     }
     

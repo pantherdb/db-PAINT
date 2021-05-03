@@ -1,19 +1,18 @@
- /* Copyright (C) 2008 SRI International
-   *
-   * This program is free software; you can redistribute it and/or
-   * modify it under the terms of the GNU General Public License
-   * as published by the Free Software Foundation; either version 2
-   * of the License, or (at your option) any later version.
-   *
-   * This program is distributed in the hope that it will be useful,
-   * but WITHOUT ANY WARRANTY; without even the implied warranty of
-   * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-   * GNU General Public License for more details.
-   *
-   * You should have received a copy of the GNU General Public License
-   * along with this program; if not, write to the Free Software
-   * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
-   */
+/**
+ * Copyright 2019 University Of Southern California
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not
+ * use this file except in compliance with the License. You may obtain a copy of
+ * the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations under
+ * the License.
+ */
 package com.sri.panther.paintServer.database;
 
 import com.sri.panther.paintCommon.Book;
@@ -29,6 +28,7 @@ import com.sri.panther.paintServer.datamodel.Organism;
 import com.sri.panther.paintServer.datamodel.PANTHERTree;
 import com.sri.panther.paintServer.datamodel.PANTHERTreeNode;
 import com.sri.panther.paintServer.util.ConfigFile;
+import edu.usc.ksom.pm.panther.paintCommon.AnnotationNode;
 import java.sql.CallableStatement;
 import java.sql.Clob;
 import java.sql.Connection;
@@ -5240,6 +5240,58 @@ public class DataServer{
     }
     return famName;
   }
+  
+  public AnnotationNode getNodeFromNodeId(String nodeId, String uplVersion){
+        Connection con = null;
+        String nodeAccession = null;
+        String publicId = null;
+
+        try {
+            con = getConnection();
+            if (null == con) {
+                return null;
+            }
+
+
+            String query = Utils.replace(QueryString.NODE_ACC_PUBLIC_ID_SEARCH, QUERY_PARAMETER_1, nodeId);
+            query = Utils.replace(query, QUERY_PARAMETER_2, uplVersion);
+
+            Statement stmt = con.createStatement();
+            ResultSet rst = stmt.executeQuery(query);
+
+            if (rst.next()) {
+                nodeAccession = rst.getString(COLUMN_NAME_ACCESSION);
+                publicId = rst.getString(COLUMN_NAME_PUBLIC_ID);
+            }
+            rst.close();
+            stmt.close();
+        } catch (SQLException se) {
+            System.out.println("Unable to retrieve information from database, exception " + 
+                               se.getMessage() + " has been returned.");
+        } finally {
+            if (null != con) {
+                try {
+                    con.close();
+                } catch (SQLException se) {
+                    System.out.println("Unable to close connection, exception " + se.getMessage() + " has been returned.");
+                    return null;
+                }
+            }
+        }
+        // Convert accession to family id
+        if (null != nodeAccession) {
+            AnnotationNode node = new AnnotationNode();
+            node.setPublicId(publicId);
+            node.setAccession(nodeAccession);
+            int index = nodeAccession.indexOf(STR_COLON);
+            if (index > 0) {
+                node.setFamilyId(nodeAccession.substring(0, index));
+                node.setAnnotationNodeId(nodeAccession.substring(index + 1));
+            }
+            return node;
+        }
+        return null;
+    }
   
   /**
      * 

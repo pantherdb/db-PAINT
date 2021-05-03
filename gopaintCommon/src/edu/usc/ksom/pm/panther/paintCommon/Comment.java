@@ -1,5 +1,5 @@
 /**
- *  Copyright 2019 University Of Southern California
+ *  Copyright 2020 University Of Southern California
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -30,9 +30,9 @@ public class Comment implements Serializable {
     
     // Comments to be split into 4 sections (mf, cc, bp and notes section) without "//" prefix:
     //# molecular_function
-    //20161117  userName    Save/Obsolete   EvidenceCode    publicId    term-(qualifier delimited by comma)
-    //20161117  user1234    Save    IBD PTN000001285   GO:0030276
-    //20161117  user1234    Save    IKR PTN000001677l   GO:0030276-(NOT)
+    //2016-11-17  userName    Save/Obsolete   EvidenceCode    publicId    term-(qualifier delimited by comma)
+    //2016-11-17  user1234    Save    IBD PTN000001285   GO:0030276
+    //2016-11-17  user1234    Save    IKR PTN000001677l   GO:0030276-(NOT)
     //# cellular_component
     //...
     //# biological_process
@@ -54,7 +54,14 @@ public class Comment implements Serializable {
     
     protected static final String DELIM_PARTS = "\t";
     protected static final int NUM_PARTS = 6;
-    protected static int SIZE_DATE = 8;        // yyyymmdd
+    protected static int SIZE_DATE_OLD = 8;        // yyyymmdd
+    protected static int SIZE_DATE_NEW = 10;        //yyyy-mm-dd
+    
+    protected static final String NEW_DATE_CHAR = "-";
+    
+    public static final String REGEX_NUMBERS_ONLY = "[0-9]+";
+    
+    
 
     public Comment(String classificationId, String nodeId, String text) {
         this.classificationId = classificationId;
@@ -98,12 +105,12 @@ public class Comment implements Serializable {
         this.commentUserNotes = commentUserNotes;
     }
     
-    public void prependCommentUserNotes(String prependStr) {
+    public void appendCommentUserNotes(String appendStr) {
         if (null == commentUserNotes) {
-            this.commentUserNotes = prependStr;
+            this.commentUserNotes = appendStr;
             return;
         }
-        this.commentUserNotes = prependStr + Constant.STR_NEWLINE + this.commentUserNotes;        
+        this.commentUserNotes = this.commentUserNotes.trim() + Constant.STR_NEWLINE + appendStr;        
     }
 
     public String getCommentMfSection() {
@@ -242,7 +249,8 @@ public class Comment implements Serializable {
         try {
             HashMap<String, ArrayList<String>> dateToCmtLookup = new HashMap<String, ArrayList<String>>();
             for (String line : lines) {
-                if (null == line) {
+                // Remove redundant prefix sections if necessary
+                if (null == line || (line.startsWith(PREFIX_SECTION_MF) || line.startsWith(PREFIX_SECTION_CC) || line.startsWith(PREFIX_SECTION_BP)) ) {
                     continue;
                 }
                 String parts[] = line.split(DELIM_PARTS);
@@ -269,11 +277,16 @@ public class Comment implements Serializable {
                         boolean error = false;
                         while (fixIndex < fixedList.size()) {
                             String fixPart = fixedList.get(fixIndex);
-                            if (SIZE_DATE < fixPart.length()) {
-                                String newPart = fixPart.substring(fixPart.length() - SIZE_DATE);
+                            boolean newFormat = fixPart.contains(NEW_DATE_CHAR);
+                            int size = SIZE_DATE_OLD;
+                            if (true == newFormat) {
+                                size = SIZE_DATE_NEW;
+                            }
+                            if (size < fixPart.length()) {
+                                String newPart = fixPart.substring(fixPart.length() - size);
                                 try {
                                     Integer.parseInt(newPart);
-                                    String oldPart = fixPart.substring(0, fixPart.length() - SIZE_DATE);
+                                    String oldPart = fixPart.substring(0, fixPart.length() - size);
                                     fixedList.set(fixIndex, oldPart);
                                     fixedList.add(fixIndex + 1, newPart);
                                     fixIndex = fixIndex + 1;
@@ -325,6 +338,14 @@ public class Comment implements Serializable {
             for (String key : keyList) {
                 ArrayList<String> values = dateToCmtLookup.get(key);
                 for (String value : values) {
+                    // If necessary, Convert date to new format.
+                    String parts[] = value.split(DELIM_PARTS);
+                    if (0 < parts.length) {
+                        if (null != parts[0] && parts[0].matches(REGEX_NUMBERS_ONLY) && parts[0].length() == SIZE_DATE_OLD) {
+                            parts[0] = value.substring(0, 4) + NEW_DATE_CHAR + value.substring(4, 6) + NEW_DATE_CHAR + value.substring(6, 8);
+                            value = String.join(DELIM_PARTS, parts);
+                        }
+                    }
                     sb.append(value);
                     sb.append(Constant.STR_NEWLINE);
                 }
@@ -336,6 +357,20 @@ public class Comment implements Serializable {
         
     }
     
+    public static boolean isPositiveNumber(String strNum) {
+        if (strNum == null) {
+            return false;
+        }
+        try {
+            double d = Double.parseDouble(strNum);
+            
+            
+        } catch (NumberFormatException nfe) {
+            return false;
+        }
+        return true;
+    }   
+    
     public String getFormattedComment() {
         StringBuffer sb = new StringBuffer();
         if (null != commentMfSection) {
@@ -343,14 +378,14 @@ public class Comment implements Serializable {
             sb.append(commentMfSection.trim());
             sb.append(Constant.STR_NEWLINE);
         }
-        if (null != commentBpSection) {
-            sb.append(PREFIX_SECTION_BP + Constant.STR_NEWLINE);
-            sb.append(commentBpSection.trim());
-            sb.append(Constant.STR_NEWLINE);
-        }
         if (null != commentCcSection) {
             sb.append(PREFIX_SECTION_CC + Constant.STR_NEWLINE);
             sb.append(commentCcSection.trim());
+            sb.append(Constant.STR_NEWLINE);
+        }        
+        if (null != commentBpSection) {
+            sb.append(PREFIX_SECTION_BP + Constant.STR_NEWLINE);
+            sb.append(commentBpSection.trim());
             sb.append(Constant.STR_NEWLINE);
         }
         if (null != commentUserNotes) {
@@ -495,7 +530,7 @@ public class Comment implements Serializable {
         
         
         String test4 = "# molecular_function\n" +
-"20190424	pgaudet	Obsolete	IBD	PTN002569912	GO:0005515\n" +
+"2019-04-24	pgaudet	Obsolete	IBD	PTN002569912	GO:0005515\n" +
 "20190424	pgaudet	Obsolete	IBD	PTN002569942	GO:0005515\n" +
 "20190424	pgaudet	Obsolete	IBD	PTN002569901	GO:0005515\n" +
 "20190424	pgaudet	Obsolete	IBD	PTN001308314	GO:000551520190701	mihn_s  Obsolete	IBD	PTN000036886	GO:000443520190424	pgaudet	Obsolete	IBD	PTN001308314	GO:0005515fgdfg20190424	pgaudet	Obsolete	IBD	PTN001308314	GO:0005515\n" +

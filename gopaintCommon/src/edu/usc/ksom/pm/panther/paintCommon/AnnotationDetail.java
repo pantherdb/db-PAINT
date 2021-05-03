@@ -1,5 +1,5 @@
 /**
- *  Copyright 2019 University Of Southern California
+ *  Copyright 2020 University Of Southern California
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -26,10 +26,19 @@ public class AnnotationDetail implements Serializable {
 
     private HashSet<WithEvidence> withEvidenceAnnotSet;
     private HashSet<WithEvidence> withEvidenceNodeSet;
-    private HashSet<WithEvidence> withEvidenceDBRefSet;    
+    private HashSet<WithEvidence> withEvidenceDBRefSet;
     
-    
-//    private HashSet<WithEvidence> withSet;
+//    private HashSet<Annotation> withAnnotSet;// IKR, IRD
+//    private HashSet<Node> withNodeSet;      // PANTHER node     
+//    private HashSet<DBReference> withOtherSet;          // PMID, etc    
+
+    // Qualifier value calculated as follows:
+    // First go through items from inheritedQualifierLookup
+    // Add items from addedQualifierLookup
+    // Remove items from removedQualifierLookup
+    private LinkedHashMap<Qualifier, HashSet<Annotation>> inheritedQualifierLookup = new LinkedHashMap<Qualifier, HashSet<Annotation>>();
+    private LinkedHashMap<Qualifier, HashSet<Annotation>> addedQualifierLookup = new LinkedHashMap<Qualifier, HashSet<Annotation>>();
+    private LinkedHashMap<Qualifier, HashSet<Annotation>> removedQualifierLookup = new LinkedHashMap<Qualifier, HashSet<Annotation>>();
     
     
     public void addWithEvidence(WithEvidence we) {
@@ -94,19 +103,10 @@ public class AnnotationDetail implements Serializable {
     
 
     
-    private HashSet<Annotation> withAnnotSet;// IKR, IRD
-    private HashSet<Node> withNodeSet;      // PANTHER node     
-    private HashSet<DBReference> withOtherSet;          // PMID, etc
+
 
 
     
-    // Qualifier value calculated as follows:
-    // First go through items from inheritedQualifierLookup
-    // Add items from addedQualifierLookup
-    // Remove items from removedQualifierLookup
-    private LinkedHashMap<Qualifier, HashSet<Annotation>> inheritedQualifierLookup = new LinkedHashMap<Qualifier, HashSet<Annotation>>();
-    private LinkedHashMap<Qualifier, HashSet<Annotation>> addedQualifierLookup = new LinkedHashMap<Qualifier, HashSet<Annotation>>();
-    private LinkedHashMap<Qualifier, HashSet<Annotation>> removedQualifierLookup = new LinkedHashMap<Qualifier, HashSet<Annotation>>();
     
     public Set<Qualifier> getQualifiers() {
         return getQualifierLookup().keySet();
@@ -194,65 +194,49 @@ public class AnnotationDetail implements Serializable {
         }
         return withEvSet;
     }
+
+//    public void setWithAnnotSet(HashSet<Annotation> withAnnotSet) {
+//        this.withAnnotSet = withAnnotSet;
+//    }
 //    
-//    public void setWithEvidenceSet(HashSet<WithEvidence> withEvidenceSet) {
-//        this.withSet = withEvidenceSet;
+//    public void addWith(Annotation a) {
+//        if (null == a) {
+//            return;
+//        }
+//        if (null == withAnnotSet) {
+//            withAnnotSet = new HashSet<Annotation>();
+//        }
+//        withAnnotSet.add(a);
 //    }
-    
-
-//    public HashSet<Annotation> getWithAnnotSet() {
-//        return withAnnotSet;
+//
+//    public void setWithNodeSet(HashSet<Node> withNodeSet) {
+//        this.withNodeSet = withNodeSet;
 //    }
-
-    public void setWithAnnotSet(HashSet<Annotation> withAnnotSet) {
-        this.withAnnotSet = withAnnotSet;
-    }
-    
-    public void addWith(Annotation a) {
-        if (null == a) {
-            return;
-        }
-        if (null == withAnnotSet) {
-            withAnnotSet = new HashSet<Annotation>();
-        }
-        withAnnotSet.add(a);
-    }
-
-//    public HashSet<Node> getWithNodeSet() {
-//        return withNodeSet;
+//    
+//    public void addNode(Node n) {
+//        if (null == n) {
+//            return;
+//        }
+//        if (null == withNodeSet) {
+//            withNodeSet = new HashSet<Node>();
+//        }
+//        withNodeSet.add(n);
 //    }
-
-    public void setWithNodeSet(HashSet<Node> withNodeSet) {
-        this.withNodeSet = withNodeSet;
-    }
-    
-    public void addNode(Node n) {
-        if (null == n) {
-            return;
-        }
-        if (null == withNodeSet) {
-            withNodeSet = new HashSet<Node>();
-        }
-        withNodeSet.add(n);
-    }
-
-//    public HashSet<DBReference> getWithOtherSet() {
-//        return withOtherSet;
+//
+//
+//    public void setWithOtherSet(HashSet<DBReference> withOtherSet) {
+//        this.withOtherSet = withOtherSet;
 //    }
-
-    public void setWithOtherSet(HashSet<DBReference> withOtherSet) {
-        this.withOtherSet = withOtherSet;
-    }
-    
-    public void addOther(DBReference dbRef) {
-        if (null == dbRef) {
-            return;
-        }
-        if (null == withOtherSet) {
-            withOtherSet = new HashSet<DBReference>();
-        }
-        withOtherSet.add(dbRef);
-    }
+//    
+//    public void addOther(DBReference dbRef) {
+//        if (null == dbRef) {
+//            return;
+//        }
+//        if (null == withOtherSet) {
+//            withOtherSet = new HashSet<DBReference>();
+//        }
+//        withOtherSet.add(dbRef);
+//    }
 
     public Node getAnnotatedNode() {
         return annotatedNode;
@@ -322,7 +306,7 @@ public class AnnotationDetail implements Serializable {
             }
             
             if (withEvidenceAnnotSet.isEmpty()) {
-                withAnnotSet = null;
+                withEvidenceAnnotSet = null;
             }
         }
         

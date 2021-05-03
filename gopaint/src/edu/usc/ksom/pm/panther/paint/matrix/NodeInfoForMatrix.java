@@ -1,5 +1,5 @@
 /**
- *  Copyright 2018 University Of Southern California
+ *  Copyright 2019 University Of Southern California
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -25,12 +25,10 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import org.paint.datamodel.GeneNode;
 import org.paint.util.GeneNodeUtil;
-import edu.usc.ksom.pm.panther.paintCommon.QualifierDif;;
+import edu.usc.ksom.pm.panther.paintCommon.QualifierDif;
+import java.util.HashMap;
 
-/**
- *
- * @author muruganu
- */
+
 public class NodeInfoForMatrix {
     private boolean nonExpBackground = false;
     private boolean expBackground = false;
@@ -40,8 +38,15 @@ public class NodeInfoForMatrix {
     private boolean expNot = false;
     private GeneNode gNode;
     private GOTerm gTerm;
-    private HashSet<Qualifier> qSet;
-    private HashSet<Qualifier> nonQset;
+    private HashSet<Qualifier> qSet;        // Experimental qualifiers
+    private HashSet<Qualifier> nonQset;     // Non-experimental qualifiers
+    private HashMap<String, HashSet<String>> allQualifierToListOfTerms = new HashMap<String, HashSet<String>>();      // Lookup of qualifiers to list of terms for the qualifier.
+                                                                                                                // contains all qualifiers including no qualifier.
+    
+    private static String BLANK_QUALIFIER = "-";;
+    private static String BLANK_LABEL = "-";
+    private static final String STR_BRACKET_START = "(";
+    private static final String STR_BRACKET_END = ")";    
     
     public NodeInfoForMatrix(GeneNode gNode, GOTerm gTerm, GOTermHelper gth) {
         this.gNode = gNode;
@@ -58,18 +63,23 @@ public class NodeInfoForMatrix {
         if (null == annotList) {
             return;
         }
-        
+
         // Handle the NOTS first
         HashSet<Annotation> handledSet = new HashSet<Annotation>();
         ArrayList<GOTerm> notAncestors = gth.getAncestors(gTerm);
-        for (Annotation a: annotList) {
-            boolean not = QualifierDif.containsNegative(a.getQualifierSet());
+        for (Annotation a : annotList) {
+            HashSet<Qualifier> qualifiers = a.getQualifierSet();
+            boolean not = QualifierDif.containsNegative(qualifiers);
             if (false == not) {
                 continue;
             }
             handledSet.add(a);
             String curTerm = a.getGoTerm();
-            GOTerm cGOTerm = gth.getTerm(curTerm);            
+            GOTerm cGOTerm = gth.getTerm(curTerm);
+            String label = cGOTerm.getName();
+            if (null == label) {
+                label = BLANK_LABEL;
+            }
             if (notAncestors.contains(cGOTerm) || cGOTerm.equals(gTerm)) {
                 boolean experimental = a.isExperimental();
                 if (true == experimental) {
@@ -79,40 +89,91 @@ public class NodeInfoForMatrix {
                     }
 
                     expNot = true;
-
-                    if (null != a.getQualifierSet()) {
+                    if (null == qualifiers) {
+                        HashSet<String> termSet = allQualifierToListOfTerms.get(BLANK_QUALIFIER);
+                        if (null == termSet) {
+                            termSet = new HashSet<String>();
+                            allQualifierToListOfTerms.put(BLANK_QUALIFIER, termSet);
+                        }
+                        termSet.add(label + STR_BRACKET_START + curTerm + STR_BRACKET_END);
+                    } else {
+                        for (Qualifier q : qualifiers) {
+                            String text = q.getText();
+                            if (null == text || 0 == text.trim().length()) {
+                                HashSet<String> termSet = allQualifierToListOfTerms.get(BLANK_QUALIFIER);
+                                if (null == termSet) {
+                                    termSet = new HashSet<String>();
+                                    allQualifierToListOfTerms.put(BLANK_QUALIFIER, termSet);
+                                }
+                                termSet.add(label + STR_BRACKET_START + curTerm + STR_BRACKET_END);
+                            } else {
+                                HashSet<String> termSet = allQualifierToListOfTerms.get(text);
+                                if (null == termSet) {
+                                    termSet = new HashSet<String>();
+                                    allQualifierToListOfTerms.put(text, termSet);
+                                }
+                                termSet.add(label + STR_BRACKET_START + curTerm + STR_BRACKET_END);
+                            }
+                        }
                         if (null == qSet) {
                             qSet = new HashSet();
                         }
-                        QualifierDif.addIfNotPresent(qSet, a.getQualifierSet());
+                        QualifierDif.addIfNotPresent(qSet, qualifiers);
                     }
-                }
-                else {
+                } else {
                     nonExpBackground = true;
                     if (cGOTerm.equals(gTerm)) {
                         nonExpAnnotToTerm = true;
                     }
 
                     nonExpNot = true;
-
-                    if (null != a.getQualifierSet()) {
+                    if (null == qualifiers) {
+                        HashSet<String> termSet = allQualifierToListOfTerms.get(BLANK_QUALIFIER);
+                        if (null == termSet) {
+                            termSet = new HashSet<String>();
+                            allQualifierToListOfTerms.put(BLANK_QUALIFIER, termSet);
+                        }
+                        termSet.add(label + STR_BRACKET_START + curTerm + STR_BRACKET_END);
+                    } else {
+                        for (Qualifier q : qualifiers) {
+                            String text = q.getText();
+                            if (null == text || 0 == text.trim().length()) {
+                                HashSet<String> termSet = allQualifierToListOfTerms.get(BLANK_QUALIFIER);
+                                if (null == termSet) {
+                                    termSet = new HashSet<String>();
+                                    allQualifierToListOfTerms.put(BLANK_QUALIFIER, termSet);
+                                }
+                                termSet.add(label + STR_BRACKET_START + curTerm + STR_BRACKET_END);
+                            } else {
+                                HashSet<String> termSet = allQualifierToListOfTerms.get(text);
+                                if (null == termSet) {
+                                    termSet = new HashSet<String>();
+                                    allQualifierToListOfTerms.put(text, termSet);
+                                }
+                                termSet.add(label + STR_BRACKET_START + curTerm + STR_BRACKET_END);
+                            }
+                        }
                         if (null == nonQset) {
                             nonQset = new HashSet();
                         }
                         QualifierDif.addIfNotPresent(nonQset, a.getQualifierSet());
-                    }                    
-                }                
-            }       
+                    }
+                }
+            }
         }
 
         // Then the others
-        for (Annotation a: annotList) {
+        for (Annotation a : annotList) {
             if (handledSet.contains(a)) {
                 continue;
             }
             boolean experimental = a.isExperimental();
             String curTerm = a.getGoTerm();
             GOTerm cGOTerm = gth.getTerm(curTerm);
+            String label = cGOTerm.getName();
+            if (null == label) {
+                label = BLANK_LABEL;
+            }
             ArrayList<GOTerm> ancestors = gth.getAncestors(cGOTerm);
             if (ancestors.contains(gTerm) || cGOTerm.equals(gTerm)) {
                 if (true == experimental) {
@@ -121,34 +182,83 @@ public class NodeInfoForMatrix {
                         expAnnotToTerm = true;
                     }
                     HashSet<Qualifier> curSet = a.getQualifierSet();
-                    if (null != curSet) {
+                    if (null == curSet) {
+                        HashSet<String> termSet = allQualifierToListOfTerms.get(BLANK_QUALIFIER);
+                        if (null == termSet) {
+                            termSet = new HashSet<String>();
+                            allQualifierToListOfTerms.put(BLANK_QUALIFIER, termSet);
+                        }
+                        termSet.add(label + STR_BRACKET_START + curTerm + STR_BRACKET_END);
+                    } else {
+                        for (Qualifier q : curSet) {
+                            String text = q.getText();
+                            if (null == text || 0 == text.trim().length()) {
+                                HashSet<String> termSet = allQualifierToListOfTerms.get(BLANK_QUALIFIER);
+                                if (null == termSet) {
+                                    termSet = new HashSet<String>();
+                                    allQualifierToListOfTerms.put(BLANK_QUALIFIER, termSet);
+                                }
+                               termSet.add(label + STR_BRACKET_START + curTerm + STR_BRACKET_END);
+                            } else {
+                                HashSet<String> termSet = allQualifierToListOfTerms.get(text);
+                                if (null == termSet) {
+                                    termSet = new HashSet<String>();
+                                    allQualifierToListOfTerms.put(text, termSet);
+                                }
+                                termSet.add(label + STR_BRACKET_START + curTerm + STR_BRACKET_END);
+                            }
+                        }
                         if (null == qSet) {
                             qSet = new HashSet();
                         }
-                        for (Qualifier q: curSet) {
+                        for (Qualifier q : curSet) {
                             if (true == gth.isQualifierValidForTerm(gTerm, q)) {
-                                QualifierDif.addIfNotPresent(qSet, q);  
+                                QualifierDif.addIfNotPresent(qSet, q);
                             }
                         }
                     }
-                }
-                else {
+                } else {
                     nonExpBackground = true;
                     if (cGOTerm.equals(gTerm)) {
                         nonExpAnnotToTerm = true;
                     }
                     HashSet<Qualifier> curSet = a.getQualifierSet();
-                    if (curSet != a.getQualifierSet()) {
+                    if (null == curSet) {
+                        HashSet<String> termSet = allQualifierToListOfTerms.get(BLANK_QUALIFIER);
+                        if (null == termSet) {
+                            termSet = new HashSet<String>();
+                            allQualifierToListOfTerms.put(BLANK_QUALIFIER, termSet);
+                        }
+                        termSet.add(label + STR_BRACKET_START + curTerm + STR_BRACKET_END);
+                    } else {
+                        for (Qualifier q : curSet) {
+                            String text = q.getText();
+                            if (null == text || 0 == text.trim().length()) {
+                                HashSet<String> termSet = allQualifierToListOfTerms.get(BLANK_QUALIFIER);
+                                if (null == termSet) {
+                                    termSet = new HashSet<String>();
+                                    allQualifierToListOfTerms.put(BLANK_QUALIFIER, termSet);
+                                }
+                                termSet.add(label + STR_BRACKET_START + curTerm + STR_BRACKET_END);
+                            } else {
+                                HashSet<String> termSet = allQualifierToListOfTerms.get(text);
+                                if (null == termSet) {
+                                    termSet = new HashSet<String>();
+                                    allQualifierToListOfTerms.put(text, termSet);
+                                }
+                                termSet.add(label + STR_BRACKET_START + curTerm + STR_BRACKET_END);
+                            }
+                        }
                         if (null == nonQset) {
                             nonQset = new HashSet();
                         }
-                        
-                        for (Qualifier q: curSet) {
+
+                        for (Qualifier q : curSet) {
                             if (true == gth.isQualifierValidForTerm(gTerm, q)) {
-                                QualifierDif.addIfNotPresent(nonQset, q);  
+                                QualifierDif.addIfNotPresent(nonQset, q);
                             }
                         }
-                    }                    
+                    }
                 }
             }
         }
@@ -192,6 +302,17 @@ public class NodeInfoForMatrix {
 
     public HashSet<Qualifier> getNonQset() {
         return nonQset;
+    }
+
+    public HashMap<String, HashSet<String>> getAllQualifierToListOfTerms() {
+        return allQualifierToListOfTerms;
+    }
+
+    public boolean containsMultipleQualifiers() {
+        if (null != allQualifierToListOfTerms && 1 < allQualifierToListOfTerms.size()) {
+            return true;
+        }
+        return false;
     }
     
 }

@@ -1,5 +1,5 @@
 /**
- *  Copyright 2019 University Of Southern California
+ *  Copyright 2020 University Of Southern California
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -293,6 +293,10 @@ public class GOTermHelper implements Serializable{
             return false;
         }
         return true;
+    }
+    
+    public ArrayList<GOTerm> getAllTerms() {
+        return new ArrayList<GOTerm>(clsToTerm.values());
     }
     
     

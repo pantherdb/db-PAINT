@@ -1,17 +1,31 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
+/**
+ *  Copyright 2019 University Of Southern California
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing,
+ *  software distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
  */
 package org.paint.gui.matrix;
 
+import com.sri.panther.paintCommon.util.Utils;
 import edu.usc.ksom.pm.panther.paintCommon.Qualifier;
 import edu.usc.ksom.pm.panther.paint.matrix.NodeInfoForMatrix;
 import java.awt.Color;
 import java.awt.Component;
 import java.awt.Graphics;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.Map.Entry;
+import java.util.Vector;
 import javax.swing.JLabel;
 import javax.swing.JTable;
 import javax.swing.table.TableCellRenderer;
@@ -28,9 +42,13 @@ public class AnnotationMatrixCellRenderer extends JLabel implements TableCellRen
     public static final String STR_BRACKET_START = "(";
     public static final String STR_BRACKET_END = ")";
     public static final String STR_COMMA = ",";
+    public static final String STR_COLON = ":";
     public static final String STR_ROW = "Row ";
     public static final String STR_COL = " Col ";
     public static final String STR_SPACE = " ";
+    public static final String STR_HTML_START = "<HTML>";
+    public static final String STR_HTML_END = "</HTML>";
+    public static final String STR_HTML_BREAK = "<BR>";    
     
     private static final Color PAINT_COLOR_EXP = Preferences.inst().getExpPaintColor();//new Color(16, 128, 64);
 //    private static final Color curatedPaintColor = new Color(255, 127, 0);
@@ -103,7 +121,7 @@ public class AnnotationMatrixCellRenderer extends JLabel implements TableCellRen
             if (null == tooltip || tooltip.isEmpty()) {
                 tooltip = nodeInfo.getgTerm().getAcc();
             }
-            setToolTipText(STR_ROW + (this.row + 1)  + STR_COL + (this.column + 1) + STR_SPACE + tooltip);
+            setToolTipText(STR_HTML_START + STR_ROW + (this.row + 1)  + STR_COL + (this.column + 1) + STR_SPACE + tooltip + STR_HTML_END);
             return this;
         }
         else if (true == nodeInfo.isExpBackground()) {
@@ -113,7 +131,8 @@ public class AnnotationMatrixCellRenderer extends JLabel implements TableCellRen
             if (null == termStr || termStr.isEmpty()) {
                 termStr = nodeInfo.getgTerm().getAcc();
             }
-            setToolTipText(STR_ROW + (this.row + 1)  + STR_COL + (this.column + 1) + STR_SPACE + node.getNodeLabel() + STR_BRACKET_START + node.getNode().getStaticInfo().getNodeAcc() + STR_SPACE +  node.getNode().getStaticInfo().getPublicId() + STR_BRACKET_END + STR_SPACE + termStr + STR_SPACE + getQualifierString(nodeInfo.getqSet()));
+            //setToolTipText(STR_ROW + (this.row + 1)  + STR_COL + (this.column + 1) + STR_SPACE + node.getNodeLabel() + STR_BRACKET_START + node.getNode().getStaticInfo().getNodeAcc() + STR_SPACE +  node.getNode().getStaticInfo().getPublicId() + STR_BRACKET_END + STR_SPACE + termStr + STR_SPACE + getQualifierString(nodeInfo.getqSet()));
+            setToolTipText(STR_HTML_START + STR_ROW + (this.row + 1)  + STR_COL + (this.column + 1) + STR_SPACE + node.getNodeLabel() + STR_BRACKET_START + node.getNode().getStaticInfo().getNodeAcc() + STR_SPACE +  node.getNode().getStaticInfo().getPublicId() + STR_BRACKET_END + STR_SPACE + termStr + STR_HTML_BREAK + getAllQualifierInfo(nodeInfo, STR_HTML_BREAK) + STR_HTML_END);
             return this;
             
         }
@@ -124,7 +143,8 @@ public class AnnotationMatrixCellRenderer extends JLabel implements TableCellRen
             if (null == termStr || termStr.isEmpty()) {
                 termStr = nodeInfo.getgTerm().getAcc();
             }
-            setToolTipText(STR_ROW + (this.row + 1) + STR_COL + (this.column + 1) + STR_SPACE + node.getNodeLabel() + STR_BRACKET_START + node.getNode().getStaticInfo().getNodeAcc() + STR_SPACE +  node.getNode().getStaticInfo().getPublicId() + STR_BRACKET_END + STR_SPACE + termStr + STR_SPACE + getQualifierString(nodeInfo.getNonQset()));
+            //setToolTipText(STR_ROW + (this.row + 1) + STR_COL + (this.column + 1) + STR_SPACE + node.getNodeLabel() + STR_BRACKET_START + node.getNode().getStaticInfo().getNodeAcc() + STR_SPACE +  node.getNode().getStaticInfo().getPublicId() + STR_BRACKET_END + STR_SPACE + termStr + STR_SPACE + getQualifierString(nodeInfo.getNonQset()));
+            setToolTipText(STR_HTML_START + STR_ROW + (this.row + 1) + STR_COL + (this.column + 1) + STR_SPACE + node.getNodeLabel() + STR_BRACKET_START + node.getNode().getStaticInfo().getNodeAcc() + STR_SPACE +  node.getNode().getStaticInfo().getPublicId() + STR_BRACKET_END + STR_SPACE + termStr + STR_HTML_BREAK + getAllQualifierInfo(nodeInfo, STR_HTML_BREAK) + STR_HTML_END);
             return this;
         }
         return this;
@@ -265,7 +285,89 @@ public class AnnotationMatrixCellRenderer extends JLabel implements TableCellRen
         return sb.toString();
     }
     
+    private String getAllQualifierInfo(NodeInfoForMatrix nodeInfo, String delim) {
+        if (null == nodeInfo) {
+            return null;
+        }
+        HashMap<String, HashSet<String>> qualifierLookup = nodeInfo.getAllQualifierToListOfTerms();
+        if (null == qualifierLookup) {
+            return null;
+        }
+        Vector<String> allStrs = new Vector(qualifierLookup.size());
+        for (Entry<String, HashSet<String>> entry: qualifierLookup.entrySet()) {
+            String qualifier = entry.getKey();
+            HashSet<String> terms = entry.getValue();
+            allStrs.add(qualifier + STR_COLON + Utils.listToString(new Vector(terms), STR_EMPTY, STR_COMMA));
+        }
+        return Utils.listToString(allStrs, STR_EMPTY, delim);
+    }
+    
     public void paintComponent(Graphics g) {
+	super.paintComponent(g);
+
+//        if (true == "GO:0004842".equals(nodeInfo.getgTerm().getAcc()) && true == "PTN001295675".equals(node.getNode().getStaticInfo().getPublicId())) {
+//            System.out.println("Here");
+//            System.out.println("Background color is " + backgroundColor.getRed() + " " + backgroundColor.getGreen() + " " + backgroundColor.getBlue());
+//        }         
+        int width = this.getWidth();
+        int height = this.getHeight();
+        //RenderUtil.paintBorder(g, new Rectangle(0, 0, width, height), null, selected);
+        if (true == selected) {
+            g.setColor(backgroundColor.brighter());
+        }
+        else {
+            g.setColor(backgroundColor);
+        }
+        g.fillRect(1, 1, width - 1, height - 1);
+        boolean multipleQualifiers = nodeInfo.containsMultipleQualifiers();
+        if (false == nodeInfo.isExpBackground() && false == nodeInfo.isNonExpBackground()) {
+            return;
+        }
+        else if (true == nodeInfo.isExpBackground()) {
+            if (true == multipleQualifiers && false == nodeInfo.isExpNot()) {
+                g.setColor(Color.yellow);
+                g.fillOval(1 , 1, width - 3, height - 3);                
+            }
+            else if (true == multipleQualifiers && true == nodeInfo.isExpNot()) {
+                g.setColor(Color.pink);
+                g.fillOval(1 , 1, width - 3, height - 3);                
+            }            
+            else if (false == multipleQualifiers && true == nodeInfo.isExpNot()) {
+                g.setColor(Color.red);
+                g.fillOval(1 , 1, width - 3, height - 3);
+            }
+            if (true == nodeInfo.isExpAnnotToTerm()) {
+                g.setColor(Color.BLACK);
+            }
+            else {
+                g.setColor(Color.WHITE);
+            }
+            g.fillRect((getWidth()/2) - 2, (getHeight()/2)-2, 4, 4);
+            return;
+        }
+        else if (false == nodeInfo.isExpBackground() && true == nodeInfo.isNonExpBackground()) {
+            if (true == multipleQualifiers && false == nodeInfo.isNonExpNot()) {
+                g.setColor(Color.yellow);
+                g.fillOval(1 , 1, width - 3, height - 3);                
+            }
+            else if (true == multipleQualifiers && true == nodeInfo.isNonExpNot()) {
+                g.setColor(Color.pink);
+                g.fillOval(1 , 1, width - 3, height - 3);                 
+            }
+            else if (false == multipleQualifiers && true == nodeInfo.isNonExpNot()) {
+                g.setColor(Color.red);
+                g.fillOval(1 , 1, width - 3, height - 3);
+            }            
+            if (true == nodeInfo.isNonExpAnnotToTerm()) {
+                g.setColor(Color.BLACK);
+            }
+            else {
+                g.setColor(Color.WHITE);
+            }
+            g.fillRect((getWidth()/2) - 2, (getHeight()/2)-2, 4, 4);            
+        }                
+    }
+    public void paintComponentOrig(Graphics g) {
 	super.paintComponent(g);
 
 //        if (true == "GO:0004842".equals(nodeInfo.getgTerm().getAcc()) && true == "PTN001295675".equals(node.getNode().getStaticInfo().getPublicId())) {
@@ -313,6 +415,6 @@ public class AnnotationMatrixCellRenderer extends JLabel implements TableCellRen
             }
             g.fillRect((getWidth()/2) - 2, (getHeight()/2)-2, 4, 4);            
         }                
-    }
+    }    
     
 }

@@ -119,11 +119,8 @@ public class PAINT {
                     System.exit(-1);
                 }
                 if (null == th) {
-                    int response = JOptionPane.showConfirmDialog(GUIManager.getManager().getFrame(), "Unable to retrieve taxonomy constraints information, annotate without taxonomy constraints?", "Warning", JOptionPane.YES_NO_OPTION);
-                    if (JOptionPane.NO_OPTION == response) {
-                        System.exit(0);
-                    }
-
+                    JOptionPane.showMessageDialog(GUIManager.getManager().getFrame(), "Unable to retrieve taxonomy constraints information, annotate without taxonomy constraints?", "Error", JOptionPane.ERROR_MESSAGE);
+                    System.exit(-1);
                 }
                 PaintManager pm = PaintManager.inst();
                 pm.setupFixedInfo(gth, th, vc, bookSet);

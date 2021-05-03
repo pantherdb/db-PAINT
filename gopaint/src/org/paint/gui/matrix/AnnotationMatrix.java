@@ -1,7 +1,17 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
+/**
+ *  Copyright 2021 University Of Southern California
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing,
+ *  software distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
  */
 package org.paint.gui.matrix;
 
@@ -11,6 +21,8 @@ import edu.usc.ksom.pm.panther.paint.matrix.MatrixGroup;
 import edu.usc.ksom.pm.panther.paint.matrix.MatrixInfo;
 import edu.usc.ksom.pm.panther.paint.matrix.NodeInfoForMatrix;
 import edu.usc.ksom.pm.panther.paint.matrix.TermAncestor;
+import edu.usc.ksom.pm.panther.paint.matrix.TermToAssociation;
+import edu.usc.ksom.pm.panther.paintCommon.Node;
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Point;
@@ -38,18 +50,10 @@ import org.paint.gui.event.GeneSelectEvent;
 import org.paint.gui.event.GeneSelectListener;
 import org.paint.gui.event.NodeReorderEvent;
 import org.paint.gui.event.NodeReorderListener;
-import org.paint.gui.event.TermAncestorSelectEvent;
-import org.paint.gui.event.TermAncestorSelectionEvent;
-import org.paint.gui.event.TermSelectEvent;
-import org.paint.gui.familytree.TreeModel;
 import org.paint.gui.familytree.TreePanel;
 import org.paint.main.PaintManager;
-import org.paint.util.RenderUtil;
 
-/**
- *
- * @author muruganu
- */
+
 public class AnnotationMatrix  extends JTable implements
         AnnotationChangeListener,
         MouseListener,
@@ -166,6 +170,7 @@ public class AnnotationMatrix  extends JTable implements
 		int row = rowAtPoint(point);
                 AnnotationMatrixModel model = (AnnotationMatrixModel) this.getModel();
 		if (row >= 0 && row < getRowCount()) {
+                        GeneNode selectedNode = model.getNode(clickedRow);
                         // This gets over-written.  Need to make a copy
 			List<GeneNode> previous_genes = EventManager.inst().getCurrentGeneSelection();
                         List<GeneNode> previousCopy = null;
@@ -182,27 +187,32 @@ public class AnnotationMatrix  extends JTable implements
                                 }
                                 setSelectedColumn(column);
                                 this.clickedRow = row;
-				TermAncestor termAncestor = ((AnnotationMatrixModel)getModel()).getTermAncestorAtColumn(column);
-				if (termAncestor != null) {
+                                selectedNode = model.getNode(clickedRow);
+                                if (null != selectedNode) {
+                                    selected_genes = new ArrayList<GeneNode>(1);
+                                    selected_genes.add(selectedNode);
+                                }
+//				TermAncestor termAncestor = ((AnnotationMatrixModel)getModel()).getTermAncestorAtColumn(column);
+//				if (termAncestor != null) {
 					
-                                        // For now only consider column that is selected.  Do not consider node that user selected
-                                        GeneNode selectedNode = model.getNode(row);
-					TermAncestorSelectionEvent termAncestorSelectionEvent = new TermAncestorSelectionEvent (this, termAncestor, selectedNode);                                        
-					//TermAncestorSelectionEvent termAncestorSelectionEvent = new TermAncestorSelectionEvent (this, termAncestor, model.getNode(row));
-                                        System.out.println("Single node selected");
-                                        if (null != selectedNode) {
-                                            System.out.println("Left click single node selected id = " + selectedNode.getNodeLabel() + " term is " + termAncestor.getTermToAssociation().getTerm().getAcc());
-                                        }
-					selected_genes = EventManager.inst().fireTermAncestorEvent(termAncestorSelectionEvent);
+//                                        // For now only consider column that is selected.  Do not consider node that user selected
+//                                        GeneNode selectedNode = model.getNode(row);
+//					TermAncestorSelectionEvent termAncestorSelectionEvent = new TermAncestorSelectionEvent (this, termAncestor, selectedNode);                                        
+//					//TermAncestorSelectionEvent termAncestorSelectionEvent = new TermAncestorSelectionEvent (this, termAncestor, model.getNode(row));
+//                                        System.out.println("Single node selected");
+//                                        if (null != selectedNode) {
+//                                            System.out.println("Left click single node selected id = " + selectedNode.getNodeLabel() + " term is " + termAncestor.getTermToAssociation().getTerm().getAcc());
+//                                        }
+//					selected_genes = EventManager.inst().fireTermAncestorEvent(termAncestorSelectionEvent);
 
 //					if (previous_genes != null) {
 //						for (GeneNode node : previous_genes) {
 //							node.setSelected(false);
 //						}
 //					}
-				}
+//				}
 			}
-                        // Right click - Make same as left click?
+                        // Right click - Given term user has selected, select MRCA and descendents
 			if (event.isMetaDown() && !event.isShiftDown() && !event.isAltDown() && !event.isControlDown()) {
 				int column = columnAtPoint(point);
                                 if (column < 0) {
@@ -213,19 +223,24 @@ public class AnnotationMatrix  extends JTable implements
                                 System.out.println("Column selected");
 				TermAncestor termAncestor = ((AnnotationMatrixModel)getModel()).getTermAncestorAtColumn(column);
 				if (termAncestor != null) {
-                                        GeneNode selectedNode = model.getNode(row);
+                                       
                                         if (null != selectedNode) {
                                             System.out.println("Right click single node selected id = " + selectedNode.getNodeLabel() + " term is " + termAncestor.getTermToAssociation().getTerm().getAcc());
                                         }
-					TermAncestorSelectionEvent termAncestorSelectionEvent = new TermAncestorSelectionEvent (this, termAncestor, selectedNode);
-					selected_genes = EventManager.inst().fireTermAncestorEvent(termAncestorSelectionEvent);
+					//TermAncestorSelectionEvent termAncestorSelectionEvent = new TermAncestorSelectionEvent (this, termAncestor, selectedNode);
+					selected_genes = getMRCAForTerm(termAncestor);
+                                        if (null != selected_genes && 0 < selected_genes.size()) {
+                                            System.out.println("Selecting " + selected_genes.size() + " genes which include MCRA and descendents for selected term");
+                                            selectedNode = selected_genes.get(selected_genes.size() - 1);       // Last entry is MRCA
+                                        }
+                                        
                                 }
 			}
-                        GeneNode selectedNode = model.getNode(clickedRow);
-                        if (null != selectedNode) {
-                            System.out.println("Selecting node " + selectedNode.getNode().getStaticInfo().getPublicId());
+                        
+                        if (null != selected_genes  && null != selectedNode) {
+                            
                             ArrayList<GeneNode> selection = new ArrayList<GeneNode>();
-                            selection.add(selectedNode);
+                            selection.addAll(selected_genes);
                             GeneSelectEvent ge = new GeneSelectEvent(this, selection, selectedNode);
                             EventManager.inst().fireGeneEvent(ge);
                         
@@ -390,5 +405,155 @@ public class AnnotationMatrix  extends JTable implements
         }
         return false;
     }
+    
+        /**
+         * Handle scenario - User selecting whole column of annotation matrix 
+         * @param e MRCA node is last node in list.  Descendants of MRCA are listed first
+         * @return 
+         */
+    public List<GeneNode> getMRCAForTerm(TermAncestor newTermAncestor) {
+//        TermAncestor newTermAncestor = e.getTermAncestorSelection();
+//            GeneNode newSelectNode = e.getNode();
+//            
+//            if (newTermAncestor.equals(termAncestor)) {
+//                if (null != newSelectNode) {
+//                    selectedNodes.add(newSelectNode);
+//                }                
+//            }
+//            else {
+//                termAncestor = newTermAncestor;
+//                if (null == selectedNodes) {
+//                    selectedNodes = new ArrayList<GeneNode>();
+//                }
+//                selectedNodes.clear();
+//                if (null != newSelectNode) {
+//                    selectedNodes.add(newSelectNode);
+//                }
+//            }
+//        TermAncestor termAncestor = e.getTermAncestorSelection();
+//        if (null == selectedNodes) {
+//            selectedNodes = new ArrayList<GeneNode>();
+//        }
+//        selectedNodes.clear();
+
+        TermToAssociation toa = newTermAncestor.getTermToAssociation();
+        ArrayList<Node> nodesForAssociation = toa.getExperimentalNodesForAssociation();
+
+//            if (false == selectedNodes.isEmpty()) {
+//                for (Iterator<Node> iter = nodesForAssociation.iterator();  iter.hasNext();) {
+//                    Node node = iter.next();
+//                    if (false == selectedNodes.contains(node)) {
+//                        iter.remove();
+//                    }
+//                }
+//            }
+        ArrayList<GeneNode> geneNodesForAsn = new ArrayList<GeneNode>(nodesForAssociation.size());
+
+        // Clear previous selections
+        // Get corresponding GeneNode for nodes in nodesForAssociation
+        TreePanel treePanel = PaintManager.inst().getTree();
+        List<GeneNode> allNodes = treePanel.getAllNodes();
+        for (GeneNode gNode : allNodes) {
+            gNode.setSelected(false);
+            if (null != nodesForAssociation) {
+                for (Node node : nodesForAssociation) {
+                    if (gNode.getNode().equals(node)) {
+                        geneNodesForAsn.add(gNode);
+                    }
+                }
+            }
+        }
+
+        if (null == nodesForAssociation) {
+            return null;
+        }
+
+        // Get MRCA for list of nodes
+        GeneNode gn = getMRCA(geneNodesForAsn);
+        if (null == gn) {
+            return null;
+        }
+        ArrayList<GeneNode> descendants = new ArrayList<GeneNode>();
+        ArrayList<Node> nodeDescendants = new ArrayList<Node>();
+        gn.getNode().getDescendants(gn.getNode(), nodeDescendants);
+        PaintManager pm = PaintManager.inst();
+        for (Node descendant : nodeDescendants) {
+            GeneNode curGn = pm.getGeneByPTNId(descendant.getStaticInfo().getPublicId());
+            if (null != curGn) {
+                descendants.add(curGn);
+            } else {
+                System.out.println("Unable to find gene node by id " + descendant.getStaticInfo().getPublicId() + " " + descendant.getStaticInfo().getNodeAcc());
+            }
+        }
+        descendants.add(gn);
+        return descendants;
+
+    }
+
+    public static GeneNode getMRCA(List<GeneNode> nodeList) {
+        if (null == nodeList || 0 == nodeList.size()) {
+            return null;
+        }
+        if (1 == nodeList.size()) {
+            GeneNode gn = nodeList.get(0);
+            Node n = gn.getNode();
+            Node p = n.getStaticInfo().getParent();
+            if (null == p) {
+                return null;
+            }
+            return PaintManager.inst().getGeneByPTNId(p.getStaticInfo().getPublicId());
+        }
+        HashMap<Node, List<Node>> nodeToAncestorLookup = new HashMap<Node, List<Node>>();
+        Node smallestPathNode = null;
+        int size = 0;
+        for (GeneNode gn : nodeList) {
+            Node n = gn.getNode();
+            List<Node> ancestors = Node.getAncestors(n);
+            if (null == ancestors || 0 == ancestors.size()) {
+                return null;
+            }
+            nodeToAncestorLookup.put(n, ancestors);
+
+            // Initialize with first entry
+            if (1 == nodeToAncestorLookup.size()) {
+                smallestPathNode = n;
+                size = ancestors.size();
+            }
+
+            if (ancestors.size() < size) {
+                smallestPathNode = n;
+                size = ancestors.size();
+            }
+        }
+
+        if (null == smallestPathNode || 0 == size) {
+            return null;
+        }
+
+        List<Node> compList = nodeToAncestorLookup.get(smallestPathNode);
+        Node lastCommon = null;
+        for (int i = 1; i <= size; i++) {
+            Node curComp = compList.get(compList.size() - i);
+            for (GeneNode gn : nodeList) {
+                Node n = gn.getNode();
+                if (n == smallestPathNode) {
+                    continue;
+                }
+                List<Node> ancestors = nodeToAncestorLookup.get(n);
+                Node current = ancestors.get(ancestors.size() - i);
+                if (curComp != current) {
+                    if (lastCommon != null) {
+                        return PaintManager.inst().getGeneByPTNId(lastCommon.getStaticInfo().getPublicId());
+                    }
+                    return null;
+                }
+            }
+            lastCommon = curComp;
+        }
+        if (null == lastCommon) {
+            return null;
+        }
+        return PaintManager.inst().getGeneByPTNId(lastCommon.getStaticInfo().getPublicId());
+    }    
     
 }

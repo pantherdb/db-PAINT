@@ -1,5 +1,5 @@
 /**
- * Copyright 2019 University Of Southern California
+ * Copyright 2020 University Of Southern California
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -24,12 +24,12 @@ import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.HashMap;
+import java.util.Hashtable;
+import org.apache.log4j.Logger;
 
-/**
- *
- * @author muruganu
- */
 public class CategoryHelper {
     
     public static final String QUERY_CATEGORY_SINGLE_PARENT_GO_ACROSS_ASPECT = "select distinct c1.accession, c1.name, c1.definition, c1.classification_id child_id, c2.accession parent, c2.classification_id parent_id, r.rank, c1.term_type_sid, c2.term_type_sid,  (case when ctt1.term_name='molecular_function' THEN 'F' when ctt1.term_name='cellular_component'THEN 'C' when ctt1.term_name='biological_process' THEN 'P' END) as cAspect, (case when ctt2.term_name='molecular_function' THEN 'F' when ctt2.term_name='cellular_component'THEN 'C' when ctt2.term_name='biological_process' THEN 'P' END) as pAspect from go_classification c1, go_classification_relationship r, go_classification c2,  classification_term_type ctt1, classification_term_type ctt2 where c1.depth is null  and c1.classification_version_sid = %1 and c1.obsolescence_date is null and c1.classification_id = r.child_classification_id and r.parent_classification_id = c2.classification_id and r.obsolescence_date is null and c2.classification_version_sid = %1 and c2.obsolescence_date is null   and c1.term_type_sid = ctt1.term_type_sid and c2.term_type_sid = ctt2.term_type_sid ";
@@ -38,6 +38,12 @@ public class CategoryHelper {
     public static final String QUERY_CATEGORY_SINGLE_PARENT_GO = "select distinct c1.accession, c1.name, c1.definition, c1.classification_id child_id, c2.accession parent, c2.classification_id parent_id, r.rank, c1.term_type_sid, c2.term_type_sid,  (case when ctt1.term_name='molecular_function' THEN 'F' when ctt1.term_name='cellular_component'THEN 'C' when ctt1.term_name='biological_process' THEN 'P' END) as cAspect, (case when ctt2.term_name='molecular_function' THEN 'F' when ctt2.term_name='cellular_component'THEN 'C' when ctt2.term_name='biological_process' THEN 'P' END) as pAspect from go_classification c1, go_classification_relationship r, go_classification c2,  classification_term_type ctt1, classification_term_type ctt2 where c1.depth is null  and c1.classification_version_sid = %1 and c1.obsolescence_date is null and c1.classification_id = r.child_classification_id and r.parent_classification_id = c2.classification_id and r.obsolescence_date is null and c2.classification_version_sid = %1 and c2.obsolescence_date is null and c1.term_type_sid = c2.term_type_sid  and c1.term_type_sid = ctt1.term_type_sid and c2.term_type_sid = ctt2.term_type_sid ";
 
     public static final String QUERY_CATEGORY_ACC_GO = "select accession, name, depth, definition, term_type_sid, classification_id from go_classification where accession = '%1' and obsolescence_date is null and CLASSIFICATION_VERSION_SID = %2";
+    
+    
+    
+    protected static final String QUERY_VERSION_INFO = "select * from FULLGO_VERSION";
+    protected static final SimpleDateFormat DATE_FORMATTER = new SimpleDateFormat("yyyy-MM-dd");
+    
     public static final String PARAM_1 = "%1";
     public static final String PARAM_2 = "%2";
     
@@ -52,10 +58,18 @@ public class CategoryHelper {
     public static final String COLUMN_ASPECT_PARENT = "pAspect";
     public static final String COLUMN_CHILD_ID = "child_id";
     public static final String COLUMN_PARENT_ID = "parent_id";    
+
+
+
+    public static final String COLUMN_GO_ANNOTATION_FORMAT_VERSION = "GO_ANNOTATION_FORMAT_VERSION";
+    public static final String COLUMN_GO_ANNOTATION_RELEASE_DATE = "GO_ANNOTATION_RELEASE_DATE";
+    public static final String COLUMN_PANTHER_VERSION = "PANTHER_VERSION";
+    public static final String COLUMN_PANTHER_RELEASE_DATE = "PANTHER_RELEASE_DATE";    
     
-  public static final String GO_CLS_VERSION_SID = ConfigFile.getProperty("go.cls.version_sid"); 
+    public static final String GO_CLS_VERSION_SID = ConfigFile.getProperty("go.cls.version_sid"); 
     public static final String DB_CONNECTION_STR = ConfigFile.getProperty(ConfigFile.KEY_DB_JDBC_DBSID);      
     public static final String STR_EMPTY = "";
+    private static final Logger log = Logger.getLogger(CategoryHelper.class);
     
     public static HashMap<String, GOTerm> getGOTermLookup() {    
         String query = Utils.replace(QUERY_CATEGORY_SINGLE_PARENT_GO, PARAM_1, GO_CLS_VERSION_SID);
@@ -160,6 +174,57 @@ public class CategoryHelper {
         }
         return term;
 
-    }        
+    }
+    
+    public static Hashtable getCategoryReleaseInfo() {
+        
+        Connection con = null;
+        Statement stmt = null;
+        ResultSet rst = null;
+        Hashtable rtnTbl = new Hashtable();
+        try {
+            con = DBConnectionPool.getConnection(DB_CONNECTION_STR);
+            if (null == con) {
+                log.error("Error unable to get database connection");
+                return null;
+            }
+        
+            stmt = con.createStatement();
+            rst = stmt.executeQuery(QUERY_VERSION_INFO);
+            while(rst.next()) {
+                String goVersion = rst.getString(COLUMN_GO_ANNOTATION_FORMAT_VERSION);
+                Date goDate = rst.getDate(COLUMN_GO_ANNOTATION_RELEASE_DATE);
+                String pantherVersion = rst.getString(COLUMN_PANTHER_VERSION);
+                Date pantherDate = rst.getDate(COLUMN_PANTHER_RELEASE_DATE);
+                if (null != goVersion) {
+                    rtnTbl.put(COLUMN_GO_ANNOTATION_FORMAT_VERSION, goVersion);
+                }
+                if (null != goDate) {
+                    rtnTbl.put(COLUMN_GO_ANNOTATION_RELEASE_DATE, DATE_FORMATTER.format(goDate));
+                }
+                if (null != pantherVersion) {
+                    rtnTbl.put(COLUMN_PANTHER_VERSION, pantherVersion);
+                }
+                if (null != pantherDate) {
+                    rtnTbl.put(COLUMN_PANTHER_RELEASE_DATE, DATE_FORMATTER.format(pantherDate));
+                } 
+                break;
+            }
+            if (rtnTbl.isEmpty()) {
+                return null;
+            }
+        }
+        catch(Exception e) {
+            log.error(e.getMessage());
+            rtnTbl = null;
+        }
+        finally {
+            ReleaseResources.releaseDBResources(rst, stmt, con);
+        }
+        
+
+
+        return rtnTbl;        
+    }    
     
 }

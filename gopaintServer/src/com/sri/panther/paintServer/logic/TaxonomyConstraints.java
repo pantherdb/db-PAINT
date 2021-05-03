@@ -1,5 +1,5 @@
 /**
- *  Copyright 2016 University Of Southern California
+ *  Copyright 2020 University Of Southern California
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -17,9 +17,11 @@ package com.sri.panther.paintServer.logic;
 
 import com.sri.panther.paintCommon.Constant;
 import com.sri.panther.paintCommon.util.FileUtils;
+import com.sri.panther.paintServer.datamodel.Organism;
 import com.sri.panther.paintServer.util.ConfigFile;
 import edu.usc.ksom.pm.panther.paintCommon.TaxonomyHelper;
 import java.io.IOException;
+import java.io.Serializable;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -28,7 +30,7 @@ import java.util.LinkedHashMap;
  *
  * Singleton
  */
-public class TaxonomyConstraints {
+public class TaxonomyConstraints implements Serializable{
     private static TaxonomyConstraints instance;
     public static final String TAXONOMY_FILE_PATH = ConfigFile.getProperty("taxonomy_constraints");
     
@@ -58,23 +60,35 @@ public class TaxonomyConstraints {
             }
             String speciesList = taxonFileContents[0];
             speciesList.trim();
-            String [] parts = speciesList.split(Constant.STR_COMMA);
+            String [] parts = speciesList.split(Constant.STR_TAB);
+            // Taxonomy file has combination of short and long names names such as (GOterm	STRCO	MOUSE	Rattus norvegicus	TRIAD	...).
+            // Convert to long names.
+            // Index 0 is the GO id. So start with next item
+            OrganismManager om = OrganismManager.getInstance();
+            for (int i = 1; i < parts.length;i++) {
+                String org = parts[i];
+                Organism o = om.getOrganismForShortName(org);
+                if (null == o || null == o.getLongName()) {
+                    continue;
+                }
+                parts[i] = o.getLongName();
+            }
             int partsLength = parts.length;
             speciesToIndex = new LinkedHashMap<String, Integer>();
-            for (int i = 2; i < partsLength; i++) {
+            for (int i = 1; i < partsLength; i++) {
                 speciesToIndex.put(parts[i], i);
             }
             
             termToIndex = new LinkedHashMap<String, Integer>();
             valuesLookup = new int[numLines][parts.length];
             for (int i = 1; i < numLines; i++) {
-                parts = taxonFileContents[i].split(Constant.STR_COMMA);
+                parts = taxonFileContents[i].split(Constant.STR_TAB);
                 if (parts.length < partsLength) {
-                    System.out.println("Skipping - Encountered invalid data during parsing of taxonomy constraints file line " + i + " contents " + taxonFileContents[i]);
+                    System.out.println("Skipping - Encountered invalid data during parsing of taxonomy constraints file line " + i + " contents " + taxonFileContents[i] + " expected " + partsLength + " entries, found " + parts.length + " entries");
                     continue;
                 }
                 termToIndex.put(parts[0], i);
-                for (int j = 2; j < parts.length; j++) {
+                for (int j = 1; j < parts.length; j++) {
                     valuesLookup[i][j] = Integer.parseInt(parts[j]);
                 }
             }

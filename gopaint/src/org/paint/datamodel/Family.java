@@ -21,10 +21,6 @@ import edu.usc.ksom.pm.panther.paintCommon.Domain;
 import edu.usc.ksom.pm.panther.paintCommon.MSA;
 import edu.usc.ksom.pm.panther.paintCommon.Node;
 import edu.usc.ksom.pm.panther.paintCommon.SaveBookInfo;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
 import java.io.Serializable;
 import java.util.ArrayList;
 import org.paint.dataadapter.FamilyAdapter;
@@ -75,7 +71,8 @@ public class Family implements Serializable {
     public static final String MSG_ERROR_CANNOT_ACCESS_VERSION_INFO_TREE = "Unable to retrieve tree info from server";    
     public static final String MSG_ERROR_CANNOT_ACCESS_VERSION_INFO_MSA = "Unable to retrieve MSA info from server"; 
     public static final String MSG_ERROR_CANNOT_ACCESS_VERSION_INFO_NODE_INFO = "Unable to retrieve node info from server";
-    public static final String MSG_ERROR_CANNOT_SAVE_BOOK = "Unable to save information";    
+    public static final String MSG_ERROR_CANNOT_SAVE_BOOK = "Unable to save information";
+    public static final String MSG_ERROR_NODE_INFO_FAILS_CONSISTENCY_CHECKS = "Node information fails consistency checks";    
     
     public Family() {
     }
@@ -400,17 +397,19 @@ public class Family implements Serializable {
             dto.setObj(familyId);            
             DataTransferObj serverOutput = PantherServer.inst().getFamilyDomain(Preferences.inst().getPantherURL(), dto);
             if (null == serverOutput) {
-                JOptionPane.showMessageDialog(GUIManager.getManager().getFrame(), MSG_ERROR_CANNOT_ACCESS_VERSION_INFO_FAMILY_DOMAIN, MSG_ERROR, JOptionPane.ERROR_MESSAGE);
-                System.exit(-1);
+                //JOptionPane.showMessageDialog(GUIManager.getManager().getFrame(), MSG_ERROR_CANNOT_ACCESS_VERSION_INFO_FAMILY_DOMAIN, MSG_ERROR, JOptionPane.ERROR_MESSAGE);
+                System.out.println(MSG_ERROR_CANNOT_ACCESS_VERSION_INFO_FAMILY_DOMAIN);
             }
-            StringBuffer sb = serverOutput.getMsg();
-            if (null != sb && 0 != sb.length()) {
-                JOptionPane.showMessageDialog(GUIManager.getManager().getFrame(), sb.toString(), MSG_ERROR, JOptionPane.ERROR_MESSAGE);
-                System.exit(-1);
-            }             
-            nodeToDomainLookup = (HashMap<String, HashMap<String, ArrayList<Domain>>>)serverOutput.getObj();
-            System.out.println("End of get family domain execution for " + familyId + " at " + df.format(new java.util.Date(System.currentTimeMillis())));
-            PaintManager.inst().handleDomainInfo(this.familyId, this.nodeToDomainLookup);
+            else {
+                StringBuffer sb = serverOutput.getMsg();
+                if (null != sb && 0 != sb.length()) {
+                    JOptionPane.showMessageDialog(GUIManager.getManager().getFrame(), sb.toString(), MSG_ERROR, JOptionPane.ERROR_MESSAGE);
+                    System.exit(-1);
+                }             
+                nodeToDomainLookup = (HashMap<String, HashMap<String, ArrayList<Domain>>>)serverOutput.getObj();
+                System.out.println("End of get family domain execution for " + familyId + " at " + df.format(new java.util.Date(System.currentTimeMillis())));
+                PaintManager.inst().handleDomainInfo(this.familyId, this.nodeToDomainLookup);
+            }
 //            ObjectOutputStream oos = null;
 //            FileOutputStream fout = null;
 //            try {
@@ -482,17 +481,21 @@ public class Family implements Serializable {
             dto.setObj(familyId);
             DataTransferObj serverOutput = PantherServer.inst().getMSA(Preferences.inst().getPantherURL(), dto);
             if (null == serverOutput) {
-                JOptionPane.showMessageDialog(GUIManager.getManager().getFrame(), MSG_ERROR_CANNOT_ACCESS_VERSION_INFO_MSA, MSG_ERROR, JOptionPane.ERROR_MESSAGE);
-                System.exit(-1);
+                //JOptionPane.showMessageDialog(GUIManager.getManager().getFrame(), MSG_ERROR_CANNOT_ACCESS_VERSION_INFO_MSA, MSG_ERROR, JOptionPane.ERROR_MESSAGE);
+                System.out.println(MSG_ERROR_CANNOT_ACCESS_VERSION_INFO_MSA);
             }
-            StringBuffer sb = serverOutput.getMsg();
-            if (null != sb && 0 != sb.length()) {
-                JOptionPane.showMessageDialog(GUIManager.getManager().getFrame(), sb.toString(), MSG_ERROR, JOptionPane.ERROR_MESSAGE);
-                System.exit(-1);
-            }
-            msa = (MSA)serverOutput.getObj();
+            else {
+                StringBuffer sb = serverOutput.getMsg();
+                if (null != sb && 0 != sb.length()) {
+                    //JOptionPane.showMessageDialog(GUIManager.getManager().getFrame(), sb.toString(), MSG_ERROR, JOptionPane.ERROR_MESSAGE);
+                    System.out.println("Error loading MSA with message: " + sb.toString());
+                } else {
+                    msa = (MSA) serverOutput.getObj();
 //            msa = null;
-            System.out.println("End of get msa  execution for " + familyId + " at " + df.format(new java.util.Date(System.currentTimeMillis())));              
+                    System.out.println("End of get msa  execution for " + familyId + " at " + df.format(new java.util.Date(System.currentTimeMillis())));
+                }
+            }
+            
         }
     }
 
@@ -527,6 +530,10 @@ public class Family implements Serializable {
             Vector outputInfo = (Vector)serverOutput.getObj();
             nodeLookup = (HashMap<String, Node>)outputInfo.get(0);
             errorBuf = (StringBuffer)outputInfo.get(1);
+            if (null == outputInfo || 2 > outputInfo.size()) {
+                JOptionPane.showMessageDialog(GUIManager.getManager().getFrame(), MSG_ERROR_NODE_INFO_FAILS_CONSISTENCY_CHECKS, MSG_ERROR, JOptionPane.ERROR_MESSAGE);
+                System.exit(-1);                
+            } 
 //            System.out.println(errorBuf);
 //            try {
 //                FileInputStream fin = new FileInputStream("C:\\Temp\\new_paint\\" + familyId + ".ser");

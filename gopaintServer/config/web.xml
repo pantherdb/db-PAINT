@@ -29,15 +29,34 @@
     <servlet-class>edu.usc.ksom.pm.panther.paintServer.servlet.DataServlet</servlet-class>
   </servlet>
   
-  
-   
   <servlet-mapping>
     <servlet-name>DataServlet</servlet-name>
     <url-pattern>/servlet/edu.usc.ksom.pm.panther.paintServer.servlet.DataServlet</url-pattern>
   </servlet-mapping>
-
-
-
+  
+  <servlet>
+    <servlet-name>NodeAnnotation</servlet-name>
+    <display-name/>
+    <description/>
+    <servlet-class>edu.usc.ksom.pm.panther.paintServer.services.servlet.NodeAnnotation</servlet-class>
+  </servlet>
+    
+  <servlet-mapping>
+    <servlet-name>NodeAnnotation</servlet-name>
+    <url-pattern>/services/tree/node/annotation/*</url-pattern>
+  </servlet-mapping>
+  
+  <servlet>
+    <servlet-name>FamilyHistory</servlet-name>
+    <display-name/>
+    <description/>
+    <servlet-class>edu.usc.ksom.pm.panther.paintServer.services.servlet.FamilyHistory</servlet-class>
+  </servlet>
+    
+  <servlet-mapping>
+    <servlet-name>FamilyHistory</servlet-name>
+    <url-pattern>/services/family/updateHistory/*</url-pattern>
+  </servlet-mapping>  
       
 <session-config>
 	<session-timeout>30</session-timeout>

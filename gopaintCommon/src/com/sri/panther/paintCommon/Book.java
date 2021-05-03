@@ -1,5 +1,5 @@
 /**
- *  Copyright 2019 University Of Southern California
+ *  Copyright 2020 University Of Southern California
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -15,7 +15,9 @@
  */
 package com.sri.panther.paintCommon;
 
+import edu.usc.ksom.pm.panther.paintCommon.CurationStatus;
 import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashSet;
 
@@ -29,7 +31,8 @@ public class Book implements Comparable, Serializable {
     protected HashSet<String> orgSet;
     protected String comment;
     protected String commentUser;
-    protected String commentOp;    
+    protected String commentOp;
+    protected ArrayList<CurationStatus> curationStatusList;
     
     // A book can have multiple status.  Instead of using a hashtable or vector which will use up lots of memory when users retrieve
     // books from searches, use binary bits for each status.  Most importantly, this makes it easier to check for status
@@ -65,6 +68,10 @@ public class Book implements Comparable, Serializable {
         this.curationStatus = curationStatus;
         this.lockedBy = lockedBy;
     
+    }
+    
+    public Book(String id) {
+        this.id = id;
     }
     
     public String getId() {
@@ -192,6 +199,17 @@ public class Book implements Comparable, Serializable {
     public HashSet<String> getOrgSet() {
         return orgSet;
     }
+    
+    public boolean addOrg(String org) {
+        if (null == org) {
+            return false;
+        }
+        if (null == orgSet) {
+            orgSet = new HashSet<String>();
+        }
+        orgSet.add(org);
+        return true;
+    }
 
     public void setOrgSet(HashSet<String> orgSet) {
         this.orgSet = orgSet;
@@ -219,6 +237,25 @@ public class Book implements Comparable, Serializable {
 
     public void setCommentOp(String commentOp) {
         this.commentOp = commentOp;
+    }
+
+    public ArrayList<CurationStatus> getCurationStatusList() {
+        return curationStatusList;
+    }
+
+    public void setCurationStatusList(ArrayList<CurationStatus> curationStatusList) {
+        this.curationStatusList = curationStatusList;
+    }
+    
+    public boolean addCurationStatus(CurationStatus cs) {
+        if(null == cs) {
+            return false;
+        }
+        if (null == curationStatusList) {
+            curationStatusList = new ArrayList<CurationStatus>();
+        }
+        curationStatusList.add(cs);
+        return true;
     }
 
 }

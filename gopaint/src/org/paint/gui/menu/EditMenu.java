@@ -14,9 +14,6 @@
  *  limitations under the License.
  */
 
-
-
-
 package org.paint.gui.menu;
 
 import java.awt.event.ActionEvent;

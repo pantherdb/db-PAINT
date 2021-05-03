@@ -1,5 +1,5 @@
 /**
- *  Copyright 2016 University Of Southern California
+ *  Copyright 2020 University Of Southern California
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -17,6 +17,7 @@ package edu.usc.ksom.pm.panther.paintCommon;
 
 import java.io.Serializable;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.Set;
 
@@ -31,21 +32,38 @@ public class TaxonomyHelper implements Serializable {
         this.termToIndex = termToIndex;
         this.valuesLookup = valuesLookup;
     }
+    
+    public Set<String> getSupportedSpecies() {
+        return new HashSet(speciesToIndex.keySet());
+    }
 
+    public Set<String> getSupportedTerms() {
+        return new HashSet(termToIndex.keySet());
+    }
+    
     public TaxonomyHelper() {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        throw new UnsupportedOperationException("Not supported yet."); 
+    }
+    
+    public boolean isTermAndQualifierValidForSpecies(String term, String species, Set<Qualifier> qSet) {
+        if (true == QualifierDif.containsNegative(qSet)) {
+            return true;
+        }
+        return isTermValidForSpecies(term, species);
     }
     
     public boolean isTermValidForSpecies(String term, String species) {
-        if (null == term || null == species) {
+        if (null == species) {
+            return true;
+        }
+        if (null == term) {
             return false;
         }
         Integer row  = termToIndex.get(term);
         if (null == row) {
-            // New version does not define terms for which all organisms are valid
+            // For now assume Taxon constraints rules are incomplete. 
+            System.out.println("TAXON ERROR - DID NOT FIND TERM " + term);
             return true;
-//            System.out.println("TAXON ERROR - DID NOT FIND TERM " + term);
-//            return false;
         }
         Integer column = speciesToIndex.get(species);
         if (null == column) {

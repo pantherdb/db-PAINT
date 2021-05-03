@@ -1,5 +1,5 @@
 /**
- * Copyright 2019 University Of Southern California
+ * Copyright 2020 University Of Southern California
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -23,6 +23,7 @@ import edu.usc.ksom.pm.panther.paint.matrix.MatrixBuilder;
 import edu.usc.ksom.pm.panther.paint.matrix.MatrixInfo;
 import edu.usc.ksom.pm.panther.paint.matrix.TermAncestor;
 import edu.usc.ksom.pm.panther.paintCommon.Annotation;
+import edu.usc.ksom.pm.panther.paintCommon.AnnotationHelper;
 import edu.usc.ksom.pm.panther.paintCommon.Comment;
 import edu.usc.ksom.pm.panther.paintCommon.Domain;
 import edu.usc.ksom.pm.panther.paintCommon.GOTermHelper;
@@ -64,7 +65,6 @@ import org.paint.gui.msa.MSA;
 import org.paint.gui.msa.MSAPanel;
 import org.paint.gui.table.GeneTable;
 import org.paint.gui.table.GeneTableModel;
-import org.paint.util.AnnotationUtil;
 import org.paint.util.GeneNodeUtil;
 
 public class PaintManager {
@@ -405,28 +405,34 @@ public class PaintManager {
                 continue;
             }
             for (Annotation a : annotList) {
-                String code = a.getSingleEvidenceCodeFromSet();
-                GeneNode gn = PaintManager.inst().getGeneByPTNId(n.getStaticInfo().getPublicId());
-                if (edu.usc.ksom.pm.panther.paintCommon.Evidence.CODE_IBD.equals(code) || (edu.usc.ksom.pm.panther.paintCommon.Evidence.CODE_IKR.equals(code) && false == gn.isLeaf()) || edu.usc.ksom.pm.panther.paintCommon.Evidence.CODE_IRD.equals(code)) {
-//                        ArrayList<Annotation> astdList = saveNodeLookup.get(n);
-//                        if (null == astdList) {
-//                            astdList = new ArrayList<Annotation>();
-//                            saveNodeLookup.put(n, astdList);
-//                        }
-//                        astdList.add(a);
+                if (AnnotationHelper.isDirectAnnotation(a)) {
                     annotationList.add(a);
-//                    Annotation childAnnot = a.getChildAnnotation();
-//                    if (null != childAnnot && edu.usc.ksom.pm.panther.paintCommon.Evidence.CODE_IBA.equals(childAnnot.getSingleEvidenceCodeFromSet()) && (edu.usc.ksom.pm.panther.paintCommon.Evidence.CODE_IKR.equals(code) || edu.usc.ksom.pm.panther.paintCommon.Evidence.CODE_IRD.equals(code))) {
-//                        //astdList.add(childAnnot);
-//                        annotationList.add(childAnnot);
+                }
+//                String code = a.getSingleEvidenceCodeFromSet();
+//                GeneNode gn = PaintManager.inst().getGeneByPTNId(n.getStaticInfo().getPublicId());
+//                if (edu.usc.ksom.pm.panther.paintCommon.Evidence.CODE_IBD.equals(code) ||
+//                        (edu.usc.ksom.pm.panther.paintCommon.Evidence.CODE_IKR.equals(code) && false == gn.isLeaf()) ||
+//                        edu.usc.ksom.pm.panther.paintCommon.Evidence.CODE_IRD.equals(code)||
+//                        edu.usc.ksom.pm.panther.paintCommon.Evidence.CODE_TCV.equals(code)) {
+////                        ArrayList<Annotation> astdList = saveNodeLookup.get(n);
+////                        if (null == astdList) {
+////                            astdList = new ArrayList<Annotation>();
+////                            saveNodeLookup.put(n, astdList);
+////                        }
+////                        astdList.add(a);
+//                    annotationList.add(a);
+////                    Annotation childAnnot = a.getChildAnnotation();
+////                    if (null != childAnnot && edu.usc.ksom.pm.panther.paintCommon.Evidence.CODE_IBA.equals(childAnnot.getSingleEvidenceCodeFromSet()) && (edu.usc.ksom.pm.panther.paintCommon.Evidence.CODE_IKR.equals(code) || edu.usc.ksom.pm.panther.paintCommon.Evidence.CODE_IRD.equals(code))) {
+////                        //astdList.add(childAnnot);
+////                        annotationList.add(childAnnot);
+////                    }
+//
+//                }
+//                else if (edu.usc.ksom.pm.panther.paintCommon.Evidence.CODE_IBA.equals(code)) {
+//                    if (true == AnnotationUtil.isIBAFromIBDAndForIKRorIRD(a, gNode)) {
+//                        annotationList.add(a);
 //                    }
-
-                }
-                else if (edu.usc.ksom.pm.panther.paintCommon.Evidence.CODE_IBA.equals(code)) {
-                    if (true == AnnotationUtil.isIBAForIKRorIRD(a, gNode)) {
-                        annotationList.add(a);
-                    }
-                }
+//                }
             }
         }
         return annotationList;
@@ -551,8 +557,6 @@ public class PaintManager {
             // Parse file and create tree
             GeneNode root = GeneNodeUtil.inst().parseTreeData(family.getTreeStrings(), family.getNodeLookup(), familyID);
 
-            // Propagate annotations from the database
-            AnnotationUtil.propagateAndFixAnnotationsForBookOpen(root);
             TreeModel treeModel = null;
             if (root != null) {
                 treeModel = new TreeModel(root);
@@ -563,8 +567,6 @@ public class PaintManager {
                 return;
             }
 
-			//Vector<Vector<String>> rows = AttrTable.parse(family.getAttrTable());
-            //family.setRows(rows);
             GeneTableModel geneTblModel = new GeneTableModel(tree_pane.getTerminusNodes());
             genes_pane.setModel(geneTblModel);
 

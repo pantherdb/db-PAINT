@@ -442,7 +442,7 @@ public class DataServlet extends HttpServlet {
             nodeLookup = dataIO.getNodeInfo(book, CLASSIFICATION_VERSION_SID, errorBuf, paintErrBuf);
             Vector outputInfo = new Vector();
             outputInfo.add(nodeLookup);
-            outputInfo.add(errorBuf.append(paintErrBuf));
+            outputInfo.add(errorBuf.insert(0, paintErrBuf));
             serverOut.setObj(outputInfo);
         } catch (ClassNotFoundException cnfe) {
             cnfe.printStackTrace();
@@ -452,7 +452,7 @@ public class DataServlet extends HttpServlet {
             return;
         } catch (Exception e) {
             errorBuf.setLength(0);
-            errorBuf.append(MSG_ERROR_RETRIEVING_BOOK_INFO);
+            errorBuf.insert(0, MSG_ERROR_RETRIEVING_BOOK_INFO);
             nodeLookup = null;
             e.printStackTrace();
         }
@@ -782,7 +782,6 @@ public class DataServlet extends HttpServlet {
             String password = String.copyValueOf((char[]) clientRequest.elementAt(1));
             password = convertPassword(userName, password);
             DataIO dataIO = new DataIO(ConfigFile.getProperty(ConfigFile.KEY_DB_JDBC_DBSID));
-
             User user = dataIO.getUser(userName, password);
 
             objs.addElement(user);
@@ -791,13 +790,18 @@ public class DataServlet extends HttpServlet {
         } catch (Exception e) {
             System.out.println("Exception while getting user info " + e.getMessage() + " has been returned.");
             e.printStackTrace();
-
         }
         sendGZIP(response, objs);
 
     }
+    
+//    public static User getUser(String userName, String password) {
+//        String convertedPass = convertPassword(userName, password);
+//        DataIO dataIO = new DataIO(ConfigFile.getProperty(ConfigFile.KEY_DB_JDBC_DBSID));
+//        return dataIO.getUser(userName, convertedPass);
+//    }    
   
-    private String convertPassword(String userName, String password) {
+    private static String convertPassword(String userName, String password) {
         Vector objs = new Vector(2);
         objs.add(userName);
         objs.add(password);

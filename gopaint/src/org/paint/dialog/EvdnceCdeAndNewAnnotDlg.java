@@ -1,5 +1,5 @@
 /**
- * Copyright 2018 University Of Southern California
+ * Copyright 2020 University Of Southern California
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -87,6 +87,7 @@ public class EvdnceCdeAndNewAnnotDlg extends JDialog implements ActionListener {
     private JButton doneButton = null;
 
     private List<GeneNode> leaves;
+    private Annotation annotation;
     private List<GeneNode> defaultEvdnceLeaves;
     private boolean ancestorsApplicable = false;
 
@@ -100,6 +101,7 @@ public class EvdnceCdeAndNewAnnotDlg extends JDialog implements ActionListener {
     public EvdnceCdeAndNewAnnotDlg(Frame frame, Annotation annotation, List<GeneNode> leaves, List<GeneNode> defaultEvdnceLeaves) {
         super(frame, "Evidence Code for NOT and New Annotation", true);
         this.leaves = leaves;
+        this.annotation = annotation;
         this.defaultEvdnceLeaves = defaultEvdnceLeaves;
         setLayout(new BorderLayout());
         setContentPane(evidenceAndNewAnnot(annotation));
@@ -316,28 +318,25 @@ public class EvdnceCdeAndNewAnnotDlg extends JDialog implements ActionListener {
             GOTerm gterm = gth.getTerm(term);
             String aspect = gterm.getAspect();
             ArrayList<GOTerm> ancestors = gth.getAncestors(gterm);
-
-            // Remove ancestors that do not have same aspect or root terms
-            for (Iterator<GOTerm> goIter = ancestors.iterator(); goIter.hasNext();) {
-                GOTerm ancestor = goIter.next();
-                if (false == aspect.equals(ancestor.getAspect())) {
-                    goIter.remove();
+            GOTermHelper goTermHelper = PaintManager.inst().goTermHelper();
+            for (Iterator<GOTerm> termIter = ancestors.iterator(); termIter.hasNext();) {
+                GOTerm aTerm = termIter.next();
+                List<GOTerm> curParents = aTerm.getParents();
+                if (null == curParents || 0 == curParents.size()) {
+                    // No top level terms
+                    termIter.remove();
+                }
+                if (false == goTermHelper.isAnnotAllowedForTerm(term)) {
+                    // No unallowed terms
+                    termIter.remove();
                     continue;
                 }
-                List<GOTerm> parents = ancestor.getParents();
-                if (null == parents || 0 == parents.size()) {
-                    goIter.remove();
-                }
-                
-                if (false == AnnotationHelper.isQualifierSetValidForTerm(ancestor, qSet, gth)) {
-                    goIter.remove();
-                }
-                
-                // Skip terms that are not allowed
-                if (false == gth.isAnnotAllowedForTerm(ancestor.getAcc())) {
-                    goIter.remove();
+                if (null != AnnotationHelper.existingAnnotsAllowNewAnnotation(annotation.getQualifierSet(), aTerm.getId(), annotation.getAnnotationDetail().getAnnotatedNode(), goTermHelper)) {
+                    System.out.println(aTerm.getId() + " cannot be used as ancestor term");
+                    termIter.remove();
                 }
             }
+
             if (ancestors.size() > 0) {
                 JLabel ancestorLabel = new JLabel("Annotate with an ancestor term?");
                 ancestorLabel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));

@@ -1,5 +1,5 @@
 /**
- * Copyright 2016 University Of Southern California
+ * Copyright 2020 University Of Southern California
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -18,10 +18,7 @@ package edu.usc.ksom.pm.panther.paintCommon;
 import java.io.Serializable;
 import java.util.ArrayList;
 
-/**
- *
- * @author muruganu
- */
+
 public class NodeStaticInfo implements Serializable {
 
     private String nodeId;              // id in database or server.  DO NOT USE THIS
@@ -30,10 +27,13 @@ public class NodeStaticInfo implements Serializable {
     private String longGeneName;
     private String definition;
     private String orthoMCL;
-    private String shortOrg;
-    private String speciesConversion;
+    private String shortOrg;            // HUMAN
+    private String speciesConversion;   // Homo sapiens
+    private String species;            // Organism from tree topology definition
     private ArrayList<String> geneName;
     private ArrayList<String> geneSymbol;
+    private Node parent;
+    private ArrayList<Node> children;
 
     public String getNodeId() {
         return nodeId;
@@ -96,6 +96,14 @@ public class NodeStaticInfo implements Serializable {
         return geneName;
     }
 
+    public String getSpecies() {
+        return species;
+    }
+
+    public void setSpecies(String species) {
+        this.species = species;
+    }
+
     public void setGeneName(ArrayList<String> geneName) {
         this.geneName = geneName;
     }
@@ -129,5 +137,53 @@ public class NodeStaticInfo implements Serializable {
     public void setSpeciesConversion(String speciesConversion) {
         this.speciesConversion = speciesConversion;
     }
+
+    public Node getParent() {
+        return parent;
+    }
+
+    public void setParent(Node parent) {
+        this.parent = parent;
+    }
+
+    public ArrayList<Node> getChildren() {
+        return children;
+    }
+
+    public void setChildren(ArrayList<Node> children) {
+        this.children = children;
+    }
+    
+    public void addChild(Node child) {
+        if (null == children) {
+            children = new ArrayList<Node>();
+        }
+        if (false == children.contains(child)) {
+            children.add(child);
+        }
+    }
+    
+    public boolean isLeaf() {
+        if (null != children && 0 < children.size()) {
+            return false;
+        }
+        return true;
+    }
+    
+    
+    public String getCalculatedSpecies() {
+        if (null != species) {
+            return species;
+        }       
+        if (null != parent) {
+            NodeStaticInfo pNsi = parent.getStaticInfo();
+            if (null != pNsi) {
+                return pNsi.getCalculatedSpecies();
+            }
+        }
+        return null;
+    }
+
+
 
 }

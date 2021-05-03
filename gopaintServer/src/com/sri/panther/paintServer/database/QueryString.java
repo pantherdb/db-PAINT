@@ -1,4 +1,4 @@
- /* Copyright (C) 2016 University of Southern California
+ /* Copyright (C) 2019 University of Southern California
    *
    * This program is free software; you can redistribute it and/or
    * modify it under the terms of the GNU General Public License
@@ -318,6 +318,8 @@ public class QueryString{
     public static final String NODE_INFO =  "select n.accession, n2.accession as parent, n.PUBLIC_ID, n.branch_length, nt.node_type, et.event_type, g.PRIMARY_EXT_ACC from node n, node_type nt, event_type et, gene g, gene_node gn, node_relationship nr, node n2 where n.accession like '%1' and n.CLASSIFICATION_VERSION_SID = %2 and n.node_type_id = nt.NODE_TYPE_ID (+) and n.EVENT_TYPE_ID = et.EVENT_TYPE_ID (+) and n.node_id = gn.node_id (+) and gn.gene_id = g.gene_id (+) and n.node_id = nr.child_node_id (+) and nr.parent_node_id = n2.node_id (+) ";
     
     public static final String NODE_SEARCH = "select n.accession from node n where (n.accession = '%1' OR n.public_id = '%1') and n.classification_version_sid = %2  and n.obsolescence_date is null";
+
+    public static final String NODE_ACC_PUBLIC_ID_SEARCH = "select n.accession, n.public_id from node n where (n.accession = '%1' OR n.public_id = '%1') and n.classification_version_sid = %2  and n.obsolescence_date is null";
 
     public static final String ANNOTATION_NODE_PUBLIC_ID_LOOKUP = "select n.accession, n.public_id from node n where n.accession like '%1:%' and n.classification_version_sid = %2 and n.obsolescence_date is null";
     

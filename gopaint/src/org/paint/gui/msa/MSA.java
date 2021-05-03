@@ -94,6 +94,8 @@ public class MSA {
         private HashMap<String, Color> domainToColorLookup;
         private HashMap<String, Color> lightDomainColorLookup;
         
+        private int DEFAULT_DOMAIN_HEIGHT = 5;
+        
         private HashSet<String> domainSet;
         private int maxDomainRows = 0;   // Determine maximum number of domain lines for display.        
 
@@ -155,40 +157,17 @@ public class MSA {
                 if (null == gn) {
                     continue;
                 }
+//                if ("PTN000644027".equals(gn.getPersistantNodeID())) {
+//                    System.out.println("Here");
+//                }
                 gn.setDomainLookup(geneDomainLookup);
                 domainSet.addAll(geneDomainLookup.keySet());
-                
+                ArrayList<Domain> domainsForGene = new ArrayList<Domain>();
+                for (ArrayList<Domain> dList: geneDomainLookup.values()) {
+                    domainsForGene.addAll(dList);
+                }
 
-                ArrayList<ArrayList<String>> domainRows = new ArrayList<ArrayList<String>>();
-                domainRows.add(new ArrayList<String>(geneDomainLookup.keySet()));
-                if (1 < domainRows.size()) {
-//                    System.out.println("Here");
-                }
-                for (int i = 0; i < domainRows.size(); i++) {
-                    ArrayList<String> curRow = domainRows.get(i);
-                    ArrayList<Domain> compDomainList = geneDomainLookup.get(curRow.get(0));
-                    for (int j = 1; j < curRow.size(); j++) {
-                        ArrayList<Domain> curDomainList = geneDomainLookup.get(curRow.get(j));
-                        if (true == domainsOverlap(compDomainList, curDomainList)) {
-                            // Add entrry to next row, if it exists, Else add a new row and add
-                            ArrayList<String> nextRow = null;
-                            if (i + 1 < domainRows.size()) {
-                                nextRow = domainRows.get(i + 1);
-                            }
-                            else {
-                                nextRow = new ArrayList<String>();
-                                domainRows.add(nextRow);
-                            }
-                            nextRow.add(curRow.remove(j));
-                            j--;
-                        }
-                    }
-                }
-                
-                
-                if (domainRows.size() > maxDomainRows) {
-                    maxDomainRows = domainRows.size();
-                }
+                ArrayList<ArrayList<Domain>> domainRows = groupWithoutOverlap(domainsForGene);
                 gn.setDomainRows(domainRows);
             }
             
@@ -218,13 +197,15 @@ public class MSA {
             }
         }
         
+        
+        
         public void handleDomainData(HashMap<String, HashMap<String, ArrayList<Domain>>> domainLookup) {
             
             this.domainLookup = domainLookup;
             setupDomainData(domainLookup);
         }
         
-        protected boolean domainsOverlap(ArrayList<Domain> list1, ArrayList<Domain> list2) {
+        protected static boolean domainsOverlap(ArrayList<Domain> list1, ArrayList<Domain> list2) {
             for (Domain l1d: list1) {
                 for (Domain l2d: list2) {
                     if (true == overlap(l1d.getStart(), l1d.getEnd(), l2d.getStart(), l2d.getEnd())) {
@@ -235,12 +216,12 @@ public class MSA {
             return false;
         }
         
-        protected boolean overlap (int a, int b, int c, int d) {
-            if (a > d || b < c) {
-                return false;
-            } 
-            return true;
-        }
+//        protected boolean overlap (int a, int b, int c, int d) {
+//            if (a > d || b < c) {
+//                return false;
+//            } 
+//            return true;
+//        }
         
         
         
@@ -449,18 +430,18 @@ public class MSA {
         
 	private void displayDomain(Graphics g, Rectangle viewport) {
 		List<GeneNode> contents = PaintManager.inst().getTree().getTerminusNodes();
-		if (contents == null || contents.size() == 0)
+		if (contents == null || contents.isEmpty())
 			return;
 
 		g.setFont(font);
 
 		int row_height = PaintManager.inst().getRowHeight();
 		int curHeight = PaintManager.inst().getTopMargin();
-                double domainHeight = row_height;
+                double domainHeight = DEFAULT_DOMAIN_HEIGHT;
                 if (0 != maxDomainRows) {
                     domainHeight = row_height / maxDomainRows;
-                    if (1 == maxDomainRows) {
-                        domainHeight = 5;
+                    if (1 == maxDomainRows || domainHeight > DEFAULT_DOMAIN_HEIGHT) {
+                        domainHeight = DEFAULT_DOMAIN_HEIGHT;
                     }
                 }
                 int domainHeightInt = new Double(domainHeight).intValue();
@@ -527,40 +508,40 @@ public class MSA {
 			}                        
                         
                         
-                        ArrayList<ArrayList<String>> domainRows = node.getDomainRows();
+                        ArrayList<ArrayList<Domain>> domainRows = node.getDomainRows();
                         HashMap<String, ArrayList<Domain>> domainLookup = node.getDomainLookup();
                         if (null == domainRows || null == domainLookup || 0 == domainRows.size() || 0 == domainLookup.size()) {
                             curHeight += row_height;
                             continue;
                         }
-                        if (1 < domainRows.size()) {
+//                        if (1 < domainRows.size()) {
 //                            System.out.println("here");
-                        }
+//                        }
                         for (int i = 0; i < domainRows.size(); i++) {
-                            ArrayList<String> curRow = domainRows.get(i);
-                            double domainPosStart = (domainHeight * (i + 1));
+                            ArrayList<Domain> curRow = domainRows.get(i);
+                            double domainPosStart = (domainHeight * (i));
                             int height = new Double(domainPosStart).intValue() + curHeight;
-                            for (String domainForRow: curRow) {
-                                ArrayList<Domain> domains = domainLookup.get(domainForRow);
-                                for (Domain d: domains) {
-                                    g.setColor(domainToColorLookup.get(domainForRow));
-                                    int startPos = getPosition(seq, d.getStart());
-                                    int endPos = getPosition(seq, d.getEnd());
+                            for (Domain d: curRow) {
+                                
+                                
+                                g.setColor(domainToColorLookup.get(d.getHmmAcc()));
+                                int startPos = getPosition(seq, d.getStart());
+                                int endPos = getPosition(seq, d.getEnd());
 
-                                    if (startPos < 0 || endPos < 0) {
-                                        continue;
-                                    }
+                                if (startPos < 0 || endPos < 0) {
+                                    continue;
+                                }
 
-                                    g.fillRect((startPos) * charWidth, height, (endPos - startPos + 1) * charWidth, domainHeightInt);
-                                    ArrayList<Point> dotDashRanges = getDotDashRanges(seq, startPos, endPos); 
-                                    if (null != dotDashRanges) {
-                                        for (Point range: dotDashRanges) {
-                                            g.setColor(lightDomainColorLookup.get(domainForRow));
-                                            g.fillRect(range.x * charWidth, height, ((range.y - range.x) + 1) * charWidth, domainHeightInt);
-                                        }
+                                g.fillRect((startPos) * charWidth, height, (endPos - startPos + 1) * charWidth, domainHeightInt);
+                                ArrayList<Point> dotDashRanges = getDotDashRanges(seq, startPos, endPos); 
+                                if (null != dotDashRanges) {
+                                    for (Point range: dotDashRanges) {
+                                        g.setColor(lightDomainColorLookup.get(d.getHmmAcc()));
+                                        g.fillRect(range.x * charWidth, height, ((range.y - range.x) + 1) * charWidth, domainHeightInt);
                                     }
-                                    
-                                    //g.fillOval(startPos * charWidth, curHeight + height, (endPos - startPos + 1) * charWidth, height);
+                                }
+
+                                //g.fillOval(startPos * charWidth, curHeight + height, (endPos - startPos + 1) * charWidth, height);
 //                                    g.setColor(Color.red);
 //                                    if (startPos == endPos) {
 //                                        g.fillOval(startPos * charWidth, height, charWidth, domainHeightInt);
@@ -578,9 +559,9 @@ public class MSA {
 ////                                    g.setColor(Color.green);
 //                                        g.fillArc(endPos * charWidth, height, charWidth * 2, domainHeightInt, 270, 180);
 //                                    }
-                                }
-                                
                             }
+                                
+                            
                         }
 
 			Font f;
@@ -614,11 +595,11 @@ public class MSA {
 
 		int row_height = PaintManager.inst().getRowHeight();
 		int curHeight = PaintManager.inst().getTopMargin();
-                double domainHeight = row_height;
+                double domainHeight = DEFAULT_DOMAIN_HEIGHT;
                 if (0 != maxDomainRows) {
                     domainHeight = row_height / maxDomainRows;
-                    if (1 == maxDomainRows) {
-                        domainHeight = 5;
+                    if (1 == maxDomainRows || domainHeight > DEFAULT_DOMAIN_HEIGHT) {
+                        domainHeight = DEFAULT_DOMAIN_HEIGHT;
                     }
                 }
                 int domainHeightInt = new Double(domainHeight).intValue();
@@ -685,29 +666,27 @@ public class MSA {
 			}                        
                         
                         
-                        ArrayList<ArrayList<String>> domainRows = node.getDomainRows();
+                        ArrayList<ArrayList<Domain>> domainRows = node.getDomainRows();
                         HashMap<String, ArrayList<Domain>> domainLookup = node.getDomainLookup();
                         if (null == domainRows || null == domainLookup || 0 == domainRows.size() || 0 == domainLookup.size()) {
                             curHeight += row_height;
                             continue;
                         }
-                        if (1 < domainRows.size()) {
-                            System.out.println("here");
-                        }
+//                        if (1 < domainRows.size()) {
+//                            System.out.println("here");
+//                        }
                         for (int i = 0; i < domainRows.size(); i++) {
-                            ArrayList<String> curRow = domainRows.get(i);
-                            double domainPosStart = (domainHeight * (i + 1));
+                            ArrayList<Domain> curRow = domainRows.get(i);
+                            double domainPosStart = (domainHeight * (i));
                             int height = new Double(domainPosStart).intValue() + curHeight;
-                            for (String domainForRow: curRow) {
-                                ArrayList<Domain> domains = domainLookup.get(domainForRow);
-                                for (Domain d: domains) {
-                                    g.setColor(domainToColorLookup.get(domainForRow));
-                                    int startPos = getPosition(seq, d.getStart());
-                                    int endPos = getPosition(seq, d.getEnd());
-                                    if (startPos < 0 ||endPos < 0) {
-                                        continue;
-                                    }
-                                    g.fillRect((startPos) * charWidth, height, (endPos - startPos + 1) * charWidth, domainHeightInt);
+                            for (Domain d: curRow) {
+                                g.setColor(domainToColorLookup.get(d.getHmmAcc()));
+                                int startPos = getPosition(seq, d.getStart());
+                                int endPos = getPosition(seq, d.getEnd());
+                                if (startPos < 0 ||endPos < 0) {
+                                    continue;
+                                }
+                                g.fillRect((startPos) * charWidth, height, (endPos - startPos + 1) * charWidth, domainHeightInt);
 //                                    //g.fillOval(startPos * charWidth, curHeight + height, (endPos - startPos + 1) * charWidth, height);
 ////                                    g.setColor(Color.red);
 //                                    if (startPos + 5 >= endPos) {
@@ -726,9 +705,9 @@ public class MSA {
 ////                                    g.setColor(Color.green);
 //                                        g.fillArc(endPos * charWidth, height, charWidth * 2, domainHeightInt, 270, 180);
 //                                    }
-                                }
-                                
                             }
+                                
+
                         }
 
 //			Font f;
@@ -1134,6 +1113,135 @@ public class MSA {
             }
             return -1;
         }
+        
+    public static ArrayList<ArrayList<Domain>> groupWithoutOverlap(ArrayList<Domain> domainList) {
+        if (null == domainList) {
+            return null;
+        }
+        
+        // First group according to domain acc
+        HashMap<String, ArrayList<Domain>> domainLookup = new HashMap<String, ArrayList<Domain>>();
+        
+        for (Domain d: domainList) {
+            ArrayList<Domain> astList = domainLookup.get(d.getHmmAcc());
+            if (null == astList) {
+                astList = new ArrayList<Domain>();
+                domainLookup.put(d.getHmmAcc(), astList);
+            }
+            astList.add(d);
+        }
+        
+        // Can have operlap within the same domain or with different domains.
+        // First handle those that do not have overlap within the same domain
+        ArrayList<ArrayList<Domain>> rtnList = new ArrayList<ArrayList<Domain>>();
+        for (String domainAcc: domainLookup.keySet()) {
+            DomainGroup dg = new DomainGroup(domainLookup.get(domainAcc));
+            if (1 == dg.entries.size()) {
+                boolean inserted = false;
+                for (int i = 0; i < rtnList.size(); i++) {
+                    if (false == domainsOverlap(rtnList.get(i), domainLookup.get(domainAcc))) {
+                        ArrayList<Domain> cur = rtnList.get(i);
+                        cur.addAll(domainLookup.get(domainAcc));
+                        inserted = true;
+                        break;
+                    }
+                }
+                if (false == inserted) {
+                    rtnList.add(domainLookup.get(domainAcc));
+                }
+                continue;
+            }
+            for (ArrayList<Domain> entry: dg.entries) {
+                boolean inserted = false;
+                for (int i = 0; i < rtnList.size(); i++) {
+                    if (false == domainsOverlap(rtnList.get(i), entry)) {
+                        ArrayList<Domain> cur = rtnList.get(i);
+                        cur.addAll(entry);
+                        inserted = true;
+                        break;
+                    }
+                }
+                if (false == inserted) {
+                    rtnList.add(entry);
+                }                
+            }
+        }
+        return rtnList;
+    }
+    
+//    protected static boolean domainsOverlap(ArrayList<Domain> list1, ArrayList<Domain> list2) {
+//        for (Domain l1d : list1) {
+//            for (Domain l2d : list2) {
+//                if (true == overlap(l1d.getEnvStart(), l1d.getEnvEnd(), l2d.getEnvStart(), l2d.getEnvEnd())) {
+//                    return true;
+//                }
+//            }
+//        }
+//        return false;
+//    }
+
+    protected static boolean overlap(int a, int b, int c, int d) {
+        if (a > d || b < c) {
+            return false;
+        }
+        return true;
+    }
+    
+    public static class DomainGroup {
+
+        public ArrayList<Domain> domainList;
+
+        public ArrayList<ArrayList<Domain>> entries;
+
+        public DomainGroup(ArrayList<Domain> domainList) {
+            if (null == domainList) {
+                return;
+            }
+            this.domainList = domainList;
+            entries = new ArrayList<ArrayList<Domain>>();
+            entries.add(this.domainList);
+            for (int i = 0; i < entries.size(); i++) {
+                ArrayList<Domain> current = entries.get(i);
+                Domain first = current.get(0);
+                for (int j = 1; j < current.size(); j++) {
+                    if (true == overlap(first.getStart(), first.getEnd(), current.get(j).getStart(), current.get(j).getEnd())) {
+                        ArrayList<Domain> newRow = new ArrayList<Domain>();
+                        newRow.add(current.remove(j));
+                        j--;
+                        entries.add(newRow);
+                    }
+                }
+            }
+        }
+    }           
+        
+//        public class DomainGroup {
+//            public ArrayList<Domain> domainList;
+//            
+//            public ArrayList<ArrayList<Domain>> entries;
+//            
+//            public DomainGroup(ArrayList<Domain> domainList) {
+//                if (null == domainList) {
+//                    return;
+//                }
+//                this.domainList = domainList;
+//                entries = new ArrayList<ArrayList<Domain>>();
+//                entries.add(this.domainList);
+//                for (int i = 0; i < entries.size(); i++) {
+//                    ArrayList<Domain> current = entries.get(i);
+//                    Domain first = current.get(0);
+//                    for (int j = 1; j < current.size(); j++) {
+//                        if (true == MSA.this.overlap(first.getStart(), first.getEnd(), current.get(j).getStart(), current.get(j).getEnd())) {
+//                            ArrayList<Domain> newRow = new ArrayList<Domain>();
+//                            newRow.add(current.remove(j));
+//                            j--;
+//                            entries.add(newRow);
+//                        }
+//                    }
+//                }
+//            }
+//            
+//        }
         
         public static void main(String args[]) {
             String seq = "AFERERWRWRIOURWPIZVNMCGFGFG";

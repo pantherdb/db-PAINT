@@ -1,19 +1,18 @@
-/* Copyright (C) 2009 SRI International
-  *
-  * This program is free software; you can redistribute it and/or
-  * modify it under the terms of the GNU General Public License
-  * as published by the Free Software Foundation; either version 2
-  * of the License, or (at your option) any later version.
-  *
-  * This program is distributed in the hope that it will be useful,
-  * but WITHOUT ANY WARRANTY; without even the implied warranty of
-  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  * GNU General Public License for more details.
-  *
-  * You should have received a copy of the GNU General Public License
-  * along with this program; if not, write to the Free Software
-  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
-  */
+/**
+ *  Copyright 2020 University Of Southern California
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing,
+ *  software distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ */
 package com.sri.panther.paintCommon.util;
 
 import com.sri.panther.paintCommon.Constant;
@@ -27,6 +26,11 @@ import java.net.*;
 import java.util.*;
 
 import org.apache.log4j.Logger;
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
+import org.w3c.dom.Text;
 
 /**
  * This class has all the misc utility methods for parsing, string conversion
@@ -51,6 +55,8 @@ public class Utils {
         "Subfamily annotation node relationship information is null";
     public static final String MSG_SF_AN_INFO_INVALID =
         "Subfamily annotation node relationship information is invalid ";
+    
+    public static final String STR_NEWLINE = "\n";
 
     /**
      * Replace any matching token to the replace character
@@ -140,7 +146,7 @@ public class Utils {
     /**
      * transform a Vector of Strings into a delimiter-separated list in a String
      *
-     * @param list -- the Vectore of Strings
+     * @param list -- the Vector of Strings
      * @param wrapper -- enclose each element in a pair of these characters (ie, single quotes)
      * @param delim -- the list delimiter (ie, comma)
      * @return the delimiter-separated String
@@ -715,7 +721,7 @@ public class Utils {
         return -1;
     }
 
-    public static int getIndex(Vector searchList, String s) {
+    public static int getIndex(List searchList, String s) {
         if (null == s || null == searchList) {
             return -1;
         }
@@ -957,5 +963,105 @@ public class Utils {
 
     }  
     
+        public static String getTextFromXml(Element elem, String tag) {
+        
+        NodeList nodeList = elem.getElementsByTagName(tag);
+        if (null == nodeList) {
+            return null;
+        }
+        if (null != nodeList && 0 < nodeList.getLength()) {
+            Element textElement = (Element)nodeList.item(0);
+            NodeList textNodes = textElement.getChildNodes();
+            if (null != textNodes && textNodes.getLength() > 0) {
+                Node n = textNodes.item(0);
+                String s = n.getNodeValue();
+                if (null != s) {
+                    return s.trim();
+                }
+            }
+        }
+        return null;
+    }
     
+    public static String getTextFromElement(Element elem) {
+        if (null == elem) {
+            return null;
+        }
+        NodeList textNodes = elem.getChildNodes();
+        if (null == textNodes) {
+            return null;
+        }
+        if (textNodes.getLength() <= 0) {
+            return null;
+        }
+        
+        Node n = textNodes.item(0);
+        String s = n.getNodeValue();
+        if (null != s) {
+            return s.trim();
+        }
+        return null;
+        
+    }
+    
+    public static Element createTextNode(Document doc, String elementTag, String text) {
+        if (null == doc || null == elementTag || null == text) {
+            return null;
+        }
+        Element elem = doc.createElement(elementTag);
+        Text t = doc.createTextNode(text);
+        elem.appendChild(t);
+        return elem;
+    }
+    
+    public static String readFromUrl(String urlStr, int connectionTimeout, int readTimeout) {
+        if (null == urlStr || 0 == urlStr.length()) {
+                return null;
+        }
+        StringBuffer sb = new StringBuffer();
+        String nextLine;
+        URL url = null;
+        URLConnection urlConn = null;
+        InputStreamReader inStream = null;
+        BufferedReader buff = null;
+        try {
+
+            url = new URL(urlStr);
+            urlConn = url.openConnection();
+            if (-1 != connectionTimeout) {
+                urlConn.setConnectTimeout(connectionTimeout);
+            }
+            if (-1 != readTimeout) {
+                urlConn.setReadTimeout(readTimeout);
+            }
+            inStream = new InputStreamReader(urlConn.getInputStream());
+            buff = new BufferedReader(inStream);
+
+
+            while (true) {
+                nextLine = buff.readLine();
+                if (nextLine != null) {
+                    sb.append(nextLine + STR_NEWLINE);
+                } else {
+                    break;
+                }
+            }
+        } catch (MalformedURLException e) {
+            System.out.println("Please check the URL: " +urlStr + " " + e.toString());
+            return null;
+        } catch (IOException e1) {
+            System.out.println("Can't read  from url: " + urlStr + " " +  e1.toString());
+            return null;                   
+        }
+        catch (Exception e) {
+            System.out.println("Can't read  from url: " + urlStr + " " +  e.toString());
+            //e.printStackTrace();
+            return null;
+        }
+        
+        return sb.toString();
+        
+        
+        
+    }      
 }

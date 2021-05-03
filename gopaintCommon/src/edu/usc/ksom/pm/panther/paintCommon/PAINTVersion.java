@@ -1,5 +1,5 @@
 /**
- * Copyright 2019 University Of Southern California
+ * Copyright 2021 University Of Southern California
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -15,17 +15,17 @@
  */
 package edu.usc.ksom.pm.panther.paintCommon;
 
-
 public class PAINTVersion {
-        public static String getPAINTClientversion() {
-            return "2019_08_23_1"; 
-        }
-        
-        public static String getPAINTServerVersion() {
-            return "2019_09_03_1";     
-        }
-        
-        public static String getPAINTCommonVersion() {
-            return "2019_08_23_1";        
-        }
+
+    public static String getPAINTClientversion() {
+        return "2021_01_31_1";
+    }
+
+    public static String getPAINTServerVersion() {
+        return "2021_01_31_1";
+    }
+
+    public static String getPAINTCommonVersion() {
+        return "2021_01_31_1";
+    }
 }

@@ -1,5 +1,5 @@
 /**
- *  Copyright 2016 University Of Southern California
+ *  Copyright 2020 University Of Southern California
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -16,9 +16,9 @@
 package org.paint.dialog;
 
 import com.sri.panther.paintCommon.util.Utils;
-import edu.usc.ksom.pm.panther.paint.annotation.AnnotQualifierGroup;
 import edu.usc.ksom.pm.panther.paint.annotation.QualifierAnnotRltn;
 import edu.usc.ksom.pm.panther.paintCommon.Annotation;
+import edu.usc.ksom.pm.panther.paintCommon.AnnotQualifierGroup;
 import edu.usc.ksom.pm.panther.paintCommon.Qualifier;
 import java.awt.BorderLayout;
 import java.awt.Dimension;

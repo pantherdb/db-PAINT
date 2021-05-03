@@ -62,7 +62,8 @@ public class AnnotUtil {
             HashSet<String> modifySet = new HashSet<String>();
             HashSet<Annotation> removedFromGOAnnot = new HashSet<Annotation>();
             try {
-                dataIO.getFullGOAnnotations(id, DataServlet.CLASSIFICATION_VERSION_SID, treeNodeLookup, annotToPosWithLookup, errorBuf, paintErrBuf, removeSet, modifySet, removedFromGOAnnot, false);
+                HashSet<Annotation> addedAnnotSet = new HashSet<Annotation>();
+                dataIO.getFullGOAnnotations(id, DataServlet.CLASSIFICATION_VERSION_SID, treeNodeLookup, annotToPosWithLookup, errorBuf, paintErrBuf, removeSet, modifySet, addedAnnotSet, removedFromGOAnnot, false);
                 if (errorBuf.length() > 0) {
                     FileUtils.writeBufferToFile(otherErrName, errorBuf);
                 }

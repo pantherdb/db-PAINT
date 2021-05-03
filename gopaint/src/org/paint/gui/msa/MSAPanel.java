@@ -371,7 +371,12 @@ public class MSAPanel extends JPanel
                 domainSet.add(d.getHmmName() + " (" + d.getHmmAcc() + " Range " + d.getStart() + " - " + d.getEnd() + " )");
 
             }
-            this.setToolTipText(Utils.listToString(new Vector(domainSet), "", ", "));
+            GeneNode node = msa.getSelectedGene(p, g);
+            String label = "";
+            if (null != node && false == domainSet.isEmpty()) {
+                label = node.getNodeLabel() + " " + node.getNode().getStaticInfo().getPublicId() + " - ";
+            }
+            this.setToolTipText(label + Utils.listToString(new Vector(domainSet), "", ", "));
         }
     }
 

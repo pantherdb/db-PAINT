@@ -34,6 +34,7 @@ public class Evidence implements Serializable {
     public static final String CODE_IBA = "IBA";
     public static final String CODE_IBD = "IBD";
     public static final String CODE_IEA = "IEA";
+    public static final String CODE_TCV = "TCV";
     
     public String getEvidenceId() {
         return evidenceId;
@@ -146,12 +147,20 @@ public class Evidence implements Serializable {
         return (HashSet<String>)experimentalCodes;
     }
     
+    public static HashSet<String> getPaintCodes() {
+        if (null == paintCodes) {
+            return null;
+        }
+        return (HashSet<String>)paintCodes;
+    }
+    
     private static final HashSet<String> initPaintCodes() {
         HashSet<String> paintSet = new HashSet<String>();
         paintSet.add(CODE_IBD);
         paintSet.add(CODE_IRD);
         paintSet.add(CODE_IKR);
-        paintSet.add(CODE_IBA);        
+        paintSet.add(CODE_IBA);
+        paintSet.add(CODE_TCV);
         return paintSet;
     }
 
@@ -202,11 +211,14 @@ public class Evidence implements Serializable {
                 return true;
             }
             else if (true == CODE_IRD.equals(code)) {
-                return false;
+                return true;
             }
+            else if (true == CODE_TCV.equals(code)) {
+                return true;
+            }            
             else if (true == CODE_IBD.equals(code)) {
                 return false;
-            }            
+            }
         }
         return paintCodes.contains(code);
     }

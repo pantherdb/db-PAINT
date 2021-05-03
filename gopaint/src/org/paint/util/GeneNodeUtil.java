@@ -1,28 +1,23 @@
-/* 
- * 
- * Copyright (c) 2010, Regents of the University of California 
- * All rights reserved.
+/**
+ * Copyright 2020 University Of Southern California
  *
- * Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
- * 
- * Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.
- * Neither the name of the Lawrence Berkeley National Lab nor the names of its contributors may be used to endorse 
- * or promote products derived from this software without specific prior written permission.
- * 
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, 
- * INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. 
- * IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, 
- * OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; 
- * OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) 
- * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- * 
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not
+ * use this file except in compliance with the License. You may obtain a copy of
+ * the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations under
+ * the License.
  */
 package org.paint.util;
 
 import com.sri.panther.paintCommon.Constant;
 import edu.usc.ksom.pm.panther.paintCommon.Node;
 import edu.usc.ksom.pm.panther.paintCommon.NodeVariableInfo;
-import edu.usc.ksom.pm.panther.paintCommon.TaxonomyHelper;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.StringTokenizer;
@@ -518,29 +513,29 @@ public class GeneNodeUtil {
         }
         
         
-        public static boolean isTermValidForNode(GeneNode gn, String term) {
-            if (null == gn || null == term) {
-                return false;
-            }
-            PaintManager pm = PaintManager.inst();
-            TaxonomyHelper th = pm.getTaxonHelper();
-            if (null == th) {
-                return true;
-            }
-            return isTermValidForNode(gn, term, th);
-        }
-        
-        private static boolean isTermValidForNode(GeneNode gn, String term, TaxonomyHelper th) {
-            String species = gn.getCalculatedSpecies();
-            if (null == species) {
-                return false;
-            }           
-            boolean rtn = th.isTermValidForSpecies(term, species);
-//            if (false == rtn) {
-//                System.out.println("Taxonomy violation tern " + term + " not valid for species " + species + " for node " + gn.getNode().getStaticInfo().getPublicId());
+//        public static boolean isTermValidForNode(GeneNode gn, String term) {
+//            if (null == gn || null == term) {
+//                return false;
 //            }
-            return rtn;
-        }
+//            PaintManager pm = PaintManager.inst();
+//            TaxonomyHelper th = pm.getTaxonHelper();
+//            if (null == th) {
+//                return true;
+//            }
+//            return isTermValidForNode(gn, term, th);
+//        }
+//        
+//        private static boolean isTermValidForNode(GeneNode gn, String term, TaxonomyHelper th) {
+//            String species = gn.getCalculatedSpecies();
+//            if (null == species) {
+//                return false;
+//            }           
+//            boolean rtn = th.isTermValidForSpecies(term, species);
+////            if (false == rtn) {
+////                System.out.println("Taxonomy violation tern " + term + " not valid for species " + species + " for node " + gn.getNode().getStaticInfo().getPublicId());
+////            }
+//            return rtn;
+//        }
         
 
 }

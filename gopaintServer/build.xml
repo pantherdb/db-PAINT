@@ -37,13 +37,21 @@
                   value="${build}:
                         ${lib.output.dir}/gopaintCommon.jar:
                         ${lib.dir}/thirdparty/apache/log4j/log4j-1.2.15.jar:
+                        ${lib.dir}/thirdparty/apache/server/servlet-api.jar:                        
                         ${lib.dir}/thirdparty/apache/server/servlet.jar:
                         ${lib.dir}/thirdparty/forester/forester_1030.jar:
                         ${lib.dir}/thirdParty/apache/commons/commons-dbcp.jar:
                         ${lib.dir}/thirdParty/apache/commons/commons-logging.jar:
                         ${lib.dir}/thirdParty/apache/commons/commons-pool.jar:
-                        ${lib.dir}/thirdParty/apache/commons/commons-collections.jar:
-                        ${lib.dir}/thirdparty/postgreSQL/postgresql-9.1-902.jdbc4.jar"/>
+                        ${lib.dir}/thirdparty/postgreSQL/postgresql-9.1-902.jdbc4.jar:
+                        ${lib.dir}/thirdParty/jackson/jackson-annotations-2.10.2.jar:
+                        ${lib.dir}/thirdParty/jackson/jackson-core-2.10.2.jar:
+                        ${lib.dir}/thirdParty/jackson/jackson-databind-2.10.2.jar:
+                        ${lib.dir}/thirdParty/jackson/jackson-dataformat-csv-2.10.2.jar:
+                        ${lib.dir}/thirdParty/jackson/jackson-dataformat-yaml-2.10.2.jar:                                                                                                
+                        ${lib.dir}/thirdParty/json/json-20190722.jar:
+                        ${lib.dir}/thirdParty/swagger/swagger-models-2.1.1.jar:
+                        ${lib.dir}/thirdParty/yaml/snakeyaml-1.26.jar"/>
                         
         <property name="java.debug" value="on"/>
     </target>
@@ -103,7 +111,15 @@
         <copy file="${lib.dir}/thirdParty/apache/commons/commons-collections.jar" todir="${webroot.lib.dir}" overwrite="true"/>
         <copy file="${lib.dir}/thirdParty/apache/commons/commons-pool.jar" todir="${webroot.lib.dir}" overwrite="true"/>
         <copy file="${lib.dir}/thirdparty/postgreSQL/postgresql-9.1-902.jdbc4.jar" todir="${webroot.lib.dir}" overwrite="true"/>
+        <copy file="${lib.dir}/thirdparty/jackson/jackson-annotations-2.10.2.jar" todir="${webroot.lib.dir}" overwrite="true"/>
+        <copy file="${lib.dir}/thirdparty/jackson/jackson-core-2.10.2.jar" todir="${webroot.lib.dir}" overwrite="true"/>
+        <copy file="${lib.dir}/thirdparty/jackson/jackson-databind-2.10.2.jar" todir="${webroot.lib.dir}" overwrite="true"/>
+        <copy file="${lib.dir}/thirdparty/jackson/jackson-dataformat-csv-2.10.2.jar" todir="${webroot.lib.dir}" overwrite="true"/>
+        <copy file="${lib.dir}/thirdparty/jackson/jackson-dataformat-yaml-2.10.2.jar" todir="${webroot.lib.dir}" overwrite="true"/>
+        <copy file="${lib.dir}/thirdparty/json/json-20190722.jar" todir="${webroot.lib.dir}" overwrite="true"/>
+        <copy file="${lib.dir}/thirdparty/swagger/swagger-models-2.1.1.jar" todir="${webroot.lib.dir}" overwrite="true"/>
         <copy file="${lib.dir}/thirdparty/forester/forester_1030.jar" todir="${webroot.lib.dir}" overwrite="true"/>
+        <copy file="${lib.dir}/thirdparty/forester/forester_1030.jar" todir="${webroot.lib.dir}" overwrite="true"/>                                                                
         <copy file="${config.dir}/log4j.properties" todir="${webroot.classes.dir}" overwrite="true"/>
         <copy file="${config.dir}/paint.properties" todir="${webroot.classes.dir}" overwrite="true"/>
         <copy file="${config.dir}/database.properties" todir="${webroot.classes.dir}" overwrite="true"/>

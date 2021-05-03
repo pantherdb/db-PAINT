@@ -1,5 +1,5 @@
 /**
- *  Copyright 2019 University Of Southern California
+ *  Copyright 2020 University Of Southern California
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -79,7 +79,7 @@ public class FileMenu extends JMenu implements AnnotationChangeListener, FamilyC
     private static final String MENU_ITEM_UPDATE_COMMENT = "Update comment...";
     private static final String MENU_ITEM_UPDATE_NAME_FAMILY = "Name Family...";
     private static final String MENU_ITEM_SAVE_TO_DB = "Save to database...";
-    private static final String MENU_ITEM_VIEW_ANNOT_INFO = "View omitted annotation information";
+    private static final String MENU_ITEM_VIEW_ANNOT_INFO = "View annotation information";
     private static final String MENU_ITEM_VIEW_ANNOT_HISTORY_INFO = "View annotation history";
 
     private static List<FileMenu> instances = new ArrayList<FileMenu>();
@@ -346,7 +346,7 @@ public class FileMenu extends JMenu implements AnnotationChangeListener, FamilyC
             ta.setWrapStyleWord(true);
             ta.setLineWrap(true);
             ta.setCaretPosition(0);
-            JOptionPane.showMessageDialog(GUIManager.getManager().getFrame(), new JScrollPane(ta), "Information about omitted annotations", JOptionPane.INFORMATION_MESSAGE);
+            JOptionPane.showMessageDialog(GUIManager.getManager().getFrame(), new JScrollPane(ta), "Additional information about annotations", JOptionPane.INFORMATION_MESSAGE);
         }
     }
     private class ViewAnnotHistoryActionListener implements ActionListener{

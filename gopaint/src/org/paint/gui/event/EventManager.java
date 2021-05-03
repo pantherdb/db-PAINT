@@ -1,5 +1,5 @@
 /**
- *  Copyright 2019 University Of Southern California
+ *  Copyright 2020 University Of Southern California
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -15,9 +15,7 @@
  */
 package org.paint.gui.event;
 
-import edu.usc.ksom.pm.panther.paintCommon.Node;
 import edu.usc.ksom.pm.panther.paint.matrix.TermAncestor;
-import edu.usc.ksom.pm.panther.paint.matrix.TermToAssociation;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
@@ -36,7 +34,6 @@ import org.paint.gui.familytree.TreePanel;
 import org.paint.gui.table.GeneTable;
 import org.paint.gui.table.GeneTableModel;
 import org.paint.main.PaintManager;
-import org.paint.util.GeneNodeUtil;
 
 public class EventManager {
 	/**
@@ -322,109 +319,32 @@ public class EventManager {
 		}
 	}
         
-        /**
-         * Handle 2 scenarios - 1.  User selecting whole column of annotation matrix or 2.  User selecting certain nodes of annotation matrix
-         * @param e
-         * @return 
-         */
-        public List<GeneNode> fireTermAncestorEvent(TermAncestorSelectionEvent e) {
-            TermAncestor newTermAncestor = e.getTermAncestorSelection();
-//            GeneNode newSelectNode = e.getNode();
-//            
-//            if (newTermAncestor.equals(termAncestor)) {
-//                if (null != newSelectNode) {
-//                    selectedNodes.add(newSelectNode);
-//                }                
-//            }
-//            else {
-//                termAncestor = newTermAncestor;
-//                if (null == selectedNodes) {
-//                    selectedNodes = new ArrayList<GeneNode>();
-//                }
-//                selectedNodes.clear();
-//                if (null != newSelectNode) {
-//                    selectedNodes.add(newSelectNode);
-//                }
-//            }
-            termAncestor = e.getTermAncestorSelection();
-            if (null == selectedNodes) {
-                selectedNodes = new ArrayList<GeneNode>();
-            }
-            selectedNodes.clear();            
-            
 
-            
-            TermToAssociation toa = newTermAncestor.getTermToAssociation();
-            ArrayList<Node> nodesForAssociation = toa.getExperimentalNodesForAssociation();
-            
-//            if (false == selectedNodes.isEmpty()) {
-//                for (Iterator<Node> iter = nodesForAssociation.iterator();  iter.hasNext();) {
-//                    Node node = iter.next();
-//                    if (false == selectedNodes.contains(node)) {
-//                        iter.remove();
+        
+//        private GeneNode getMRCA(TreePanel treePanel, GeneNode node, List<GeneNode> nodeList) {
+//            ArrayList<GeneNode> allDescendents = new ArrayList<GeneNode>();
+//            GeneNodeUtil.allNonPrunedDescendents(node, allDescendents);
+//            boolean found = true;
+//            for (GeneNode cur : nodeList) {
+//                if (false == allDescendents.contains(cur)) {
+//                    found = false;
+//                }
+//            }
+//            if (false == found) {
+//                return null;
+//            }
+//            List<GeneNode> children = node.getChildren();
+//            if (null != children) {
+//                for (GeneNode child: children) {
+//                    if (null == getMRCA(treePanel, child, nodeList)) {
+//                        return node;
 //                    }
 //                }
 //            }
-            ArrayList<GeneNode> geneNodesForAsn = new ArrayList<GeneNode>(nodesForAssociation.size());
-            
-            // Clear previous selections
-            // Get corresponding GeneNode for nodes in nodesForAssociation
-            TreePanel treePanel = PaintManager.inst().getTree();
-            List<GeneNode> allNodes = treePanel.getAllNodes();
-            for (GeneNode gNode: allNodes) {
-                gNode.setSelected(false);
-                if (null != nodesForAssociation) {
-                    for (Node node: nodesForAssociation)
-                    if (gNode.getNode().equals(node)) {
-                        geneNodesForAsn.add(gNode);
-                    }
-                }
-            }
-
-            if (null == nodesForAssociation) {
-                return null;
-            }
-            
-            // Get MRCA for list of nodes
-            GeneNode node = getMRCA(treePanel, treePanel.getCurrentRoot(), geneNodesForAsn);
-            if (null == node) {
-                return null;
-            }
-            ArrayList<GeneNode> descendents = new ArrayList<GeneNode>();
-            descendents.add(node);
-            return descendents;
-//            treePanel.getDescendentList(node, descendents);
-//            for (GeneNode gNode: geneNodesForAsn) {
-//                descendents.remove(gNode);
-//            }
-//            for (GeneNode gNode: descendents) {
-//                gNode.setSelected(true);
-//            }
-//            return descendents;
-        }
+//            return node;
+//        }
         
-        private GeneNode getMRCA(TreePanel treePanel, GeneNode node, List<GeneNode> nodeList) {
-            ArrayList<GeneNode> allDescendents = new ArrayList<GeneNode>();
-            GeneNodeUtil.allNonPrunedDescendents(node, allDescendents);
-            boolean found = true;
-            for (GeneNode cur : nodeList) {
-                if (false == allDescendents.contains(cur)) {
-                    found = false;
-                }
-            }
-            if (false == found) {
-                return null;
-            }
-            List<GeneNode> children = node.getChildren();
-            if (null != children) {
-                for (GeneNode child: children) {
-                    if (null == getMRCA(treePanel, child, nodeList)) {
-                        return node;
-                    }
-                }
-            }
-            return node;
-        }
+
 
 	/*
 	 * Inform the components that have registered an interest that an event has occurred

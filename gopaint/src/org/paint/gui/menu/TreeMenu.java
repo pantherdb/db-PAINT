@@ -1,5 +1,5 @@
 /**
- * Copyright 2018 University Of Southern California
+ * Copyright 2019 University Of Southern California
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -28,7 +28,7 @@ import javax.swing.JRadioButtonMenuItem;
 
 import org.apache.log4j.Logger;
 import org.bbop.framework.GUIManager;
-import org.bbop.swing.DynamicMenu;
+
 import org.paint.config.Preferences;
 import org.paint.dialog.ScaleTreeDlg;
 import org.paint.gui.event.EventManager;
@@ -39,7 +39,7 @@ import org.paint.gui.familytree.TreeModel.TreeColorSchema;
 import org.paint.gui.familytree.TreePanel;
 import org.paint.main.PaintManager;
 
-public class TreeMenu extends DynamicMenu implements FamilyChangeListener {
+public class TreeMenu extends JMenu implements FamilyChangeListener {
 	/**
 	 * 
 	 */

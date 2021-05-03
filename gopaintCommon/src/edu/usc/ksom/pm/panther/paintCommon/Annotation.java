@@ -1,5 +1,5 @@
 /**
- *  Copyright 2019 University Of Southern California
+ *  Copyright 2020 University Of Southern California
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -27,6 +27,7 @@ import java.util.Set;
 public class Annotation implements Serializable, IWith {
     private String annotationId;
     private String annotationTypeId;
+    private String date;
     private String annotationType;      //GO SF? now only GO
     private boolean annotIsToChildTerm = false;        // gene is annotated with a more specific term.  This annotation exists so that users can annotate with a parent term
 //    private Annotation childAnnotation;     // For IKR and IRD, this will be the related IBA.  No other cases for now
@@ -87,6 +88,17 @@ public class Annotation implements Serializable, IWith {
         }
         return null;
     }
+   
+    public static Annotation getSingleWithPropagatorAnnot(Annotation a) {
+        HashSet<WithEvidence> withAnnotSet = a.getAnnotationDetail().getWithEvidenceAnnotSet();
+        if (null == withAnnotSet || 1 !=  withAnnotSet.size()) {
+            return null;
+        }
+        for (WithEvidence we: withAnnotSet) {
+            return (Annotation)we.getWith();
+        }
+        return null;
+    }    
     
     
     public HashSet<String> getEvidenceCodeSet() {
@@ -375,7 +387,7 @@ public class Annotation implements Serializable, IWith {
                     return true;
                 }
                 String code = this.getSingleEvidenceCodeFromSet();
-                if (Evidence.CODE_IKR.equals(code) || Evidence.CODE_IRD.equals(code)) {
+                if (Evidence.CODE_IKR.equals(code) || Evidence.CODE_IRD.equals(code) || Evidence.CODE_TCV.equals(code)) {
                     return true;
                 }
             }
@@ -446,6 +458,14 @@ public class Annotation implements Serializable, IWith {
 
     public void setExperimental(boolean experimental) {
         this.experimental = experimental;
+    }
+
+    public String getDate() {
+        return date;
+    }
+
+    public void setDate(String date) {
+        this.date = date;
     }
 
     

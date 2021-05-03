@@ -1,6 +1,6 @@
 /* 
  * 
- * Copyright (c) 2010, Regents of the University of California 
+ * Copyright (c) 2019, Regents of the University of California 
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
@@ -189,7 +189,7 @@ public class RenderUtil {
                                     foundNonExp = true;
                                 }
                                 String code = annot.getSingleEvidenceCodeFromSet();
-                                if (true == Evidence.CODE_IBD.equals(code) || true == Evidence.CODE_IKR.equals(code) || true == Evidence.CODE_IRD.equals(code)) {
+                                if (true == Evidence.CODE_IBD.equals(code) || (true == Evidence.CODE_IKR.equals(code) && false == node.isLeaf()) || true == Evidence.CODE_IRD.equals(code)|| true == Evidence.CODE_TCV.equals(code)) {
                                     foundCurated = true;
                                 }
                             }

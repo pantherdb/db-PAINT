@@ -1,4 +1,4 @@
-<%@ page import="java.net.*,com.usc.panther.paintServer.webservices.*"%>
+<%@ page import="java.net.*,edu.usc.ksom.pm.panther.paintServer.webservices.*"%>
 <%@ page trimDirectiveWhitespaces="true" %>
 <%
 String taxa = request.getParameter("taxon");
@@ -19,3 +19,8 @@ else {
 }
 %>
 <%=Stats.getAllAnnotsForTaxon(paramTaxa, paramFormat)%>
+<%
+if (null != request.getSession(false)) {    
+    request.getSession().invalidate();
+}
+%>

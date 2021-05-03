@@ -1,5 +1,5 @@
 /**
- * Copyright 2019 University Of Southern California
+ * Copyright 2020 University Of Southern California
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -16,17 +16,16 @@
 package org.paint.gui.matrix;
 
 import edu.usc.ksom.pm.panther.paintCommon.Annotation;
-import com.sri.panther.paintCommon.Constant;
 import edu.usc.ksom.pm.panther.paintCommon.GOTerm;
 import edu.usc.ksom.pm.panther.paintCommon.GOTermHelper;
 import edu.usc.ksom.pm.panther.paintCommon.Node;
 import edu.usc.ksom.pm.panther.paintCommon.NodeVariableInfo;
 import edu.usc.ksom.pm.panther.paintCommon.Qualifier;
-import edu.usc.ksom.pm.panther.paint.annotation.AnnotationForTerm;
 import edu.usc.ksom.pm.panther.paint.matrix.TermAncestor;
 import edu.usc.ksom.pm.panther.paint.matrix.TermToAssociation;
-import edu.usc.ksom.pm.panther.paint.annotation.AnnotQualifierGroup;
 import edu.usc.ksom.pm.panther.paint.annotation.QualifierAnnotRltn;
+import edu.usc.ksom.pm.panther.paintCommon.AnnotQualifierGroup;
+import edu.usc.ksom.pm.panther.paintCommon.AnnotationHelper;
 import edu.usc.ksom.pm.panther.paintCommon.Evidence;
 import java.awt.Color;
 import java.awt.FontMetrics;
@@ -85,12 +84,12 @@ public class AnnotationTransferHndlr extends TransferHandler {
     public static final DataFlavor FLAVOR_MATRIX_TRANSFER_INFO = new DataFlavor(MatrixTransferInfo.class, "MatrixTransferInfo");
     
     public static final String REMOVE_MSG_MORE_SPECIFIC_PART_1 = "Annotation to descendant node ";
-    public static final String REMOVE_MSG_MORE_SPECIFIC_PART_2 = " for more specific term ";
+    public static final String REMOVE_MSG_MORE_SPECIFIC_PART_2 = " for more specific or same term ";
     public static final String REMOVE_MSG_MORE_SPECIFIC_PART_3 = " (";
     public static final String REMOVE_MSG_MORE_SPECIFIC_PART_4 = ") will be removed.\n";
 
     public static final String REMOVE_MSG_LESS_SPECIFIC_PART_1 = "Annotation to node ";
-    public static final String REMOVE_MSG_LESS_SPECIFIC_PART_2 = " for less specific term ";
+    public static final String REMOVE_MSG_LESS_SPECIFIC_PART_2 = " for less specific term or same term ";
     public static final String REMOVE_MSG_LESS_SPECIFIC_PART_3 = " (";
     public static final String REMOVE_MSG_LESS_SPECIFIC_PART_4 = ") will be removed.\n";
     
@@ -105,8 +104,9 @@ public class AnnotationTransferHndlr extends TransferHandler {
     public AnnotationTransferHndlr(String property) {
         super();
         visitedNodes = new HashSet<GeneNode>();
-    }    
-
+    }
+    
+    
     public boolean canImport(TransferHandler.TransferSupport support) {
         boolean canImport = false;
         String because = null;
@@ -127,26 +127,33 @@ public class AnnotationTransferHndlr extends TransferHandler {
         }
         node = treePanel.getClickedInNodeArea(p);
         if (node != null) {
-            if (node.isLeaf()) {
-                canImport = false;
-            } else {
-                try {
-                    //Tree tree = PaintManager.inst().getFamily().getTree();
-                    because = PaintAction.inst().isValidTerm((MatrixTransferInfo) support.getTransferable().getTransferData(FLAVOR_MATRIX_TRANSFER_INFO), node);
-                    if (null != because) {
-                        canImport = false;
+            try {
+                StringBuffer becauseBuf = new StringBuffer();
+                MatrixTransferInfo matrixTransferInfo = (MatrixTransferInfo) support.getTransferable().getTransferData(FLAVOR_MATRIX_TRANSFER_INFO);
+                TermAncestor termAncestor = matrixTransferInfo.getTermAncestor();
+                TermToAssociation toa = termAncestor.getTermToAssociation();
+                PaintManager pm = PaintManager.inst();
+                AnnotQualifierGroup group = AnnotationHelper.possibleToAnnotateWithIBD(toa.getTerm().getAcc(), node.getNode(), becauseBuf, pm.getTaxonHelper(), pm.goTermHelper());
+                if (null == group || null == group.getQualifierAnnotLookup() || true == group.getQualifierAnnotLookup().isEmpty()) {
+                    canImport = false;
+                    because = becauseBuf.toString();
+                    if (false == because.isEmpty()) {
                         System.out.println(because);
                     }
-//                    if (null != because) {
-//                        System.out.println(because);
-//                    }
-                } catch (UnsupportedFlavorException e) {
-                    canImport = false;
-                } catch (IOException e) {
-                    canImport = false;
+                    else {
+                        System.out.println("No term to annotate");
+                    }
                 }
+                else {
+                    canImport = true;
+                }
+            } catch (UnsupportedFlavorException e) {
+                canImport = false;
+            } catch (IOException e) {
+                canImport = false;
             }
         }
+    
         clearVisitedNodes(treePanel);
 
         if (treePanel != null) {
@@ -174,7 +181,77 @@ public class AnnotationTransferHndlr extends TransferHandler {
         }
 
         return canImport;
-    }
+    }    
+    
+
+//    public boolean canImportCopy(TransferHandler.TransferSupport support) {
+//        boolean canImport = false;
+//        String because = null;
+//        TreePanel treePanel = null;
+//
+//        if (support.isDrop() && support.isDataFlavorSupported(FLAVOR_MATRIX_TRANSFER_INFO) && support.getComponent() instanceof TreePanel) {
+//            canImport = true;
+//            treePanel = (TreePanel) support.getComponent();
+//        }
+//        GeneNode node = null;
+//        if (false == canImport || treePanel == null) {
+//            return false;
+//        }
+//
+//        Point p = support.getDropLocation().getDropPoint();
+//        if (!treePanel.pointInNode(p)) {
+//            canImport = false;
+//        }
+//        node = treePanel.getClickedInNodeArea(p);
+//        if (node != null) {
+//            if (node.isLeaf()) {
+//                canImport = false;
+//            } else {
+//                try {
+//                    //Tree tree = PaintManager.inst().getFamily().getTree();
+//                    because = PaintAction.inst().isValidTerm((MatrixTransferInfo) support.getTransferable().getTransferData(FLAVOR_MATRIX_TRANSFER_INFO), node);
+//                    if (null != because) {
+//                        canImport = false;
+//                        System.out.println(because);
+//                    }
+////                    if (null != because) {
+////                        System.out.println(because);
+////                    }
+//                } catch (UnsupportedFlavorException e) {
+//                    canImport = false;
+//                } catch (IOException e) {
+//                    canImport = false;
+//                }
+//            }
+//        }
+//        clearVisitedNodes(treePanel);
+//
+//        if (treePanel != null) {
+//            String drop_label = null;
+//            if (node != null) {
+//                visitedNodes.add(node);
+//                Node n = node.getNode();
+//                if (canImport) {
+//                    node.setDropColor(Color.BLACK);
+//
+//                    drop_label = n.getStaticInfo().getPublicId();
+//                } else {
+//                    node.setDropColor(Color.RED);
+//                    if (null != because) {
+//                        drop_label = n.getStaticInfo().getPublicId() + " " + because;
+//                    }
+//                }
+//                treePanel.repaint();
+//            }
+//            Point dropPoint = support.getDropLocation().getDropPoint();
+//            dropPoint.x += 10;
+//            dropPoint.y += 2;
+//
+//            treePanel.setDropInfo(node, dropPoint, drop_label);
+//        }
+//
+//        return canImport;
+//    }
     
     protected Transferable createTransferable(JComponent c) {
         	AnnotationMatrix table = (AnnotationMatrix)c;
@@ -280,67 +357,33 @@ public class AnnotationTransferHndlr extends TransferHandler {
         GeneNode gNode = treePanel.getClickedInNodeArea(p);
         GOTerm annotTerm = toa.getTerm();
         String termAcc = annotTerm.getAcc();
-        
-        // Taxonomy check
-        if (false == GeneNodeUtil.isTermValidForNode(gNode, termAcc)) {
-            String msg = Constant.STR_EMPTY;
-            if (null != gNode) {
-                String species = gNode.getCalculatedSpecies();
-                if (null != species) {
-                    msg = "Node " + gNode.getNode().getStaticInfo().getPublicId() + " of type species " + species + " cannot be annotated with term " + annotTerm.getName() + "(" + termAcc + "), do you want to continue?";
-                }
-                else {
-                     msg = "Node " + gNode.getNode().getStaticInfo().getPublicId() + " of unknown species type cannot be annotated with term " + annotTerm.getName() + "(" + termAcc + "), do you want to continue?";                   
-                }
-            }
-            int dialogResult = JOptionPane.showConfirmDialog(GUIManager.getManager().getFrame(), msg, "Taxonomy Constraint Violation", JOptionPane.YES_NO_CANCEL_OPTION, JOptionPane.WARNING_MESSAGE);
-            if (dialogResult != JOptionPane.YES_OPTION) {
-                return false;
-            }
-        }
-        
-        ArrayList<AnnotationForTerm> annotTermList = AnnotationUtil.getAnnotsAndApplicableQls(gNode, annotTerm);
-        if (null == annotTermList) {
+        PaintManager pm = PaintManager.inst();        
+        AnnotQualifierGroup groups = AnnotationHelper.possibleToAnnotateWithIBD(toa.getTerm().getAcc(), gNode.getNode(), new StringBuffer(), pm.getTaxonHelper(), pm.goTermHelper());
+        if (null == groups || null == groups.getQualifierAnnotLookup()) {
             return false;
         }
-        
-        HashSet<Annotation> annotSet = null;
-        HashSet<Qualifier> applicableQset = null;        
-        QualifierAnnotRltn qar = null;
-        AnnotQualifierGroup aqg = new AnnotQualifierGroup(annotTermList);
-        HashMap<HashSet<Qualifier>, HashSet<Annotation>> groups = aqg.getQualifierAnnotLookup();
-        if (null == groups || 0 == groups.size()) {
-            return false;
-        }
+        HashMap<HashSet<Qualifier>, HashSet<Annotation>> qualifierAnnotLookup = groups.getQualifierAnnotLookup();         
         
         // Need to determine list of annotations the curator wants to use
-
-        if (1 != groups.size()) {
-            AnnotationQualifierDlg qualifierDlg = new AnnotationQualifierDlg(GUIManager.getManager().getFrame(), aqg);
+        QualifierAnnotRltn qar = null;
+        HashSet<Qualifier> applicableQset = null;
+        if (1 != qualifierAnnotLookup.size()) {
+            AnnotationQualifierDlg qualifierDlg = new AnnotationQualifierDlg(GUIManager.getManager().getFrame(), groups);
             qar = qualifierDlg.getAnnotationSet();
             if (true == qualifierDlg.didUserSubmitForm()) {
-                annotSet = qar.getAnnotSet();
                 applicableQset = qar.getqSet();
             } else {
                 return false;
             }
         }
         else {
-            for (HashSet<Qualifier> qset: groups.keySet()) {
+            for (HashSet<Qualifier> qset: qualifierAnnotLookup.keySet()) {
                 applicableQset = qset;
-                annotSet = groups.get(applicableQset);
                 break;
             }
         }
-        PaintManager pm = PaintManager.inst();
-        ArrayList<GeneNode> nodesProvidingEvidence = new ArrayList<GeneNode>();
-        for (Annotation a: annotSet) {
-            GeneNode gn = pm.getGeneByPTNId(a.getAnnotationDetail().getAnnotatedNode().getStaticInfo().getPublicId());
-            if (false == nodesProvidingEvidence.contains(gn)) {
-                nodesProvidingEvidence.add(gn);
-            }
-        }
         
+       
         ArrayList<GeneNode> allDescendents = new ArrayList<GeneNode>();
         GeneNodeUtil.allNonPrunedDescendents(gNode, allDescendents);
         
@@ -352,9 +395,13 @@ public class AnnotationTransferHndlr extends TransferHandler {
             return false;
         }
         
-        ArrayList<GeneNode> nodesToBeAnnotated = (ArrayList<GeneNode>)allDescendents.clone();
-        nodesToBeAnnotated.removeAll(nodesProvidingEvidence);
-        PaintAction.inst().addAnnotationAndPropagate(annotTerm, gNode, nodesToBeAnnotated, nodesProvidingEvidence, annotSet, applicableQset);
+        HashSet<Annotation> withSet = new HashSet<Annotation>();
+        String errMsg = AnnotationHelper.canNodeBeAnnotatedWithIBD(termAcc, applicableQset, gNode.getNode(), withSet, pm.getTaxonHelper(), pm.goTermHelper());
+        if (null != errMsg) {
+            System.out.println(errMsg);
+            return false;
+        }
+        PaintAction.inst().addIBDAnnotationAndPropagate(annotTerm, gNode, withSet, applicableQset);
         clearVisitedNodes(treePanel);
         DirtyIndicator.inst().setAnnotated(true);
         EventManager.inst().fireAnnotationChangeEvent(new AnnotationChangeEvent(gNode));        
@@ -461,7 +508,7 @@ public class AnnotationTransferHndlr extends TransferHandler {
             GeneNode gn = PaintManager.inst().getGeneByPTNId(n.getStaticInfo().getPublicId());
             if (Evidence.CODE_IBD.equals(code) || (Evidence.CODE_IKR.equals(code) && false == gn.isLeaf()) ||Evidence.CODE_IRD.equals(code)) {
                 GOTerm curTerm = gth.getTerm(a.getGoTerm());
-                if (ancestors.contains(curTerm)) {
+                if (ancestors.contains(curTerm) || true == curTerm.equals(term)) {
                     removeAnnotSet.add(a);
                     removeBuffer.append(REMOVE_MSG_LESS_SPECIFIC_PART_1 + n.getStaticInfo().getPublicId() + REMOVE_MSG_LESS_SPECIFIC_PART_2 + a.getGoTerm() + REMOVE_MSG_LESS_SPECIFIC_PART_3 + curTerm.getName() + REMOVE_MSG_LESS_SPECIFIC_PART_4);
                     

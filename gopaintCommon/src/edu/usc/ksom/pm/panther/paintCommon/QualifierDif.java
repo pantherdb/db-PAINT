@@ -235,7 +235,7 @@ public class QualifierDif {
         return false;
     }
     
-    public static boolean allPositive(HashSet<Qualifier> qualifierSet) {
+    public static boolean allPositive(Set<Qualifier> qualifierSet) {
         if (null == qualifierSet) {
             return true;
         }
@@ -332,8 +332,43 @@ public class QualifierDif {
         return true;
     }
     
+    /*
+    // Ensure difference between both is 'NOT' 
+    */
+    public static boolean differenceIsNOTQualifier(HashSet<Qualifier> propagatorQset, HashSet<Qualifier> newQSet) {
+        if (false == areOpposite(propagatorQset, newQSet)) {
+            return false;
+        }
+        // Propagator is negative - Add 'NOT' to new set and ensure they are the same
+        if (true == containsNegative(propagatorQset)) {
+            HashSet<Qualifier> compSet = newQSet;
+            if (compSet == null) {
+                compSet = new HashSet<Qualifier>();
+            }
+            Qualifier not = new Qualifier();
+            not.setText(Qualifier.QUALIFIER_NOT);
+            compSet.add(not);
+            if (false == allQualifiersSame(propagatorQset, compSet)) {
+                return false;
+            }
+            return true;
+        }
+        // Propagator is positive - add 'NOT' to propagator and ensure it is same as new set
+        HashSet<Qualifier> compSet = propagatorQset;
+        if (compSet == null) {
+            compSet = new HashSet<Qualifier>();
+        }
+        Qualifier not = new Qualifier();
+        not.setText(Qualifier.QUALIFIER_NOT);
+        compSet.add(not);
+        if (false == allQualifiersSame(newQSet, compSet)) {
+            return false;
+        }
+        return true;        
+    }
+    
     // Check if one set has a NOT and the other does not have a NOT
-    public static boolean areOpposite(HashSet<Qualifier> set1, HashSet<Qualifier> set2) {
+    public static boolean areOpposite(Set<Qualifier> set1, Set<Qualifier> set2) {
         if (null == set1 && null == set2) {
             return false;
         }

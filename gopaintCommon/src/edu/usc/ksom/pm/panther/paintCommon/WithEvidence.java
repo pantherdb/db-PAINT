@@ -31,7 +31,8 @@ public class WithEvidence implements Serializable{
     
     public static final String EVIDENCE_TYPE_ANNOT_PAINT_REF = "PAINT_REF";
     public static final String EVIDENCE_TYPE_ANNOT_PAINT_EXP = "PAINT_EXP";
-    public static final String EVIDENCE_TYPE_ANNOT_PAINT_ANCESTOR = "PAINT_ANCESTOR";    
+    public static final String EVIDENCE_TYPE_ANNOT_PAINT_ANCESTOR = "PAINT_ANCESTOR";
+    public static final String EVIDENCE_TYPE_ANNOT_PAINT_PMID = DBReference.TYPE_PMID;
     
     private static final HashSet<String> PAINT_EVIDENCE_TYPE_SET= initPaintEvidenceTypes();
     

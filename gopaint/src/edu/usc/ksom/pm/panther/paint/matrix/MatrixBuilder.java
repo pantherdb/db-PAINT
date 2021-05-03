@@ -1,5 +1,5 @@
 /**
- *  Copyright 2018 University Of Southern California
+ *  Copyright 2020 University Of Southern California
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -23,10 +23,7 @@ import org.paint.datamodel.GeneNode;
 import org.paint.gui.familytree.TreeModel;
 import org.paint.main.PaintManager;
 
-/**
- *
- * @author muruganu
- */
+
 public class MatrixBuilder {
     public static MatrixInfo getMatrixInfo(TreeModel tm) {
         if (null == tm) {

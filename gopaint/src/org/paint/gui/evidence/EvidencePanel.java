@@ -1,5 +1,5 @@
 /**
- * Copyright 2019 University Of Southern California
+ * Copyright 2020 University Of Southern California
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -23,7 +23,8 @@ import edu.usc.ksom.pm.panther.paintCommon.GOTerm;
 import edu.usc.ksom.pm.panther.paintCommon.GOTermHelper;
 import edu.usc.ksom.pm.panther.paintCommon.Node;
 import edu.usc.ksom.pm.panther.paintCommon.Qualifier;
-import edu.usc.ksom.pm.panther.paintCommon.QualifierDif;;
+import edu.usc.ksom.pm.panther.paintCommon.TaxonomyHelper;
+
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Component;
@@ -60,7 +61,6 @@ import org.paint.gui.event.EventManager;
 import org.paint.gui.event.FamilyChangeEvent;
 import org.paint.gui.event.FamilyChangeListener;
 import org.paint.main.PaintManager;
-import org.paint.util.GeneNodeUtil;
 import org.paint.util.RenderUtil;
 
 public class EvidencePanel  extends AbstractPaintGUIComponent implements
@@ -329,6 +329,7 @@ public class EvidencePanel  extends AbstractPaintGUIComponent implements
     public void handleAnnotationChange() {
         PaintManager pm = PaintManager.inst();
         GOTermHelper gth = pm.goTermHelper();
+        TaxonomyHelper th = pm.getTaxonHelper();
         ArrayList<Annotation> annotList = pm.getAnnotatedList();
         StringBuffer prunedBuf = new StringBuffer();
         StringBuffer warningBuf = new StringBuffer();
@@ -344,10 +345,11 @@ public class EvidencePanel  extends AbstractPaintGUIComponent implements
             if (0 != sb.length()) {
                 sb.append(Constant.STR_NEWLINE);
             }
-            String publicId = a.getAnnotationDetail().getAnnotatedNode().getStaticInfo().getPublicId();
+            Node n = a.getAnnotationDetail().getAnnotatedNode();
+            String publicId = n.getStaticInfo().getPublicId();
 
             GeneNode gn = pm.getGeneByPTNId(publicId);
-            if (true == Evidence.CODE_IBD.equals(a.getSingleEvidenceCodeFromSet()) && false == GeneNodeUtil.isTermValidForNode(gn, term.getAcc())) {
+            if (true == Evidence.CODE_IBD.equals(a.getSingleEvidenceCodeFromSet()) && false == th.isTermAndQualifierValidForSpecies(a.getGoTerm(), n.getStaticInfo().getCalculatedSpecies(), a.getQualifierSet())) {
                 if (0 != warningBuf.length()) {
                     warningBuf.append(Constant.STR_NEWLINE);
                 }

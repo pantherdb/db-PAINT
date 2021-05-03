@@ -1,5 +1,5 @@
 /**
- *  Copyright 2019 University Of Southern California
+ *  Copyright 2020 University Of Southern California
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -28,6 +28,7 @@ import edu.usc.ksom.pm.panther.paintCommon.Qualifier;
 import edu.usc.ksom.pm.panther.paintCommon.QualifierDif;;
 import com.sri.panther.paintCommon.util.StringUtils;
 import edu.usc.ksom.pm.panther.paint.matrix.NodeInfoForMatrix;
+import edu.usc.ksom.pm.panther.paintCommon.AnnotationHelper;
 import edu.usc.ksom.pm.panther.paintCommon.WithEvidence;
 import java.awt.Color;
 import java.util.ArrayList;
@@ -190,7 +191,11 @@ public class AssociationTableModel extends AbstractTableModel implements PaintTa
     }
     
     public String getColumnName(int columnIndex) {
-		return column_headings[columnIndex];
+        if (columnIndex < 0 || columnIndex >= column_headings.length) {
+            System.out.println("Invalid column index requested");
+            return null;
+        }
+        return column_headings[columnIndex];
     }
     
     public Class getColumnClass(int columnIndex) {
@@ -206,6 +211,9 @@ public class AssociationTableModel extends AbstractTableModel implements PaintTa
     }
     
     public boolean isCellEditable(int rowIndex, int columnIndex) {
+        if (columnIndex < 0 || columnIndex >= column_headings.length) {
+            return false;
+        }
         String tag = column_headings[columnIndex];
         // Non-editable columns
         if ((CODE_COL_NAME.equals(tag)) || (TERM_COL_NAME.equals(tag)) || (REFERENCE_COL_NAME.equals(tag)) || (WITH_COL_NAME.equals(tag)) ||
@@ -238,20 +246,15 @@ public class AssociationTableModel extends AbstractTableModel implements PaintTa
 
 
         // NOT for IBA only.  IBA cannot be the result of an IKR or IRD (i.e. has parent)
-        if (true == tag.equals(COL_NAME_QUALIFIER_NOT) && true == Evidence.CODE_IBA.equals(code) && false == AnnotationUtil.isIBAForIKRorIRD(a, gNode)) {
+        if (true == tag.equals(COL_NAME_QUALIFIER_NOT) && true == Evidence.CODE_IBA.equals(code) && false == AnnotationUtil.isIBAFromIBDAndForIKRorIRD(a, gNode) && false == Evidence.CODE_TCV.equals(code)) {
 //        if (true == tag.equals(COL_NAME_QUALIFIER_NOT) && (true == GOConstants.ANCESTRAL_EVIDENCE_CODE.equals(code) || true == GOConstants.KEY_RESIDUES_EC.equals(code) || true == GOConstants.DIVERGENT_EC.equals(code))) {
             return true;
         }
-                        // getvalueAt should return null
-//                        else if (true == tag.equals(COL_NAME_QUALIFIER_NOT) && false == GOConstants.ANCESTRAL_EVIDENCE_CODE.equals(code)) {
-//                            return false;
-//                        }
-        // Cannot update contributes to or colocalizes with
-//        if (tag.equals(COL_NAME_QUALIFIER_CONTRIBUTES_TO) || tag.equals(COL_NAME_QUALIFIER_COLOCALIZES_WITH)) {
-//            return false;
-//        }
         if (tag.equals(COL_NAME_DELETE)) {
-            return true;
+            if (Evidence.CODE_TCV.equals(a.getSingleEvidenceCodeFromSet())) {
+                return false;
+            }
+            return AnnotationHelper.isDirectAnnotation(a);
         }
 
 //                        Aspect curAspect = AspectSelector.inst().getAspect();                        
@@ -287,18 +290,11 @@ public class AssociationTableModel extends AbstractTableModel implements PaintTa
 
         HashSet<String> actualSet = a.getEvidenceCodeSet();
         HashSet<String> displayEvSet = new HashSet<String>();
-        boolean isExperimental = false;
-        boolean isPaint = false;
+//        boolean isPaint = false;
         for (String code: actualSet) {
-            if (Evidence.isExperimental(code)) {
-                displayEvSet.add(code);
-                isExperimental = true;
-                continue;
-            }
-            else if (Evidence.isPaint(code)) {
-                displayEvSet.add(code);
-                isPaint = true;   
-            }
+
+            displayEvSet.add(code);
+
         }
         String evidenceCode = StringUtils.listToString(displayEvSet, Constant.STR_EMPTY, Constant.STR_COMMA);
         
@@ -349,7 +345,7 @@ public class AssociationTableModel extends AbstractTableModel implements PaintTa
 //            return rtn;
         }
         if (REFERENCE_COL_NAME.equals(tag)) {
-            if (true == isExperimental && false == isPaint) {
+            if (true == a.isExperimental()) {
                 // Experimental and non-paint annotations get "with" information in reference column
                 return getTextForWith(a);
             }
@@ -383,12 +379,17 @@ public class AssociationTableModel extends AbstractTableModel implements PaintTa
             return sb.toString().trim();
         }
         if (WITH_COL_NAME.equals(tag)) {
-            if (true == isExperimental && false == isPaint) {
+            if (a.isExperimental()) {
                 return Constant.STR_EMPTY;
             }
             return getTextForWith(a);
         }
         if (COL_NAME_QUALIFIER_NOT.equals(tag)) {
+            // Cannot update TCV
+            if (Evidence.CODE_TCV.equals(a.getSingleEvidenceCodeFromSet())) {
+                return false;
+            }            
+            
             // Cannot change not for non sequence annotations
 //            Evidence e = a.getEvidence();
 //            if (false == GOConstants.DESCENDANT_SEQUENCES_EC.equals(e.getEvidenceCode())) {
@@ -444,9 +445,10 @@ public class AssociationTableModel extends AbstractTableModel implements PaintTa
             return Boolean.FALSE;
         }
         if (COL_NAME_DELETE.equals(tag)) {
-            //Evidence e = a.getEvidence();
-            String code = a.getSingleEvidenceCodeFromSet();
-            if (false == a.isExperimental() && true == Evidence.isPaint(code)) {
+            if (true == Evidence.CODE_TCV.equals(a.getSingleEvidenceCodeFromSet())) {
+                return Constant.STR_EMPTY;
+            }
+            if (true == AnnotationHelper.isDirectAnnotation(a)) {
                 return Boolean.TRUE;
             }
             return null;
@@ -497,8 +499,11 @@ public class AssociationTableModel extends AbstractTableModel implements PaintTa
             for (WithEvidence withEv : withEvSet) {
                 Annotation withAnnot = (Annotation) withEv.getWith();
                 Node n = withAnnot.getAnnotationDetail().getAnnotatedNode();
+//                if (null == n) {
+//                    System.out.println("Here");
+//                }
                 GeneNode gn = PaintManager.inst().getGeneByPTNId(n.getStaticInfo().getPublicId());                
-                if (((Evidence.CODE_IKR.equals(withAnnot.getSingleEvidenceCodeFromSet()) && false == gn.isLeaf()) || Evidence.CODE_IRD.equals(a.getSingleEvidenceCodeFromSet())) && withAnnot == a) {
+                if (((Evidence.CODE_IKR.equals(withAnnot.getSingleEvidenceCodeFromSet())) || Evidence.CODE_IRD.equals(a.getSingleEvidenceCodeFromSet()) || Evidence.CODE_TCV.equals(a.getSingleEvidenceCodeFromSet())) && withAnnot == a) {
                     continue;
                 }
                 addedList.add(withAnnot.getAnnotationDetail().getAnnotatedNode());
@@ -559,7 +564,7 @@ public class AssociationTableModel extends AbstractTableModel implements PaintTa
                 Annotation withAnnot = (Annotation) withEv.getWith();
                 Node n = withAnnot.getAnnotationDetail().getAnnotatedNode();
                 GeneNode gn = PaintManager.inst().getGeneByPTNId(n.getStaticInfo().getPublicId());
-                if (((Evidence.CODE_IKR.equals(withAnnot.getSingleEvidenceCodeFromSet()) && false == gn.isLeaf()) || Evidence.CODE_IRD.equals(a.getSingleEvidenceCodeFromSet())) && withAnnot == a) {
+                if (((Evidence.CODE_IKR.equals(withAnnot.getSingleEvidenceCodeFromSet()) && false == gn.isLeaf()) || Evidence.CODE_IRD.equals(a.getSingleEvidenceCodeFromSet()) || Evidence.CODE_TCV.equals(a.getSingleEvidenceCodeFromSet())) && withAnnot == a) {
                     continue;
                 }
                 addedList.add(withAnnot.getAnnotationDetail().getAnnotatedNode());
@@ -747,7 +752,8 @@ public class AssociationTableModel extends AbstractTableModel implements PaintTa
             return;
         }
         Annotation a = annotList.get(rowIndex);
-        AnnotationUtil.deleteAnnotation(gNode, a);
+        AnnotationHelper.deleteAnnotationAndRepropagate(a, pm.getTaxonHelper(), pm.goTermHelper());
+//        AnnotationUtil.deleteAnnotation(gNode, a);
         DirtyIndicator.inst().setAnnotated(true);        
         EventManager.inst().fireAnnotationChangeEvent(new AnnotationChangeEvent(gNode)); 
 //        Annotation delAnnot = PaintAction.inst().deleteAnnotation(gNode, a);
