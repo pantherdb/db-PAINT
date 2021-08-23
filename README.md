@@ -22,7 +22,7 @@ Each of these can be build separately.  There is a README.txt file in each subdi
 Before building, update the property files in the config subdirectory for each component.  These specify database connection parameters, server locations, etc. Also properties in file user.properties.paintCuration have to be modified to specify server location, etc.
 
 ***
-#Rules for creating IBD annotations#
+**Rules for creating IBD annotations**
 * When creating an IBD annotation, the software will include all available expeimental annotations from non-pruned leaf nodes with matching qualifiers as evidence.
 * The annotation will be propagated to all descendant non-pruned leaf nodes including ones with conflicting qualifier annotations (as per [http://wiki.geneontology.org/index.php/3_Aug_2021_PAINT_Conference_Call PAINT meeting discussion on August 3rd]  and PANTHER group meeting).  The only way to stop propagation will be for the curator to create a 'NOT' annotation.
 * If there is a taxonomy violation for the node and term, the system will warn the user to create a ticket to remove the taxonomy violation.
