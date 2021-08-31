@@ -23,8 +23,8 @@ Before building, update the property files in the config subdirectory for each c
 
 ***
 **Rules for creating IBD annotations**
-* When creating an IBD annotation, the software will include all available expeimental annotations from non-pruned leaf nodes with matching qualifiers as evidence.
-* The annotation will be propagated to all descendant non-pruned leaf nodes including ones with conflicting qualifier annotations (as per [http://wiki.geneontology.org/index.php/3_Aug_2021_PAINT_Conference_Call PAINT meeting discussion on August 3rd]  and PANTHER group meeting).  The only way to stop propagation will be for the curator to create a 'NOT' annotation.
+* When creating an IBD annotation, the software will include all available expeimental annotations from non-pruned leaf nodes with matching qualifiers as evidence. For positive annotations, the software can use experimental annotations to more specific terms as long as the qualifiers match.  For 'NOT' annotations, the software can use experimental annotations to ancestor terms as evidence, if the qualifier(s) match. 
+* The annotation will be propagated as IBA to all descendant non-pruned leaf nodes including ones with conflicting qualifier annotations (as per [http://wiki.geneontology.org/index.php/3_Aug_2021_PAINT_Conference_Call PAINT meeting discussion on August 3rd]  and PANTHER group meeting on August 4).  The only way to stop propagation will be for the curator to create a 'NOT' annotation.  This gives the curator the flexibility to override incorrect experimental annotations.
 * If there is a taxonomy violation for the node and term, the system will warn the user to create a ticket to remove the taxonomy violation.
-* If there is a taxonomy violation for a descendant node, the system will not create a TCV annotation and stop propagation.
+* If there is a taxonomy violation for a descendant node, the system will not warn the user or create a TCV annotation and stop propagation.
 
