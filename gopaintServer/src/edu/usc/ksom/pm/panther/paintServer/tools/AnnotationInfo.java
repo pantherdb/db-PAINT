@@ -19,6 +19,7 @@ import com.sri.panther.paintCommon.util.Utils;
 import com.sri.panther.paintServer.logic.DataValidationManager;
 import java.io.IOException;
 import java.io.StringReader;
+import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -27,6 +28,7 @@ import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.List;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import org.w3c.dom.Document;
@@ -38,6 +40,7 @@ import org.xml.sax.SAXException;
 import org.xml.sax.SAXParseException;
 
 public class AnnotationInfo {
+    public static final String ENCODING = "UTF-8";    
 
     public static final String URL_ALL_FAMILIES_WITH_EXPERIMENTAL_EVIDENCE = "/webservices/searchBooks.jsp?searchType=SEARCH_TYPE_BOOKS_WITH_EXPERIMENTAL_EVIDENCE";
     //public static final String URL_SEARCH_FAMILY_ANNOT_INFO = "/webservices/family.jsp?searchValue=%REPLACE_STR%&searchType=SEARCH_TYPE_FAMILY_ANNOTATION_INFO";
@@ -77,8 +80,75 @@ public class AnnotationInfo {
             
             HashSet<String> familySet = familiesWithExpEvidence(urlCuration);
             ArrayList<String> sorted = new ArrayList(familySet);
-            Collections.sort(sorted);
-            int size = sorted.size();
+            processList(sorted, urlCuration, statusFilePath, saveDir);
+        } catch (IOException ioe) {
+            ioe.printStackTrace();
+        }
+    }
+    
+    public static void processBooks(String urlCuration, String saveDir, String bookListFile) {
+        try {
+            String filePrefix = saveDir + DIR_INFO ;
+            Path tmpFileStatusPath = Paths.get(filePrefix +  FILE_SEPARATOR + FILE_STATUS);
+            Path statusFilePath = tmpFileStatusPath;
+            if (false == Files.exists(tmpFileStatusPath)) {
+                if (false == Files.exists(tmpFileStatusPath.getParent())) {
+                    Files.createDirectories(tmpFileStatusPath.getParent());
+                }
+                statusFilePath = Files.createFile(tmpFileStatusPath);
+            }
+            else {
+                ArrayList<String> fileInfo = new ArrayList<String>();
+                Files.write(statusFilePath, fileInfo, StandardCharsets.UTF_8);
+            }
+            
+            if (null == DataValidationManager.getInstance().getBooksWithIncompleteTaxonInfo()) {
+                String msg = "Unable to retrieve organism information from database for validating taxonomy constraints \n";
+                Files.write(statusFilePath, msg.getBytes(), StandardOpenOption.APPEND);
+                return;
+            }
+            
+            List<String> familySet = getBooks(bookListFile);
+            if (null == familySet) {
+                return;
+            }
+            ArrayList<String> sorted = new ArrayList(familySet);
+            processList(sorted, urlCuration, statusFilePath, saveDir);
+        } catch (IOException ioe) {
+            ioe.printStackTrace();
+        }        
+    }
+    
+    public static List<String> getBooks(String bookListFile) {
+        try {
+            Path filePath = Paths.get(bookListFile);
+            List<String> books = Files.readAllLines(filePath, Charset.forName(ENCODING));
+            if (null == books) {
+                return null;
+            }
+            for (int i = 0; i < books.size(); i++) {
+                String temp = books.get(i);
+                String mod = temp.trim();
+                if (true == mod.isEmpty()) {
+                    books.remove(i);
+                    i--;
+                    continue;
+                }
+                books.set(i, mod);
+            }
+            Collections.sort(books);
+            return books;
+        }
+        catch(IOException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }     
+    
+    private static void processList(List<String> books, String urlCuration, Path statusFilePath, String saveDir) throws IOException {
+        ArrayList<String> sorted = new ArrayList<String>(books);
+            Collections.sort(books);
+            int size = sorted.size();    
             for (int i = 0; i < size; i++) {
                 String msg = "Processing " + (i + 1) + " of " + size + " book " + sorted.get(i) + "\n";
                 Files.write(statusFilePath, msg.getBytes(), StandardOpenOption.APPEND);
@@ -105,10 +175,7 @@ public class AnnotationInfo {
                 ArrayList<String> bookInfoList = new ArrayList<String>();
                 bookInfoList.add(bookInfo);
                 Files.write(curFile, bookInfoList, StandardCharsets.UTF_8);
-            }
-        } catch (IOException ioe) {
-            ioe.printStackTrace();
-        }
+            }        
     }
 
     public static HashSet<String> familiesWithExpEvidence(String urlCuration) {
@@ -165,8 +232,24 @@ public class AnnotationInfo {
         return null;
 
     }
-    
+
     public static void main(String[] args) {
+        System.out.println("Specify server path followed by path for storing information. Optional third parameter to specify full path and file name of file ocntaining books to be processed instead of all books in library with experimental evidence");
+        System.out.println("If running on Windows, path should be as C:/somedir.  For example http://paintcuration.usc.edu /home/panther/mydir/samples or http://paintcuration.usc.edu C:/somedir/otherdir");
+//        processBooks("http://localhost:8080/", "C:/usc/svn/new_panther/curation/paint/gopaint/branches/TaxConstraint/samples");
+        
+//        processBooks("http://paintcuration.usc.edu", "/home/joeBlow/someDir/samples");        
+        processBooks("http://localhost:8080/", "C:/paint/taxon_check", "C:/paint/taxon_check//taxon_check_books.txt");
+//        if (null != args && args.length == 2) {
+//            processBooks(args[0], args[1]);
+//            return;
+//        }
+//        if (null != args && args.length == 3) {
+//            processBooks(args[0], args[1], args[2]);
+//        }        
+    }
+    
+    public static void main3(String[] args) {
         System.out.println("Specify server path followed by path for storing information.");
         System.out.println("If running on Windows, path should be as C:/somedir.  For example http://paintcuration.usc.edu /home/panther/mydir/samples or http://paintcuration.usc.edu C:/somedir/otherdir");
 //        processBooks("http://localhost:8080/", "C:/usc/svn/new_panther/curation/paint/gopaint/branches/TaxConstraint/samples");

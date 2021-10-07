@@ -1,5 +1,5 @@
 /**
- * Copyright 2020 University Of Southern California
+ * Copyright 2021 University Of Southern California
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -15,6 +15,7 @@
  */
 package org.paint.gui.matrix;
 
+import com.sri.panther.paintCommon.util.StringUtils;
 import edu.usc.ksom.pm.panther.paintCommon.Annotation;
 import edu.usc.ksom.pm.panther.paintCommon.GOTerm;
 import edu.usc.ksom.pm.panther.paintCommon.GOTermHelper;
@@ -60,6 +61,7 @@ import javax.swing.JComponent;
 import javax.swing.JOptionPane;
 import javax.swing.TransferHandler;
 import static javax.swing.TransferHandler.NONE;
+import org.apache.commons.lang.WordUtils;
 import org.bbop.framework.GUIManager;
 import org.paint.datamodel.GeneNode;
 import org.paint.dialog.AnnotationQualifierDlg;
@@ -72,10 +74,7 @@ import org.paint.main.PaintManager;
 import org.paint.util.AnnotationUtil;
 import org.paint.util.GeneNodeUtil;
 
-/**
- *
- * @author muruganu
- */
+
 public class AnnotationTransferHndlr extends TransferHandler {
     
     private static AnnotDragGestureRecognizer recognizer = null;
@@ -95,6 +94,11 @@ public class AnnotationTransferHndlr extends TransferHandler {
     
     public static final String MORE_SPECIFIC_DESCENDENT_ANNOTATION = "More specific descendent annotation";
     public static final String LESS_SPECIFIC_ANNOTATION = "Less specific annotation";    
+    
+    public static final String MSG_TAXON_CONSTRAINT_PART_1 = " - According to current taxonomy constraints rules, species ";
+    public static final String MSG_TAXON_CONSTRAINT_PART_2 = " cannot be annotated to term ";
+    public static final String MSG_TAXON_CONSTRAINT_PART_3 = ".  If there is an error with the taxonomy rule, create a ticket in GitHub in  https://github.com/geneontology/go-ontology/issues and tag as 'taxon constraint'.";
+    
 
     public AnnotationTransferHndlr() {
         super();
@@ -396,10 +400,16 @@ public class AnnotationTransferHndlr extends TransferHandler {
         }
         
         HashSet<Annotation> withSet = new HashSet<Annotation>();
-        String errMsg = AnnotationHelper.canNodeBeAnnotatedWithIBD(termAcc, applicableQset, gNode.getNode(), withSet, pm.getTaxonHelper(), pm.goTermHelper());
+        String errMsg = AnnotationHelper.canNodeBeAnnotatedWithIBD(termAcc, applicableQset, gNode.getNode(), withSet, pm.getTaxonHelper(), pm.goTermHelper(), true);
         if (null != errMsg) {
             System.out.println(errMsg);
             return false;
+        }
+        boolean valid = pm.getTaxonHelper().termAndQualifierValidForSpeciesCheckTaxonomy(termAcc, gNode.getNode().getStaticInfo().getCalculatedSpecies(), applicableQset);
+        if (false == valid) {            
+            String bigStr = (gNode.getNode().getStaticInfo().getPublicId() + MSG_TAXON_CONSTRAINT_PART_1 + gNode.getNode().getStaticInfo().getCalculatedSpecies() + MSG_TAXON_CONSTRAINT_PART_2 + termAcc + MSG_TAXON_CONSTRAINT_PART_3);
+            String formatted = WordUtils.wrap(bigStr, 80);
+            JOptionPane.showMessageDialog(GUIManager.getManager().getFrame(), formatted);
         }
         PaintAction.inst().addIBDAnnotationAndPropagate(annotTerm, gNode, withSet, applicableQset);
         clearVisitedNodes(treePanel);
@@ -407,6 +417,7 @@ public class AnnotationTransferHndlr extends TransferHandler {
         EventManager.inst().fireAnnotationChangeEvent(new AnnotationChangeEvent(gNode));        
         return true;
     }
+    
     
 
     /**

@@ -1,5 +1,5 @@
 /**
- * Copyright 2019 University Of Southern California
+ * Copyright 2021 University Of Southern California
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -168,6 +168,9 @@ public class DataServer{
     protected static final String CURATION_STATUS_QAED = "panther_curation_QAed";
     protected static final String CURATION_STATUS_PARTIALLY_CURATED = "panther_partially_curated";
     protected static final String CURATION_STATUS_REQUIRE_PAINT_REVIEW = "go_require_paint_review";
+    protected static final String CURATION_STATUS_REQUIRE_PAINT_REVIEW_PTN_NOT_MAPPED = "go_require_paint_review_ptn_not_mapped";
+    protected static final String CURATION_STATUS_REQUIRE_PAINT_REVIEW_PTN_CHANGE_FAMILIES = "go_require_paint_review_ptn_change_families";
+    protected static final String CURATION_STATUS_REQUIRE_PAINT_REVIEW_PTN_TRACKED_TO_CHILD_NODE = "go_require_paint_review_ptn_tracked_to_child_node";     
   
   protected static final String LEVEL_FAMILY = "_famLevel";
   protected static final String LEVEL_SUBFAMILY = "_subfamLevel";
@@ -12023,7 +12026,16 @@ public class DataServer{
       }
       else if (true == curationStatusId.equals(ConfigFile.getProperty(CURATION_STATUS_REQUIRE_PAINT_REVIEW))) {
           return Book.CURATION_STATUS_REQUIRE_PAINT_REVIEW;
-      }      
+      }
+      else if (true == curationStatusId.equals(ConfigFile.getProperty(CURATION_STATUS_REQUIRE_PAINT_REVIEW_PTN_NOT_MAPPED))) {
+          return Book.CURATION_STATUS_REQUIRE_PAINT_REVIEW_PTN_NOT_MAPPED;
+      }
+      else if (true == curationStatusId.equals(ConfigFile.getProperty(CURATION_STATUS_REQUIRE_PAINT_REVIEW_PTN_CHANGE_FAMILIES))) {
+          return Book.CURATION_STATUS_REQUIRE_PAINT_REVIEW_PTN_CHANGE_FAMILIES;
+      }
+      else if (true == curationStatusId.equals(ConfigFile.getProperty(CURATION_STATUS_REQUIRE_PAINT_REVIEW_PTN_TRACKED_TO_CHILD_NODE))) {
+          return Book.CURATION_STATUS_REQUIRE_PAINT_REVIEW_TRACKED_TO_CHILD_NODE;
+      }       
       return Book.CURATION_STATUS_UNKNOWN;
       
   }

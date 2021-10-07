@@ -1,5 +1,5 @@
 /**
- *  Copyright 2020 University Of Southern California
+ *  Copyright 2021 University Of Southern California
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -70,6 +70,7 @@ public class FileMenu extends JMenu implements AnnotationChangeListener, FamilyC
     protected JMenuItem updateFamilyNameItem;
     protected JMenuItem saveDBItem;
     protected JMenuItem viewOmittedAnnotInfoItem;
+    protected JMenuItem viewTaxonomyViolatoinInfoItem;
     protected JMenuItem viewUpdateHistoryItem;
 
     private static final String MENU_ITEM_LOGIN = "Login";
@@ -81,6 +82,7 @@ public class FileMenu extends JMenu implements AnnotationChangeListener, FamilyC
     private static final String MENU_ITEM_SAVE_TO_DB = "Save to database...";
     private static final String MENU_ITEM_VIEW_ANNOT_INFO = "View annotation information";
     private static final String MENU_ITEM_VIEW_ANNOT_HISTORY_INFO = "View annotation history";
+    private static final String MENU_ITEM_VIEW_TAXONOMY_VIOLATION_INFO = "View taxonomy violation information";
 
     private static List<FileMenu> instances = new ArrayList<FileMenu>();
 
@@ -136,6 +138,11 @@ public class FileMenu extends JMenu implements AnnotationChangeListener, FamilyC
         add(viewOmittedAnnotInfoItem);
         viewOmittedAnnotInfoItem.setEnabled(false);
         
+        viewTaxonomyViolatoinInfoItem = new JMenuItem(MENU_ITEM_VIEW_TAXONOMY_VIOLATION_INFO);
+        viewTaxonomyViolatoinInfoItem.addActionListener(new ViewTaxomomyViolationInfoListener());
+        add(viewTaxonomyViolatoinInfoItem);
+        viewTaxonomyViolatoinInfoItem.setEnabled(false);
+        
         viewUpdateHistoryItem = new JMenuItem(MENU_ITEM_VIEW_ANNOT_HISTORY_INFO);
         viewUpdateHistoryItem.addActionListener(new ViewAnnotHistoryActionListener());
         add(viewUpdateHistoryItem);
@@ -158,6 +165,7 @@ public class FileMenu extends JMenu implements AnnotationChangeListener, FamilyC
         updateCommentItem.setEnabled(DirtyIndicator.inst().bookUpdated());
         updateFamilyNameItem.setEnabled(DirtyIndicator.inst().bookUpdated());
         viewOmittedAnnotInfoItem.setEnabled(DirtyIndicator.inst().bookUpdated());
+        viewTaxonomyViolatoinInfoItem.setEnabled(DirtyIndicator.inst().bookUpdated());
         viewUpdateHistoryItem.setEnabled(DirtyIndicator.inst().bookUpdated());
 //		openDBItem.setEnabled(InternetChecker.getInstance().isConnectionPresent(true));
 //
@@ -181,6 +189,7 @@ public class FileMenu extends JMenu implements AnnotationChangeListener, FamilyC
         this.updateFamilyNameItem.setEnabled(true);
         this.saveDBItem.setEnabled(true);
         this.viewOmittedAnnotInfoItem.setEnabled(true);
+        this.viewTaxonomyViolatoinInfoItem.setEnabled(true);
         this.viewUpdateHistoryItem.setEnabled(true);
     }
 
@@ -288,6 +297,7 @@ public class FileMenu extends JMenu implements AnnotationChangeListener, FamilyC
             updateCommentItem.setEnabled(false);
             updateFamilyNameItem.setEnabled(false);
             viewOmittedAnnotInfoItem.setEnabled(false);
+            viewTaxonomyViolatoinInfoItem.setEnabled(false);
             viewUpdateHistoryItem.setEnabled(false);
         }
     }
@@ -348,6 +358,24 @@ public class FileMenu extends JMenu implements AnnotationChangeListener, FamilyC
             ta.setCaretPosition(0);
             JOptionPane.showMessageDialog(GUIManager.getManager().getFrame(), new JScrollPane(ta), "Additional information about annotations", JOptionPane.INFORMATION_MESSAGE);
         }
+    }
+    
+    private class ViewTaxomomyViolationInfoListener implements ActionListener {
+        public void actionPerformed(ActionEvent e) {        
+            PaintManager pm = PaintManager.inst();            
+            ArrayList<String> msgList = pm.getTaxonmomyWarnings();
+            
+            String info = String.join(LINE_SEPARATOR_SYSTEM_PROPERY, msgList);
+            JTextArea ta = new JTextArea(20, 100);
+            if (null != info) {
+               ta.setText(info);
+            }
+            ta.setEditable(false);
+            ta.setWrapStyleWord(true);
+            ta.setLineWrap(true);
+            ta.setCaretPosition(0);
+            JOptionPane.showMessageDialog(GUIManager.getManager().getFrame(), new JScrollPane(ta), "Taxomomy violation information", JOptionPane.INFORMATION_MESSAGE);
+        }        
     }
     private class ViewAnnotHistoryActionListener implements ActionListener{
         public void actionPerformed(ActionEvent e) {

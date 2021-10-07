@@ -256,7 +256,7 @@ public class AnnotInfoHelper {
     
     public static void main(String args[]) {
         System.out.println("Specify name of directory with book files");
-        outputInfo("C:\\paint\\fix_annot_20200929\\preUpdate\\preUpdate");
+        outputInfo("C:\\paint\\fix_annot_20210529\\preUpdate");
         if (args.length >= 1) {
             outputInfo(args[0]);
             return;

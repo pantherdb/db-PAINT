@@ -1,5 +1,5 @@
 /**
- * Copyright 2020 University Of Southern California
+ * Copyright 2021 University Of Southern California
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -26,6 +26,7 @@ import edu.usc.ksom.pm.panther.paintCommon.Annotation;
 import edu.usc.ksom.pm.panther.paintCommon.AnnotationHelper;
 import edu.usc.ksom.pm.panther.paintCommon.Comment;
 import edu.usc.ksom.pm.panther.paintCommon.Domain;
+import edu.usc.ksom.pm.panther.paintCommon.Evidence;
 import edu.usc.ksom.pm.panther.paintCommon.GOTermHelper;
 import edu.usc.ksom.pm.panther.paintCommon.Node;
 import edu.usc.ksom.pm.panther.paintCommon.NodeVariableInfo;
@@ -61,6 +62,7 @@ import org.paint.gui.evidence.ActionLog;
 import org.paint.gui.familytree.TreeModel;
 import org.paint.gui.familytree.TreePanel;
 import org.paint.gui.matrix.AnnotationMatrix;
+import org.paint.gui.matrix.AnnotationTransferHndlr;
 import org.paint.gui.msa.MSA;
 import org.paint.gui.msa.MSAPanel;
 import org.paint.gui.table.GeneTable;
@@ -386,6 +388,21 @@ public class PaintManager {
         ArrayList<Node> prunedList = new ArrayList<Node>();
         addPruned(prunedList, tree_pane.getRoot());
         return prunedList;
+    }
+    
+    public ArrayList<String> getTaxonmomyWarnings() {
+        ArrayList<Annotation> annotations = getAnnotatedList();
+        ArrayList<String> warnings = new ArrayList<String>();
+        for (Annotation a: annotations) {
+            if (false == Evidence.CODE_IBD.equals(a.getSingleEvidenceCodeFromSet())) {
+                continue;
+            }
+            Node n = a.getAnnotationDetail().getAnnotatedNode();
+            if (false == taxonHelper.termAndQualifierValidForSpeciesCheckTaxonomy(a.getGoTerm(), n.getStaticInfo().getCalculatedSpecies(), a.getAnnotationDetail().getQualifiers())) {
+                warnings.add(n.getStaticInfo().getPublicId() + AnnotationTransferHndlr.MSG_TAXON_CONSTRAINT_PART_1 + n.getStaticInfo().getCalculatedSpecies() + AnnotationTransferHndlr.MSG_TAXON_CONSTRAINT_PART_2 + a.getGoTerm() + AnnotationTransferHndlr.MSG_TAXON_CONSTRAINT_PART_3);
+            }
+        }
+        return warnings;
     }
 
     public ArrayList<Annotation> getAnnotatedList() {

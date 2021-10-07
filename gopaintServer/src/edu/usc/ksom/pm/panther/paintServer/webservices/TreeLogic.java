@@ -1,5 +1,5 @@
 /**
- *  Copyright 2020 University Of Southern California
+ *  Copyright 2021 University Of Southern California
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -46,6 +46,8 @@ public class TreeLogic {
     protected static final String DELIM_SQUARE_BRACKET_OPEN = "[";
     protected static final String DELIM_SQUARE_BRACKET_CLOSE = "]";
     public static final String DELIM_TREE = ",();";
+    
+    private static final DataIO DATA_IO = new DataIO(ConfigFile.getProperty(ConfigFile.KEY_DB_JDBC_DBSID));
     
     public TreeLogic() {
         
@@ -117,15 +119,15 @@ public class TreeLogic {
         if (null == uplVersion) {
             uplVersion = WSConstants.PROPERTY_CLS_VERSION;
         }
-        DataIO di = new DataIO(ConfigFile.getProperty(ConfigFile.KEY_DB_JDBC_DBSID));
-        String[] treeStrings = di.getTree(familyId, uplVersion);
+       
+        String[] treeStrings = DATA_IO.getTree(familyId, uplVersion);
         
         if (null == treeStrings) {
             invalidFamilyId = true;            
             return false;
         }
         root = parse(treeStrings);
-        di.getAnnotationNodeLookup(familyId, uplVersion, nodeLookupTbl);
+        DATA_IO.getAnnotationNodeLookup(familyId, uplVersion, nodeLookupTbl);
         // Save public id gene symbol
         Vector <AnnotationNode> nodeList = new Vector(idToNodeTbl.values());
 

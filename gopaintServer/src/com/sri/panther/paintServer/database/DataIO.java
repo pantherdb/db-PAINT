@@ -18,7 +18,6 @@ package com.sri.panther.paintServer.database;
 import com.sri.panther.paintCommon.Book;
 import com.sri.panther.paintCommon.Constant;
 import com.sri.panther.paintCommon.User;
-import edu.usc.ksom.pm.panther.paintCommon.QualifierDif;
 import com.sri.panther.paintCommon.util.StringUtils;
 import com.sri.panther.paintCommon.util.Utils;
 import com.sri.panther.paintServer.datamodel.ClassificationVersion;
@@ -35,10 +34,10 @@ import com.sri.panther.paintServer.logic.OrganismManager;
 import com.sri.panther.paintServer.logic.TaxonomyConstraints;
 import com.sri.panther.paintServer.util.ConfigFile;
 import com.sri.panther.paintServer.util.ReleaseResources;
-import edu.usc.ksom.pm.panther.paintCommon.AnnotationHelper;
-import edu.usc.ksom.pm.panther.paintCommon.AnnotationNode;
 import edu.usc.ksom.pm.panther.paintCommon.Annotation;
 import edu.usc.ksom.pm.panther.paintCommon.AnnotationDetail;
+import edu.usc.ksom.pm.panther.paintCommon.AnnotationHelper;
+import edu.usc.ksom.pm.panther.paintCommon.AnnotationNode;
 import edu.usc.ksom.pm.panther.paintCommon.Comment;
 import edu.usc.ksom.pm.panther.paintCommon.CurationStatus;
 import edu.usc.ksom.pm.panther.paintCommon.DBReference;
@@ -50,6 +49,7 @@ import edu.usc.ksom.pm.panther.paintCommon.Node;
 import edu.usc.ksom.pm.panther.paintCommon.NodeStaticInfo;
 import edu.usc.ksom.pm.panther.paintCommon.NodeVariableInfo;
 import edu.usc.ksom.pm.panther.paintCommon.Qualifier;
+import edu.usc.ksom.pm.panther.paintCommon.QualifierDif;
 import edu.usc.ksom.pm.panther.paintCommon.SaveBookInfo;
 import edu.usc.ksom.pm.panther.paintCommon.TaxonomyHelper;
 import edu.usc.ksom.pm.panther.paintCommon.TreeNodes;
@@ -460,6 +460,8 @@ public class DataIO {
                                                                 "and n.accession = g.accession"; 
     public static final String GET_STATUS_USER_INFO = " select c.ACCESSION, c.NAME, u.NAME, u.EMAIL, cst.STATUS, cst.STATUS_TYPE_SID, u.login_name, u.group_name, cs.CREATION_DATE  from classification c, curation_status cs, curation_status_type cst, users u where c.depth = %1 and c.CLASSIFICATION_VERSION_SID = %2 and c.CLASSIFICATION_ID  = cs.CLASSIFICATION_ID and cs.STATUS_TYPE_SID = cst.STATUS_TYPE_SID and cs.USER_ID = u.user_id ";
  
+    public static final String GET_STATUS_USER_INFO_FOR_BOOK = " select c.ACCESSION, c.NAME, u.NAME, u.EMAIL, cst.STATUS, cst.STATUS_TYPE_SID, u.login_name, u.group_name, cs.CREATION_DATE  from classification c, curation_status cs, curation_status_type cst, users u where c.depth = %1 and c.CLASSIFICATION_VERSION_SID = %2 and c.accession like '%3' and c.CLASSIFICATION_ID  = cs.CLASSIFICATION_ID and cs.STATUS_TYPE_SID = cst.STATUS_TYPE_SID and cs.USER_ID = u.user_id ";
+
     public static final String GET_USER_LOCKING_BOOK = " select c.ACCESSION, c.classification_id, u.user_id from classification c, curation_status cs, users u where c.depth = %1 and c.CLASSIFICATION_VERSION_SID = %2  and c.CLASSIFICATION_ID  = cs.CLASSIFICATION_ID and cs.USER_ID = u.user_id and cs.status_type_sid = %3 and c.accession like '%4' ";
     
     public static final String USER_ID = "select USER_ID, PRIVILEGE_RANK from users where user_id = %1";
@@ -665,6 +667,9 @@ public class DataIO {
     protected static final String CURATION_STATUS_QAED = "panther_curation_QAed";
     protected static final String CURATION_STATUS_PARTIALLY_CURATED = "panther_partially_curated";
     protected static final String CURATION_STATUS_REQUIRE_PAINT_REVIEW = "go_require_paint_review";
+    protected static final String CURATION_STATUS_REQUIRE_PAINT_REVIEW_PTN_NOT_MAPPED = "go_require_paint_review_ptn_not_mapped";
+    protected static final String CURATION_STATUS_REQUIRE_PAINT_REVIEW_PTN_CHANGE_FAMILIES = "go_require_paint_review_ptn_change_families";
+    protected static final String CURATION_STATUS_REQUIRE_PAINT_REVIEW_PTN_TRACKED_TO_CHILD_NODE = "go_require_paint_review_ptn_tracked_to_child_node";    
     
     protected static final String LEVEL_FAMILY = "_famLevel";
     protected static final String LEVEL_SUBFAMILY = "_subfamLevel";
@@ -701,7 +706,7 @@ public class DataIO {
     private final Hashtable<String, String> QUALIFIER_TYPE_TO_ID_LOOKUP = new Hashtable<String, String>();
     private final Hashtable<String, String> CONFIDENCE_CODE_TYPE_TO_ID_LOOKUP = new Hashtable<String, String>();
     
-    private OrganismManager organismManager = OrganismManager.getInstance();
+    private OrganismManager organismManager = OrganismManager.getInstance();    
 
     public DataIO(String dbStr) {
         this.dbStr = dbStr;
@@ -4078,8 +4083,22 @@ public class DataIO {
         
         for (Entry<String, Annotation> entry: tcvLookup.entrySet()) {
             Annotation tcv = entry.getValue();
+            String propInfo = STR_EMPTY;
+            Annotation prop = AnnotationHelper.getPropagator(tcv);
+            if (null != prop) {
+                Node propNode = prop.getAnnotationDetail().getAnnotatedNode();
+                if (null != propNode) {
+                    propInfo = " with propagator from node " + propNode.getStaticInfo().getPublicId();
+                }
+                else {
+                    propInfo = " with propagator without valid node";
+                }
+            }
+            else {
+                propInfo = " without propagator";
+            }
             removedLookup.put(tcv.getAnnotationId(), tcv);
-            paintErrBuf.insert(0, Evidence.CODE_TCV + " for term " + tcv.getGoTerm() + " - Unexpected for node " + node.getStaticInfo().getPublicId() + " since there is no taxonomy violation.\n");       
+            paintErrBuf.insert(0, Evidence.CODE_TCV + " for term " + tcv.getGoTerm() + propInfo + " - Unexpected for node " + node.getStaticInfo().getPublicId() + " since there is no taxonomy violation.\n");       
         }        
     }
     
@@ -4286,7 +4305,7 @@ public class DataIO {
         for (String annotId: ibdAnnotLookup.keySet()) {
             Annotation ibd = ibdAnnotLookup.get(annotId);
             HashSet<Annotation> withSet = new HashSet<Annotation>();
-            String errMsg = AnnotationHelper.canNodeBeAnnotatedWithIBD(ibd.getGoTerm(), ibd.getQualifierSet(), node, withSet, taxonomyHelper, goTermHelper);
+            String errMsg = AnnotationHelper.canNodeBeAnnotatedWithIBD(ibd.getGoTerm(), ibd.getQualifierSet(), node, withSet, taxonomyHelper, goTermHelper, true);
             if (null != errMsg) {
                 paintErrBuf.insert(0, errMsg);
                 removedLookup.put(annotId, ibd);
@@ -7022,10 +7041,32 @@ public class DataIO {
       }
       else if (true == curationStatusId.equals(ConfigFile.getProperty(CURATION_STATUS_REQUIRE_PAINT_REVIEW))) {
           return Book.CURATION_STATUS_REQUIRE_PAINT_REVIEW;
+      }
+      else if (true == curationStatusId.equals(ConfigFile.getProperty(CURATION_STATUS_REQUIRE_PAINT_REVIEW_PTN_NOT_MAPPED))) {
+          return Book.CURATION_STATUS_REQUIRE_PAINT_REVIEW_PTN_NOT_MAPPED;
+      }
+      else if (true == curationStatusId.equals(ConfigFile.getProperty(CURATION_STATUS_REQUIRE_PAINT_REVIEW_PTN_CHANGE_FAMILIES))) {
+          return Book.CURATION_STATUS_REQUIRE_PAINT_REVIEW_PTN_CHANGE_FAMILIES;
+      }
+      else if (true == curationStatusId.equals(ConfigFile.getProperty(CURATION_STATUS_REQUIRE_PAINT_REVIEW_PTN_TRACKED_TO_CHILD_NODE))) {
+          return Book.CURATION_STATUS_REQUIRE_PAINT_REVIEW_TRACKED_TO_CHILD_NODE;
       }      
       return Book.CURATION_STATUS_UNKNOWN;
       
-  }    
+  }
+ 
+    public Book getBookStatusComment(String id, String uplVersion) throws Exception {
+        String bookName = getFamilyName(id, uplVersion);
+        Book b = new Book(id, bookName, Book.CURATION_STATUS_UNKNOWN, null);
+        HashMap<String, Book> leafCountLookup = FamilyManager.getInstance().getBookLookup();
+        HashMap<String, HashSet<String>> orgLookup = FamilyManager.getInstance().getOrgLookup();     
+        b.setNumLeaves(leafCountLookup.get(id).getNumLeaves());
+        b.setOrgSet(orgLookup.get(id));
+        setCurationStatusForBook(id, b, uplVersion);
+        String curComment = getFamilyComment(id, uplVersion, new ArrayList<Integer>());
+        b.setComment(curComment);
+        return b;
+    }
     
     public Hashtable<String, Book> getListOfBooksAndStatus(String uplVersion) {
 
@@ -7143,6 +7184,99 @@ public class DataIO {
         setCommentForBooks(bookTbl, uplVersion);    // Add comment
         return bookTbl;
 
+    }
+    
+    public void setCurationStatusForBook(String id, Book b, String uplVersion) {
+        Connection con = null;
+        Statement stmt = null;
+        ResultSet rst = null;
+
+        try {
+            con = getConnection();
+            if (null == con) {
+                return;
+            }
+            stmt = con.createStatement();
+            // Get status and user information
+            String checkOutStatus = ConfigFile.getProperty(CURATION_STATUS_CHECKOUT);
+            String query = addVersionReleaseClause(uplVersion, Constant.STR_EMPTY, TABLE_NAME_c);
+            query = GET_STATUS_USER_INFO_FOR_BOOK + query;
+
+            query = Utils.replace(query, QUERY_PARAMETER_1, ConfigFile.getProperty(uplVersion + LEVEL_FAMILY));
+            query = Utils.replace(query, QUERY_PARAMETER_2, uplVersion);
+            query = Utils.replace(query, QUERY_PARAMETER_3, id);
+
+            
+            rst = stmt.executeQuery(query);
+            while (rst.next()) {
+//                String accession = rst.getString(1);
+
+                String curationStatusId = rst.getString(6);
+                String loginName = rst.getString(7);
+                java.sql.Timestamp creationDateTs = rst.getTimestamp(COLUMN_NAME_CREATION_DATE);
+
+                // Get information about user who is locking the book
+                User u = null;
+
+                if (null != curationStatusId) {
+                    String firstNameLName = rst.getString(3);
+                    String email = rst.getString(4);
+                    String groupName = rst.getString(COLUMN_NAME_GROUP_NAME);
+                    u = new User(firstNameLName, null, email, loginName, Constant.USER_PRIVILEGE_NOT_SET, groupName);
+                    //u.setUserId(Integer.toString(irslt.getInt(COLUMN_USER_ID)));
+                }
+
+                
+                if (null != u && true == curationStatusId.equals(checkOutStatus)) {
+                    b.setLockedBy(u);
+                }
+
+                // Get status
+                int status;
+                if (null == curationStatusId) {
+                    status = Book.CURATION_STATUS_UNKNOWN;
+                } else {
+                    status = getCurationStatusConversion(Integer.parseInt(curationStatusId));
+                }
+                CurationStatus cs = new CurationStatus();
+                cs.setStatusId(status);
+                cs.setUser(u);
+                cs.setTimeInMillis(creationDateTs.getTime());
+                b.addCurationStatus(cs);                
+                int oldStatus = b.getCurationStatus();
+                int newStatus = status;
+                // If one of the statuses is unknown, do not list it
+                if (newStatus != Book.CURATION_STATUS_UNKNOWN && oldStatus != Book.CURATION_STATUS_UNKNOWN) {
+                    newStatus = status | oldStatus;
+                } else {
+                    if (newStatus == Book.CURATION_STATUS_UNKNOWN) {
+                        newStatus = oldStatus;
+                    }
+                }
+                b.setCurationStatus(newStatus);
+                // Save date, if status is not checkout and creation date is after previously stored date or previously stored date is null
+                if (null != creationDateTs && status != Integer.parseInt(ConfigFile.getProperty(CURATION_STATUS_CHECKOUT))) {
+                    java.util.Date d = new java.util.Date(creationDateTs.getTime());
+                    java.util.Date previousDate = b.getCurationStatusUpdateDate();
+                    if (null != previousDate) {
+                        if (previousDate.before(d)) {
+                            b.setCurationStatusUpdateDate(d);
+                        }
+                    } else {
+                        b.setCurationStatusUpdateDate(d);
+                    }
+                }
+            }
+
+            rst.close();
+            stmt.close();
+        } catch (SQLException se) {
+            log.error(MSG_ERROR_UNABLE_TO_RETRIEVE_INFO_ERROR_RETURNED + se.getMessage());
+            se.printStackTrace();
+        } finally {
+            ReleaseResources.releaseDBResources(rst, stmt, con);
+
+        }        
     }
     
     public void setCommentForBooks(Hashtable<String, Book> bookLookup, String uplVersion) {
@@ -7533,12 +7667,9 @@ public class DataIO {
             if (null != con) {
                 ReleaseResources.releaseDBResources(rst, stmt, con);
             }
-        }        
-        
-        
-        
+        }                
     }
-  
+      
     public ArrayList<Book> getAllBooks(String uplVersion) {
         if (null == clsIdToVersionRelease) {
             initClsLookup();
@@ -7578,7 +7709,10 @@ public class DataIO {
             String id = bookIds.nextElement();
             Book aBook = bookTbl.get(id);
 //            int status = aBook.getCurationStatus();
-            if (false == aBook.hasStatus(Book.CURATION_STATUS_REQUIRE_PAINT_REVIEW) ||
+            if ((false == aBook.hasStatus(Book.CURATION_STATUS_REQUIRE_PAINT_REVIEW) &&
+                 false == aBook.hasStatus(Book.CURATION_STATUS_REQUIRE_PAINT_REVIEW_PTN_NOT_MAPPED) &&
+                 false == aBook.hasStatus(Book.CURATION_STATUS_REQUIRE_PAINT_REVIEW_PTN_CHANGE_FAMILIES) &&
+                 false == aBook.hasStatus(Book.CURATION_STATUS_REQUIRE_PAINT_REVIEW_TRACKED_TO_CHILD_NODE)) ||
                 true == aBook.hasStatus(Book.CURATION_STATUS_CHECKED_OUT)) {
                 bookTbl.remove(id);       
             }

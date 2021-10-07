@@ -1,18 +1,17 @@
-/* Copyright (C) 2008 SRI International
+/**
+ *  Copyright 2021 University Of Southern California
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
  *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ *  http://www.apache.org/licenses/LICENSE-2.0
  *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+ *  Unless required by applicable law or agreed to in writing,
+ *  software distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
  */
 package com.sri.panther.paintCommon.util;
 
@@ -28,11 +27,28 @@ import org.apache.log4j.Logger;
 
 public class StringUtils {
 
-	protected static Logger log = Logger.getLogger(StringUtils.class);
+    protected static Logger log = Logger.getLogger(StringUtils.class);
 
-	public StringUtils() {
-	}
+    public StringUtils() {
+    }
 
+    // XML 1.0
+    // #x9 | #xA | #xD | [#x20-#xD7FF] | [#xE000-#xFFFD] | [#x10000-#x10FFFF]
+    public static final String XML10_ILLEGAL_CHARS_PATTERN = "[^"
+            + "\u0009\r\n"
+            + "\u0020-\uD7FF"
+            + "\uE000-\uFFFD"
+            + "\ud800\udc00-\udbff\udfff"
+            + "]";
+
+    // XML 1.1
+    // XML 1.1
+    // [#x1-#xD7FF] | [#xE000-#xFFFD] | [#x10000-#x10FFFF]
+    String XML11_ILLEGAL_CHARS_PATTERN = "[^"
+            + "\u0001-\uD7FF"
+            + "\uE000-\uFFFD"
+            + "\ud800\udc00-\udbff\udfff"
+            + "]+";
 
     public static String[] formatString(String s, int len) {
         int lastIndex = (s.length() / len) + 1;

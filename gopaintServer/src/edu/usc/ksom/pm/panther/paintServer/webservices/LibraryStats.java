@@ -52,6 +52,7 @@ public class LibraryStats {
     public static final String ELEMENT_ANNOTATABLE = "annotatable";
     public static final String ELEMENT_NUM_LEAVES = "num_leaves";
     public static final String ELEMENT_STATUS_LIST = "status_list";
+    public static final String ELEMENT_FAMILY_COMMENT = "family_comment";    
     public static final String ELEMENT_DETAILED_STATUS_LIST = "detailed_status_list";
     public static final String ELEMENT_STATUS = "status";
     public static final String ELEMENT_STATUS_DETAILS = "status_details";
@@ -63,8 +64,14 @@ public class LibraryStats {
     public static final String ELEMENT_USER_LAST_NAME = "user_last_name";    
     public static final String ELEMENT_ORG_LIST = "organism_list";
     public static final String ELEMENT_ORG = "organism";    
-
     
+    private static final OrganismManager OM = OrganismManager.getInstance();
+    private static final HashSet<String> BOOKS_WITH_LEAF_EXP_ANNOTS = initBooksWithExpLeaves();
+    
+    protected static HashSet<String> initBooksWithExpLeaves() {
+        DataIO dataIO = new DataIO(ConfigFile.getProperty(ConfigFile.KEY_DB_JDBC_DBSID));
+        return dataIO.getBooksWithExpEvdnceForLeaves();
+    }    
     
 
     
@@ -83,8 +90,8 @@ public class LibraryStats {
             return null;
         }
 
-        HashSet<String> annotatableBooks = dataIO.getBooksWithExpEvdnceForLeaves();
-        OrganismManager om = OrganismManager.getInstance();
+        //HashSet<String> annotatableBooks = dataIO.getBooksWithExpEvdnceForLeaves();
+
         try {
             DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
             DocumentBuilder builder = factory.newDocumentBuilder();
@@ -110,7 +117,7 @@ public class LibraryStats {
 
                 bookElem.appendChild(Utils.createTextNode(doc, ELEMENT_NAME, b.getName()));
                 boolean isAnnotatable = false;
-                if (annotatableBooks != null && annotatableBooks.contains(b.getId())) {
+                if (BOOKS_WITH_LEAF_EXP_ANNOTS.contains(b.getId())) {
                     isAnnotatable = true;
                 }
                 Element isAnnotElem = Utils.createTextNode(doc, ELEMENT_ANNOTATABLE, Boolean.toString(isAnnotatable));
@@ -156,9 +163,12 @@ public class LibraryStats {
                     Element orgListElem = doc.createElement(ELEMENT_ORG_LIST);
                     bookElem.appendChild(orgListElem);
                     for (String org : orgSet) {
-                        Organism o = om.getOrganismForShortName(org);
+                        Organism o = OM.getOrganismForShortName(org);
                         orgListElem.appendChild(Utils.createTextNode(doc, ELEMENT_ORG, o.getLongName()));
                     }
+                }
+                if (null != b.getComment()) {
+                    bookElem.appendChild(WSUtil.createTextNode(doc, ELEMENT_FAMILY_COMMENT, b.getComment()));
                 }
             }
             if (null != format && ServiceUtils.FORMAT_OUTPUT_XML.equalsIgnoreCase(format)) {

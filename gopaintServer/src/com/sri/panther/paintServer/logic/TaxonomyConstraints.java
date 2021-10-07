@@ -1,5 +1,5 @@
 /**
- *  Copyright 2020 University Of Southern California
+ *  Copyright 2021 University Of Southern California
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -23,7 +23,6 @@ import edu.usc.ksom.pm.panther.paintCommon.TaxonomyHelper;
 import java.io.IOException;
 import java.io.Serializable;
 import java.net.URL;
-import java.util.ArrayList;
 import java.util.LinkedHashMap;
 
 /**
@@ -33,7 +32,8 @@ import java.util.LinkedHashMap;
 public class TaxonomyConstraints implements Serializable{
     private static TaxonomyConstraints instance;
     public static final String TAXONOMY_FILE_PATH = ConfigFile.getProperty("taxonomy_constraints");
-    
+    public static final Boolean CHECK_TAXONOMY = new Boolean(ConfigFile.getProperty("check_taxomomy"));
+        
     private static LinkedHashMap<String, Integer> speciesToIndex;
     private static LinkedHashMap<String, Integer> termToIndex;
     private static int[][] valuesLookup;
@@ -92,7 +92,8 @@ public class TaxonomyConstraints implements Serializable{
                     valuesLookup[i][j] = Integer.parseInt(parts[j]);
                 }
             }
-            taxomomyHelper = new TaxonomyHelper(speciesToIndex, termToIndex, valuesLookup);
+            
+            taxomomyHelper = new TaxonomyHelper(speciesToIndex, termToIndex, valuesLookup, CHECK_TAXONOMY.booleanValue());
         }
         catch(IOException e) {
             speciesToIndex = null;
@@ -110,9 +111,9 @@ public class TaxonomyConstraints implements Serializable{
     public static void main(String args[]) {
         TaxonomyConstraints tc = TaxonomyConstraints.getInstance();
         TaxonomyHelper th = tc.getTaxomomyHelper();
-        boolean valid = th.isTermValidForSpecies("GO:1903097", "Deuterostomia");
-        valid = th.isTermValidForSpecies("GO:1903097", "Cyanobacteria");
-        ArrayList<String> speciesList = th.getValidSpeciesForTerm("GO:0021727");
-        speciesList = th.getInvalidSpeciesForTerm("GO:0021727");
+        boolean valid = th.isTermAndQualifierValidForSpecies("GO:1903097", "Deuterostomia", null);
+        valid = th.isTermAndQualifierValidForSpecies("GO:1903097", "Cyanobacteria", null);
+        //ArrayList<String> speciesList = th.getValidSpeciesForTerm("GO:0021727");
+        //speciesList = th.getInvalidSpeciesForTerm("GO:0021727");
     }
 }

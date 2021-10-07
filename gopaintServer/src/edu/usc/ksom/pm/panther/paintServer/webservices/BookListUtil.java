@@ -1,5 +1,5 @@
 /**
- * Copyright 2020 University Of Southern California
+ * Copyright 2021 University Of Southern California
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -22,12 +22,9 @@ import com.sri.panther.paintServer.database.DataServer;
 import com.sri.panther.paintServer.database.DataServerManager;
 import com.sri.panther.paintServer.util.ConfigFile;
 import java.util.HashSet;
-
 import java.util.Vector;
-
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
-
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Text;
@@ -58,7 +55,12 @@ public class BookListUtil {
     public static final String STRING_NULL = "null";
     
 
-
+    private static final HashSet<String> BOOKS_WITH_LEAF_EXP_ANNOTS = initBooksWithExpLeaves();
+    
+    protected static HashSet<String> initBooksWithExpLeaves() {
+        DataIO dataIO = new DataIO(ConfigFile.getProperty(ConfigFile.KEY_DB_JDBC_DBSID));
+        return dataIO.getBooksWithExpEvdnceForLeaves();
+    }
     
     
     public static String searchBooks(String searchField, String database, String uplVersion, String searchType) {
@@ -92,13 +94,10 @@ public class BookListUtil {
         else if (true == WSConstants.SEARCH_TYPE_STR_UNCURATED_BOOKS.equals(searchType)) {
             books = ds.getUncuratedUnlockedBooks(uplVersion);
         }
-        else if (true == WSConstants.SEARCH_TYPE_STR_BOOKS_WITH_EXP_EVIDENCE.equals(searchType)) {
-            DataIO dataIO = new DataIO(ConfigFile.getProperty(ConfigFile.KEY_DB_JDBC_DBSID));
-            HashSet<String> bookSet = dataIO.getBooksWithExpEvdnceForLeaves();
-            
-            if (null != bookSet) {
-                books = new Vector<Book>(bookSet.size());
-                for (String accession : bookSet) {
+        else if (true == WSConstants.SEARCH_TYPE_STR_BOOKS_WITH_EXP_EVIDENCE.equals(searchType)) {           
+            if (null != BOOKS_WITH_LEAF_EXP_ANNOTS) {
+                books = new Vector<Book>(BOOKS_WITH_LEAF_EXP_ANNOTS.size());
+                for (String accession : BOOKS_WITH_LEAF_EXP_ANNOTS) {
                     Book b = new Book(accession, null, Book.CURATION_STATUS_UNKNOWN, null);
                     books.add(b);
                 }

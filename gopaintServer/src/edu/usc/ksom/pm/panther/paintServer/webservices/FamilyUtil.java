@@ -1,5 +1,5 @@
 /**
- *  Copyright 2020 University Of Southern California
+ *  Copyright 2021 University Of Southern California
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -15,15 +15,14 @@
  */
 package edu.usc.ksom.pm.panther.paintServer.webservices;
 
-import edu.usc.ksom.pm.panther.paintCommon.AnnotationNode;
-import edu.usc.ksom.pm.panther.paintCommon.AnnotationHelper;
+import com.sri.panther.paintCommon.Book;
 import com.sri.panther.paintCommon.Constant;
+import com.sri.panther.paintCommon.User;
 import com.sri.panther.paintCommon.util.StringUtils;
 import com.sri.panther.paintCommon.util.Utils;
 import com.sri.panther.paintServer.database.DataIO;
 import com.sri.panther.paintServer.database.DataServer;
 import com.sri.panther.paintServer.database.DataServerManager;
-
 import com.sri.panther.paintServer.datamodel.Organism;
 import com.sri.panther.paintServer.logic.CategoryLogic;
 import com.sri.panther.paintServer.logic.OrganismManager;
@@ -31,6 +30,9 @@ import com.sri.panther.paintServer.servlet.Client2Servlet;
 import com.sri.panther.paintServer.util.ConfigFile;
 import edu.usc.ksom.pm.panther.paintCommon.Annotation;
 import edu.usc.ksom.pm.panther.paintCommon.AnnotationDetail;
+import edu.usc.ksom.pm.panther.paintCommon.AnnotationHelper;
+import edu.usc.ksom.pm.panther.paintCommon.AnnotationNode;
+import edu.usc.ksom.pm.panther.paintCommon.CurationStatus;
 import edu.usc.ksom.pm.panther.paintCommon.DBReference;
 import edu.usc.ksom.pm.panther.paintCommon.Evidence;
 import edu.usc.ksom.pm.panther.paintCommon.GOTerm;
@@ -40,36 +42,33 @@ import edu.usc.ksom.pm.panther.paintCommon.Node;
 import edu.usc.ksom.pm.panther.paintCommon.NodeStaticInfo;
 import edu.usc.ksom.pm.panther.paintCommon.NodeVariableInfo;
 import edu.usc.ksom.pm.panther.paintCommon.Qualifier;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
-
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Hashtable;
-import java.util.Map.Entry;
 import java.util.Set;
 import java.util.Vector;
 import java.util.regex.Pattern;
-
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
-
 import org.forester.io.parsers.phyloxml.PhyloXmlDataFormatException;
 import org.forester.io.parsers.phyloxml.PhyloXmlUtil;
 import org.forester.phylogeny.Phylogeny;
-
 import org.forester.phylogeny.PhylogenyNode;
-
 import org.forester.phylogeny.data.Accession;
 import org.forester.phylogeny.data.Event;
 import org.forester.phylogeny.data.Identifier;
 import org.forester.phylogeny.data.NodeData;
-
 import org.forester.phylogeny.data.PropertiesMap;
 import org.forester.phylogeny.data.Property;
 import org.forester.phylogeny.data.Sequence;
 import org.forester.phylogeny.data.Taxonomy;
-
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Text;
@@ -153,6 +152,23 @@ public class FamilyUtil {
     public static String ELEMENT_WITH_EVIDENCE_NODE = "with_node";
     public static String ELEMENT_WITH_EVIDENCE_DB_REF = "with_db_ref";    
   
+    public static final String ELEMENT_BOOK = "book";
+    public static final String ELEMENT_NAME = "name";
+    public static final String ELEMENT_ANNOTATABLE = "annotatable";
+    public static final String ELEMENT_NUM_LEAVES = "num_leaves";
+    public static final String ELEMENT_STATUS_LIST = "status_list";
+    public static final String ELEMENT_DETAILED_STATUS_LIST = "detailed_status_list";
+    public static final String ELEMENT_STATUS = "status";
+    public static final String ELEMENT_STATUS_DETAILS = "status_details";
+    public static final String ELEMENT_STATUS_DETAIL = "status_detail";    
+    public static final String ELEMENT_TIME_IN_MILLIS = "time_in_millis";
+    public static final String ELEMENT_USER = "user";
+    public static final String ELEMENT_USER_LOGIN_NAME = "user_login_name";
+    public static final String ELEMENT_USER_FIRST_NAME = "user_first_name";
+    public static final String ELEMENT_USER_LAST_NAME = "user_last_name";    
+    public static final String ELEMENT_ORG_LIST = "organism_list";
+    public static final String ELEMENT_ORG = "organism";    
+    
    
     
     private static final String ELEMENT_TERM = "term";
@@ -200,6 +216,12 @@ public class FamilyUtil {
     
     private static OrganismManager organismManager = OrganismManager.getInstance();
     private static GOTermHelper goTermHelper = CategoryLogic.getInstance().getGOTermHelper();
+    private static final HashSet<String> BOOKS_WITH_LEAF_EXP_ANNOTS = initBooksWithExpLeaves();
+    
+    protected static HashSet<String> initBooksWithExpLeaves() {
+        DataIO dataIO = new DataIO(ConfigFile.getProperty(ConfigFile.KEY_DB_JDBC_DBSID));
+        return dataIO.getBooksWithExpEvdnceForLeaves();
+    }
     
     public static String getFamilyInfo(String id, String database, String uplVersion, String searchType) {
         
@@ -265,6 +287,9 @@ public class FamilyUtil {
         }
         if (true == searchType.equals(WSConstants.SEARCH_TYPE_FAMILY_EVIDENCE_INFO)) {
             return getXMLOtherEvdnce(id, uplVersion);
+        }
+        if (true == searchType.equals(WSConstants.SEARCH_TYPE_FAMILY_CURATION_DETAILS)) {
+            return getXMLFamilyCurationDetails(id, uplVersion);
         }
         
 
@@ -1239,9 +1264,20 @@ public class FamilyUtil {
         Text branchLength_text = doc.createTextNode(an.getBranchLength());
         branchLength.appendChild(branchLength_text);
         
-        Element sequenceInfo = doc.createElement(ELEMENT_ANNOTATION_SEQUENCE);
-        Text sequenceInfo_text = doc.createTextNode(an.getSequence());
-        sequenceInfo.appendChild(sequenceInfo_text);
+
+        String sequence = an.getSequence();
+        if (null != sequence) {
+            sequence = sequence.replaceAll(StringUtils.XML10_ILLEGAL_CHARS_PATTERN, WSConstants.STR_EMPTY);
+            if (null != sequence && 0 != sequence.length()) {
+                Text sequenceInfo_text = doc.createTextNode(sequence);
+                Element sequenceInfo = doc.createElement(ELEMENT_ANNOTATION_SEQUENCE);
+                annotationNodeElement.appendChild(sequenceInfo);
+                sequenceInfo.appendChild(sequenceInfo_text);
+
+            }
+        }
+        
+//                    System.out.println(nodeName + " sequence " + an.getSequence());
         
         
         annotationNodeElement.appendChild(annotationId);
@@ -1253,29 +1289,36 @@ public class FamilyUtil {
         annotationNodeElement.appendChild(nodeType);
         annotationNodeElement.appendChild(eventType);
         annotationNodeElement.appendChild(branchLength);
-        annotationNodeElement.appendChild(sequenceInfo);        
         
         String nodeAcc = an.getAccession();
         Node n = nodeLookup.get(nodeAcc);
         NodeStaticInfo nsi = n.getStaticInfo();
         ArrayList<String> symbols = nsi.getGeneSymbol();
         if (null != symbols && 0 != symbols.size()) {
-            Element geneSymbol = doc.createElement(ELEMENT_GENE_SYMBOL);
             String[] arraySymbols = new String[symbols.size()];
             symbols.toArray(arraySymbols);
-            Text geneSymbolText = doc.createTextNode(Utils.listToString(arraySymbols, WSConstants.STR_EMPTY, WSConstants.STR_COMMA));
-            geneSymbol.appendChild(geneSymbolText);
-            annotationNodeElement.appendChild(geneSymbol);
+//            System.out.println(nodeName + " symbol +" + Utils.listToString(arraySymbols, WSConstants.STR_EMPTY, WSConstants.STR_COMMA));
+            String symbolText = Utils.listToString(arraySymbols, WSConstants.STR_EMPTY, WSConstants.STR_COMMA).replaceAll(StringUtils.XML10_ILLEGAL_CHARS_PATTERN, WSConstants.STR_EMPTY);
+            if (null != symbolText && 0 != symbolText.length()) {
+                Element geneSymbol = doc.createElement(ELEMENT_GENE_SYMBOL);
+                Text geneSymbolText = doc.createTextNode(symbolText);
+                geneSymbol.appendChild(geneSymbolText);
+                annotationNodeElement.appendChild(geneSymbol);
+            }
         }
         
         ArrayList<String> geneNames = nsi.getGeneName();
         if (null != geneNames && 0 != geneNames.size()) {
-            Element geneName = doc.createElement(ELEMENT_GENE_NAME);
             String[] arrayNames = new String[geneNames.size()];
             geneNames.toArray(arrayNames);
-            Text geneNameText = doc.createTextNode(Utils.listToString(arrayNames, WSConstants.STR_EMPTY, WSConstants.STR_COMMA));
-            geneName.appendChild(geneNameText);
-            annotationNodeElement.appendChild(geneName);            
+            String nameText = Utils.listToString(arrayNames, WSConstants.STR_EMPTY, WSConstants.STR_COMMA).replaceAll(StringUtils.XML10_ILLEGAL_CHARS_PATTERN, WSConstants.STR_EMPTY);
+            if (null != nameText && 0 != nameText.length()) {
+//             System.out.println(nodeName + " gene name " + Utils.listToString(arrayNames, WSConstants.STR_EMPTY, WSConstants.STR_COMMA));            
+                Element geneName = doc.createElement(ELEMENT_GENE_NAME);
+                Text geneNameText = doc.createTextNode(nameText);
+                geneName.appendChild(geneNameText);
+                annotationNodeElement.appendChild(geneName);
+            }
         }
         
         
@@ -1677,6 +1720,106 @@ public class FamilyUtil {
         }
     }
     
+    public static String getXMLFamilyCurationDetails(String familyId, String uplVersion) {
+        DataIO dataIO = new DataIO(ConfigFile.getProperty(ConfigFile.KEY_DB_JDBC_DBSID));
+        Book b = null;
+        try {
+            b = dataIO.getBookStatusComment(familyId, uplVersion);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
+        }
+
+        try {
+            DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+            DocumentBuilder builder = factory.newDocumentBuilder();
+            Document doc = builder.newDocument();
+            Element root = doc.createElement(ELEMENT_SEARCH);
+            doc.appendChild(root);
+
+            // Search parameters and time
+            Element parameters = doc.createElement(ELEMENT_PARAMETERS);
+            Element searchString = doc.createElement(WSConstants.SEARCH_TYPE_FAMILY_CURATION_DETAILS);
+
+            parameters.appendChild(searchString);
+            root.appendChild(parameters);
+
+            Element bookElem = doc.createElement(ELEMENT_BOOK);
+            root.appendChild(bookElem);
+            Element idElem = Utils.createTextNode(doc, ELEMENT_ID, b.getId());
+            bookElem.appendChild(idElem);
+
+            bookElem.appendChild(Utils.createTextNode(doc, ELEMENT_NAME, b.getName()));
+            boolean isAnnotatable = false;
+            if (BOOKS_WITH_LEAF_EXP_ANNOTS.contains(b.getId())) {
+                isAnnotatable = true;
+            }
+            Element isAnnotElem = Utils.createTextNode(doc, ELEMENT_ANNOTATABLE, Boolean.toString(isAnnotatable));
+            bookElem.appendChild(isAnnotElem);
+            bookElem.appendChild(Utils.createTextNode(doc, ELEMENT_NUM_LEAVES, Integer.toString(b.getNumLeaves())));
+
+            Vector<String> statusList = BookListUtil.getCurationStatusStrings(b);
+            if (null != statusList) {
+                Element statusListElem = doc.createElement(ELEMENT_STATUS_LIST);
+                bookElem.appendChild(statusListElem);
+                for (String status : statusList) {
+                    statusListElem.appendChild(Utils.createTextNode(doc, ELEMENT_STATUS, status));
+                }
+            }
+
+            ArrayList<CurationStatus> statusDetailList = b.getCurationStatusList();
+            if (null != statusDetailList) {
+                Element detailedStatusList = doc.createElement(ELEMENT_DETAILED_STATUS_LIST);
+                bookElem.appendChild(detailedStatusList);
+                for (CurationStatus cs : statusDetailList) {
+                    Element statusDetails = doc.createElement(ELEMENT_STATUS_DETAILS);
+                    detailedStatusList.appendChild(statusDetails);
+                    String statusStr = Book.getCurationStatusString(cs.getStatusId());
+                    if (null != statusStr) {
+                        statusStr = statusStr.trim();
+                        statusStr = statusStr.replaceAll(Constant.STR_COMMA, Constant.STR_EMPTY);
+                        statusDetails.appendChild(Utils.createTextNode(doc, ELEMENT_STATUS_DETAIL, statusStr));
+                    }
+                    statusDetails.appendChild(Utils.createTextNode(doc, ELEMENT_TIME_IN_MILLIS, Long.toString(cs.getTimeInMillis())));
+                    User u = cs.getUser();
+                    if (null != u) {
+                        Element user = doc.createElement(ELEMENT_USER);
+                        statusDetails.appendChild(user);
+                        if (null != u.getLoginName()) {
+                            user.appendChild(Utils.createTextNode(doc, ELEMENT_USER_LOGIN_NAME, u.getLoginName()));
+                        }
+                    }
+                }
+            }
+
+            HashSet<String> orgSet = b.getOrgSet();
+            if (null != orgSet) {
+                OrganismManager om = OrganismManager.getInstance();
+                Element orgListElem = doc.createElement(ELEMENT_ORG_LIST);
+                bookElem.appendChild(orgListElem);
+                for (String org : orgSet) {
+                    Organism o = om.getOrganismForShortName(org);
+                    orgListElem.appendChild(Utils.createTextNode(doc, ELEMENT_ORG, o.getLongName()));
+                }
+            }
+            
+            if (null != b.getComment()) {                  
+                bookElem.appendChild(WSUtil.createTextNode(doc, ELEMENT_FAMILY_COMMENT, b.getComment()));
+            }
+
+            // Output information
+            DOMImplementationLS domImplementation = (DOMImplementationLS) doc.getImplementation();
+            LSSerializer lsSerializer = domImplementation.createLSSerializer();
+            return lsSerializer.writeToString(doc);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+
+        }
+        return null;
+    }
+    
    private static String outputFamilyOtherEvdnce(HashMap<edu.usc.ksom.pm.panther.paintCommon.Annotation, ArrayList<IWith>> annotToPosWithLookup, String familyId, long duration, String searchType) {
         try {        
             DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
@@ -1792,10 +1935,10 @@ public class FamilyUtil {
             Text familyId_text = doc.createTextNode(familyId);
             familyIdElem.appendChild(familyId_text);
             root.appendChild(familyIdElem);
-            if (null != otherAnnotInfo) {
+            if (null != otherAnnotInfo && 0 != otherAnnotInfo.length()) {
                 root.appendChild(WSUtil.createTextNode(doc, ELEMENT_FAMILY_ANNOTATION_INFO_OTHER, otherAnnotInfo.toString()));            
             }
-            if (null != paintAnnotInfo) {
+            if (null != paintAnnotInfo && 0 != paintAnnotInfo.length()) {
                 root.appendChild(WSUtil.createTextNode(doc, ELEMENT_FAMILY_ANNOTATION_INFO_PAINT, paintAnnotInfo.toString()));            
             }            
             // Output information
@@ -1842,7 +1985,7 @@ public class FamilyUtil {
             Text familyId_text = doc.createTextNode(familyId);
             familyIdElem.appendChild(familyId_text);
             root.appendChild(familyIdElem);
-            if (null != otherAnnotInfo) {
+            if (null != otherAnnotInfo && 0 != otherAnnotInfo.length()) {
                 Element annot_Info = doc.createElement(ELEMENT_FAMILY_ANNOTATION_INFO_OTHER);
                 root.appendChild(annot_Info);
                 String parts[] = otherAnnotInfo.toString().split(Pattern.quote(Constant.STR_NEWLINE));
@@ -1856,7 +1999,7 @@ public class FamilyUtil {
                 }
 //                root.appendChild(WSUtil.createTextNode(doc, ELEMENT_FAMILY_ANNOTATION_INFO_OTHER, otherAnnotInfo.toString()));            
             }
-            if (null != paintAnnotInfo) {
+            if (null != paintAnnotInfo && 0 != paintAnnotInfo.length()) {
                 Element annot_Info = doc.createElement(ELEMENT_FAMILY_ANNOTATION_INFO_PAINT);
                 root.appendChild(annot_Info);
                 String parts[] = paintAnnotInfo.toString().split(Pattern.quote(Constant.STR_NEWLINE));
@@ -1919,7 +2062,7 @@ public class FamilyUtil {
             Text familyId_text = doc.createTextNode(familyId);
             familyIdElem.appendChild(familyId_text);
             root.appendChild(familyIdElem);
-            if (null != otherAnnotInfo) {
+            if (null != otherAnnotInfo && 0 != otherAnnotInfo.length()) {
                 Element annot_Info = doc.createElement(ELEMENT_FAMILY_ANNOTATION_INFO_OTHER);
                 root.appendChild(annot_Info);
                 String parts[] = otherAnnotInfo.toString().split(Pattern.quote(Constant.STR_NEWLINE));
@@ -1933,7 +2076,7 @@ public class FamilyUtil {
                 }
 //                root.appendChild(WSUtil.createTextNode(doc, ELEMENT_FAMILY_ANNOTATION_INFO_OTHER, otherAnnotInfo.toString()));            
             }
-            if (null != paintAnnotInfo) {
+            if (null != paintAnnotInfo && 0 != paintAnnotInfo.length()) {
                 Element annot_Info = doc.createElement(ELEMENT_FAMILY_ANNOTATION_INFO_PAINT);
                 root.appendChild(annot_Info);
                 String parts[] = paintAnnotInfo.toString().split(Pattern.quote(Constant.STR_NEWLINE));
@@ -2001,11 +2144,17 @@ public class FamilyUtil {
             nodeElem.appendChild(Utils.createTextNode(doc, ELEMENT_GENE_LONG_ID, nsi.getLongGeneName()));
             if (null != nsi.getGeneName() && 0 != nsi.getGeneName().size()) {
                 HashSet<String> geneNames = new HashSet<String>(nsi.getGeneName());
-                nodeElem.appendChild(Utils.createTextNode(doc, ELEMENT_GENE_NAME, String.join(Constant.STR_COMMA, geneNames)));
+                String combined = String.join(Constant.STR_COMMA, geneNames).replaceAll(StringUtils.XML10_ILLEGAL_CHARS_PATTERN, WSConstants.STR_EMPTY);
+                if (null != combined && 0 != combined.length()) {
+                    nodeElem.appendChild(Utils.createTextNode(doc, ELEMENT_GENE_NAME, combined));
+                }
             }
             if (null != nsi.getGeneSymbol() && 0 != nsi.getGeneSymbol().size()) {
                 HashSet<String> geneSymbols = new HashSet<String>(nsi.getGeneSymbol());
-                nodeElem.appendChild(Utils.createTextNode(doc, ELEMENT_GENE_SYMBOL, String.join(Constant.STR_COMMA, geneSymbols)));
+                String combined = String.join(Constant.STR_COMMA, geneSymbols).replaceAll(StringUtils.XML10_ILLEGAL_CHARS_PATTERN, WSConstants.STR_EMPTY);
+                if (null != combined && 0 != combined.length()) {
+                    nodeElem.appendChild(Utils.createTextNode(doc, ELEMENT_GENE_SYMBOL, combined));
+                }
             }
             String taxonId = organismManager.getTaxonId(nsi.getSpecies());
             if (null != taxonId) {
@@ -2195,8 +2344,48 @@ public class FamilyUtil {
     
     
     public static void main(String[] args) {
-        System.out.println(FamilyUtil.getFamilyInfo("PTHR10000", null, null, WSConstants.SEARCH_TYPE_FAMILY_PHYLOXML));
+        try {
+            Path curFilePath = Paths.get("C:/temp/PTHR10004.xml");
+            String IBAInfo = FamilyUtil.getXMLForLeafIBAAnnotationInfoDetails("PTHR10004", WSConstants.PROPERTY_CLS_VERSION);
+            ArrayList<String> IBAInfoList = new ArrayList<String>();
+            IBAInfoList.add(IBAInfo);
+            Files.write(curFilePath, IBAInfoList, StandardCharsets.UTF_8);            
+            
+            curFilePath = Paths.get("C:/temp/PTHR16631.xml");
+            IBAInfo = FamilyUtil.getXMLForLeafIBAAnnotationInfoDetails("PTHR16631", WSConstants.PROPERTY_CLS_VERSION);
+            IBAInfoList = new ArrayList<String>();
+            IBAInfoList.add(IBAInfo);
+            Files.write(curFilePath, IBAInfoList, StandardCharsets.UTF_8);
+            
+            curFilePath = Paths.get("C:/temp/PTHR22762.xml");
+            IBAInfo = FamilyUtil.getXMLForLeafIBAAnnotationInfoDetails("PTHR22762", WSConstants.PROPERTY_CLS_VERSION);
+            IBAInfoList = new ArrayList<String>();
+            IBAInfoList.add(IBAInfo);
+            Files.write(curFilePath, IBAInfoList, StandardCharsets.UTF_8);
+            
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        //System.out.println(FamilyUtil.getXMLForLeafIBAAnnotationInfoDetails("PTHR16631", WSConstants.PROPERTY_CLS_VERSION));
+        //System.out.println(FamilyUtil.getXMLForLeafIBAAnnotationInfoDetails("PTHR22762", WSConstants.PROPERTY_CLS_VERSION));
         //System.out.println(FamilyUtil.getFamilyInfo("PTHR10000", null, null, WSConstants.SEARCH_PARAMETER_BOOKS_SEARCH_TYPE));
     }
+    
+//    public static String toString(Document doc) {
+//        try {
+//            StringWriter sw = new StringWriter();
+//            TransformerFactory tf = TransformerFactory.newInstance();
+//            Transformer transformer = tf.newTransformer();
+//            transformer.setOutputProperty(OutputKeys.OMIT_XML_DECLARATION, "no");
+//            transformer.setOutputProperty(OutputKeys.METHOD, "xml");
+//            transformer.setOutputProperty(OutputKeys.INDENT, "yes");
+//            transformer.setOutputProperty(OutputKeys.ENCODING, "UTF-8");
+//
+//            transformer.transform(new DOMSource(doc), new StreamResult(sw));
+//            return sw.toString();
+//        } catch (Exception ex) {
+//            throw new RuntimeException("Error converting to String", ex);
+//        }
+//    }    
 
 }

@@ -120,6 +120,10 @@ public class FixAnnotUtility {
             return;
         }
         user = (User) userInfoList.get(0);
+        if (null == user) {
+            System.out.println("Unable to verify user information");
+            return;
+        }
         System.out.println("User id is " + user.getUserId());
         books = getBooks();
         processBooks();
@@ -382,7 +386,7 @@ public class FixAnnotUtility {
             Files.write(curFile, IBAInfoList, StandardCharsets.UTF_8);
         }
         catch(Exception e) {
-            
+            e.printStackTrace();
         }
     }
     

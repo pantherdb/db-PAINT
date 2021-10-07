@@ -1,5 +1,5 @@
 /**
- *  Copyright 2020 University Of Southern California
+ *  Copyright 2021 University Of Southern California
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -26,11 +26,13 @@ public class TaxonomyHelper implements Serializable {
     private LinkedHashMap<String, Integer> speciesToIndex;
     private LinkedHashMap<String, Integer> termToIndex;
     private int[][] valuesLookup;
-    
-    public TaxonomyHelper(LinkedHashMap<String, Integer> speciesToIndex, LinkedHashMap<String, Integer> termToIndex, int[][] valuesLookup) {
+    private boolean checkTaxonomy = true;
+            
+    public TaxonomyHelper(LinkedHashMap<String, Integer> speciesToIndex, LinkedHashMap<String, Integer> termToIndex, int[][] valuesLookup, boolean checkTaxonomy) {
         this.speciesToIndex = speciesToIndex;
         this.termToIndex = termToIndex;
         this.valuesLookup = valuesLookup;
+        this.checkTaxonomy = checkTaxonomy;
     }
     
     public Set<String> getSupportedSpecies() {
@@ -45,14 +47,30 @@ public class TaxonomyHelper implements Serializable {
         throw new UnsupportedOperationException("Not supported yet."); 
     }
     
-    public boolean isTermAndQualifierValidForSpecies(String term, String species, Set<Qualifier> qSet) {
+    public boolean isTermAndQualifierValidForSpecies (String term, String species, Set<Qualifier> qSet) {
+        if (false == checkTaxonomy) {
+            return true;
+        }
         if (true == QualifierDif.containsNegative(qSet)) {
             return true;
         }
-        return isTermValidForSpecies(term, species);
+        return isTermValidForSpecies(term, species, true);
     }
     
-    public boolean isTermValidForSpecies(String term, String species) {
+    public boolean termAndQualifierValidForSpeciesCheckTaxonomy(String term, String species, Set<Qualifier> qSet) {
+        if (true == QualifierDif.containsNegative(qSet)) {
+            return true;
+        }
+        
+        return isTermValidForSpecies(term, species, false);        
+    }
+    
+    private boolean isTermValidForSpecies(String term, String species, boolean useTaxonomyFlg) {
+        if (true == useTaxonomyFlg) {
+            if (false == checkTaxonomy) {
+                return true;
+            }
+        }
         if (null == species) {
             return true;
         }
@@ -79,47 +97,52 @@ public class TaxonomyHelper implements Serializable {
         }
         return false;
     }
-    
-    public ArrayList<String> getValidSpeciesForTerm(String term) {
-        return speciesForTerm(term, true);
-    }
-    
-    public ArrayList<String> getInvalidSpeciesForTerm(String term) {
-        return speciesForTerm(term, false);
-    }
-    
-    private ArrayList<String> speciesForTerm(String term, boolean valid) {
-        if (null == term) {
-            return null;
-        }
         
-        Integer row  = termToIndex.get(term);
-        if (null == row || row >= valuesLookup.length) {
-            return null;
-        }
-        ArrayList<String> speciesList = new ArrayList<String>();
-        Set<String> speciesSet = speciesToIndex.keySet();
-        for (String species: speciesSet) {
-            Integer column = speciesToIndex.get(species);
-            if (column >= valuesLookup[row].length) {
-                return null;
-            }
-            int value = valuesLookup[row][column];
-            if  (true == valid && value > 0) {
-                if (false == speciesList.contains(species)) {
-                    speciesList.add(species);
-                }
-                continue;
-            }
-            if (false == valid && value <= 0) {
-                if (false == speciesList.contains(species)) {
-                    speciesList.add(species);
-                }
-                continue;                
-            }
-        }
-        return speciesList;
+    public boolean isCheckingTaxonomy() {
+        return this.checkTaxonomy;
     }
+    
+    
+//    public ArrayList<String> getValidSpeciesForTerm(String term) {
+//        return speciesForTerm(term, true);
+//    }
+//    
+//    public ArrayList<String> getInvalidSpeciesForTerm(String term) {
+//        return speciesForTerm(term, false);
+//    }
+//    
+//    private ArrayList<String> speciesForTerm(String term, boolean valid) {
+//        if (null == term) {
+//            return null;
+//        }
+//        
+//        Integer row  = termToIndex.get(term);
+//        if (null == row || row >= valuesLookup.length) {
+//            return null;
+//        }
+//        ArrayList<String> speciesList = new ArrayList<String>();
+//        Set<String> speciesSet = speciesToIndex.keySet();
+//        for (String species: speciesSet) {
+//            Integer column = speciesToIndex.get(species);
+//            if (column >= valuesLookup[row].length) {
+//                return null;
+//            }
+//            int value = valuesLookup[row][column];
+//            if  (true == valid && value > 0) {
+//                if (false == speciesList.contains(species)) {
+//                    speciesList.add(species);
+//                }
+//                continue;
+//            }
+//            if (false == valid && value <= 0) {
+//                if (false == speciesList.contains(species)) {
+//                    speciesList.add(species);
+//                }
+//                continue;                
+//            }
+//        }
+//        return speciesList;
+//    }
     
 }
 

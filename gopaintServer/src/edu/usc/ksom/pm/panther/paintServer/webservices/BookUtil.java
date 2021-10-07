@@ -1,5 +1,5 @@
 /**
- * Copyright 2020 University Of Southern California
+ * Copyright 2021 University Of Southern California
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -20,12 +20,9 @@ import com.sri.panther.paintCommon.GO.Evidence;
 import com.sri.panther.paintCommon.GO.EvidenceSpecifier;
 import com.sri.panther.paintCommon.util.StringUtils;
 import com.sri.panther.paintCommon.util.Utils;
-import com.sri.panther.paintServer.database.DataIO;
 import com.sri.panther.paintServer.database.DataServer;
 import com.sri.panther.paintServer.database.DataServerManager;
-
 import com.sri.panther.paintServer.datamodel.PANTHERTreeNode;
-
 import com.sri.panther.paintServer.servlet.Client2Servlet;
 import com.sri.panther.paintServer.util.ConfigFile;
 import edu.usc.ksom.pm.panther.paintCommon.Annotation;
@@ -36,17 +33,14 @@ import edu.usc.ksom.pm.panther.paintCommon.NodeStaticInfo;
 import edu.usc.ksom.pm.panther.paintCommon.NodeVariableInfo;
 import edu.usc.ksom.pm.panther.paintCommon.Qualifier;
 import java.util.ArrayList;
-
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.Set;
 import java.util.Vector;
-
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
-
 import org.w3c.dom.CDATASection;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
@@ -336,59 +330,59 @@ public class BookUtil {
         
     }
     
-    private static  String getNodeInfo(String book, String uplVersion, String searchType) {
-        DataIO dataIO = new DataIO(ConfigFile.getProperty(ConfigFile.KEY_DB_JDBC_DBSID));
-        HashMap<String, Node> nodeLookup = null;
-        try {
-            StringBuffer eb = new StringBuffer();
-            StringBuffer paintErrBuf = new StringBuffer();
-            nodeLookup = dataIO.getNodeInfo(book, uplVersion, eb, paintErrBuf);
-        }
-        catch(Exception e) {
-            
-        }
-         try {
-            DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
-            DocumentBuilder builder = factory.newDocumentBuilder();
-            Document doc = builder.newDocument();  
-
-
-            Element root = doc.createElement(ELEMENT_SEARCH);
-            doc.appendChild(root);
-            
-            Element searchString = doc.createElement(ELEMENT_SEARCH_BOOK);
-            Text searchStringText = doc.createTextNode(book);
-            searchString.appendChild(searchStringText);
-            root.appendChild(searchString);
-            
-            Element uplElement = doc.createElement(ELEMENT_SEARCH_UPLVERSION);
-            Text uplText = doc.createTextNode(uplVersion);
-            uplElement.appendChild(uplText);
-            root.appendChild(uplElement);
-            
-            Element searchTypeElement = doc.createElement(ELEMENT_SEARCH_TYPE);
-            Text typeText = doc.createTextNode(searchType);
-            searchTypeElement.appendChild(typeText);
-            root.appendChild(searchTypeElement);
-            
-            Element nodesElement = createPAINTnodesInfo(nodeLookup, doc);
-            if (null != nodesElement) {
-                root.appendChild(nodesElement);
-            }
-            
-            // Output information
-            DOMImplementationLS domImplementation = (DOMImplementationLS) doc.getImplementation();
-            LSSerializer lsSerializer = domImplementation.createLSSerializer();
-            return lsSerializer.writeToString(doc);             
-            
-        }
-        catch (Exception e) {
-            System.out.println(e.getMessage());
-            e.printStackTrace();
-        }            
-        
-        return null;
-    }
+//    private static  String getNodeInfo(String book, String uplVersion, String searchType) {
+//        DataIO dataIO = new DataIO(ConfigFile.getProperty(ConfigFile.KEY_DB_JDBC_DBSID));
+//        HashMap<String, Node> nodeLookup = null;
+//        try {
+//            StringBuffer eb = new StringBuffer();
+//            StringBuffer paintErrBuf = new StringBuffer();
+//            nodeLookup = dataIO.getNodeInfo(book, uplVersion, eb, paintErrBuf);
+//        }
+//        catch(Exception e) {
+//            
+//        }
+//         try {
+//            DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+//            DocumentBuilder builder = factory.newDocumentBuilder();
+//            Document doc = builder.newDocument();  
+//
+//
+//            Element root = doc.createElement(ELEMENT_SEARCH);
+//            doc.appendChild(root);
+//            
+//            Element searchString = doc.createElement(ELEMENT_SEARCH_BOOK);
+//            Text searchStringText = doc.createTextNode(book);
+//            searchString.appendChild(searchStringText);
+//            root.appendChild(searchString);
+//            
+//            Element uplElement = doc.createElement(ELEMENT_SEARCH_UPLVERSION);
+//            Text uplText = doc.createTextNode(uplVersion);
+//            uplElement.appendChild(uplText);
+//            root.appendChild(uplElement);
+//            
+//            Element searchTypeElement = doc.createElement(ELEMENT_SEARCH_TYPE);
+//            Text typeText = doc.createTextNode(searchType);
+//            searchTypeElement.appendChild(typeText);
+//            root.appendChild(searchTypeElement);
+//            
+//            Element nodesElement = createPAINTnodesInfo(nodeLookup, doc);
+//            if (null != nodesElement) {
+//                root.appendChild(nodesElement);
+//            }
+//            
+//            // Output information
+//            DOMImplementationLS domImplementation = (DOMImplementationLS) doc.getImplementation();
+//            LSSerializer lsSerializer = domImplementation.createLSSerializer();
+//            return lsSerializer.writeToString(doc);             
+//            
+//        }
+//        catch (Exception e) {
+//            System.out.println(e.getMessage());
+//            e.printStackTrace();
+//        }            
+//        
+//        return null;
+//    }
     
     
     private static String outputAnnotationNodeGeneXMLInfo (Vector <PANTHERTreeNode> nodes, String book, String database, String uplVersion, String searchType) {

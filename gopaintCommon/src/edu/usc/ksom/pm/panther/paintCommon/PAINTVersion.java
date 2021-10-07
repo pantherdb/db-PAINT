@@ -18,14 +18,14 @@ package edu.usc.ksom.pm.panther.paintCommon;
 public class PAINTVersion {
 
     public static String getPAINTClientversion() {
-        return "2021_01_31_1";
+        return "2021_08_23_1";
     }
 
     public static String getPAINTServerVersion() {
-        return "2021_01_31_1";
+        return "2021_08_23_1";
     }
 
     public static String getPAINTCommonVersion() {
-        return "2021_01_31_1";
+        return "2021_08_23_1";
     }
 }

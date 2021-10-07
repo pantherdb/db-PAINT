@@ -1,5 +1,5 @@
 /**
- * Copyright 2020 University Of Southern California
+ * Copyright 2021 University Of Southern California
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -29,6 +29,7 @@ import java.awt.Color;
 import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.Frame;
+import java.awt.GridLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.util.ArrayList;
@@ -338,62 +339,38 @@ public class EvdnceCdeAndNewAnnotDlg extends JDialog implements ActionListener {
             }
 
             if (ancestors.size() > 0) {
+                JPanel ancestorPanel = new JPanel();
+                ancestorPanel.setOpaque(true);
+                ancestorPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+                ancestorPanel.setLayout(new BoxLayout(ancestorPanel, BoxLayout.PAGE_AXIS));
                 JLabel ancestorLabel = new JLabel("Annotate with an ancestor term?");
                 ancestorLabel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
                 ancestorLabel.setAlignmentX(LEFT_ALIGNMENT);
-                box.add(ancestorLabel);
+                ancestorPanel.add(ancestorLabel);
+
+                
+                JPanel buttonPanel =  new JPanel(new GridLayout(0,1));
+                
+                //buttonPanel.setLayout(new BoxLayout(buttonPanel, BoxLayout.Y_AXIS));
                 ancestorLookup = new HashMap<JRadioButton, GOTerm>();
                 ButtonGroup ancestorBtnGrp = new ButtonGroup();
                 for (GOTerm curTerm : ancestors) {
                     JRadioButton btn = addRadioButton(curTerm);
                     btn.setAlignmentX(LEFT_ALIGNMENT);
                     ancestorBtnGrp.add(btn);
-                    box.add(btn);
+                    buttonPanel.add(btn);
                     ancestorLookup.put(btn, curTerm);
                 }
+                JScrollPane buttonScroll = new JScrollPane();
+                buttonScroll.setViewportView(buttonPanel);
+                
+                buttonScroll.setPreferredSize(new Dimension(300,200));
+                ancestorPanel.add(buttonScroll);
+                ancestorPanel.setBackground(RenderUtil.getAspectColor());
+                box.add(ancestorPanel);
             }
         }
 
-//        // Figure out qualifiers - If there is a NOT, we want to remove it.  If there isn't a NOT, we want to add it.
-//        HashSet<Qualifier> applicableQualifiers = gth.getValidQualifiersForTerm(gterm, annotation.getQualifierSet());
-//        Qualifier notQualifier = null;
-//        if (null != applicableQualifiers) {
-//            for (Qualifier q: applicableQualifiers) {
-//                if (q.isNot()) {
-//                    notQualifier = q;
-//                    break;
-//                }
-//            }
-//        }
-//        if (notQualifier != null) {
-//            applicableQualifiers.remove(notQualifier);
-//        }
-//        else {
-//            notQualifier = new Qualifier();
-//            notQualifier.setText(Qualifier.QUALIFIER_NOT);
-//            if (null == applicableQualifiers) {
-//                applicableQualifiers = new HashSet<Qualifier>();
-//                applicableQualifiers.add(notQualifier);
-//            }
-//        }
-//        
-//        if (null != applicableQualifiers) {
-//            
-//            JLabel qualifierLabel = new JLabel("Qualifier");
-//            qualifierLabel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
-//            box.add(qualifierLabel);
-//            qualifierMap = new HashMap<JCheckBox, Qualifier>();
-//            for (Qualifier q: applicableQualifiers) {
-//                JCheckBox check = addCheckBox(q);
-//                check.setSelected(true);                
-//                if (q.isNot()) {
-//                   check.setEnabled(false);
-//                }
-//                box.add(check);
-//                qualifierMap.put(check, q);
-//
-//            }
-//        }
         JPanel pane = new JPanel(new BorderLayout());
         pane.add(box, BorderLayout.PAGE_START);
         Border padding = BorderFactory.createEmptyBorder(20, 20, 5, 20);

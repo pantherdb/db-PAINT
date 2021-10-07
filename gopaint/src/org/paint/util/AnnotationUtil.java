@@ -1,5 +1,5 @@
 /**
- *  Copyright 2020 University Of Southern California
+ *  Copyright 2021 University Of Southern California
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -908,7 +908,10 @@ public class AnnotationUtil {
 //        if ((true == checkTaxonConstraint && false == GeneNodeUtil.isTermValidForNode(gn, term)) || true == nodesToSkip.contains(gn)) {
 //            return;
 //        }
-        if (null != nodesToSkip && true == nodesToSkip.contains(gn) || true == IBAannotationAlreadyExists(term, propagator, gn.getNode())) {
+//        if (null != nodesToSkip && true == nodesToSkip.contains(gn) || true == IBAannotationAlreadyExists(term, propagator, gn.getNode())) {
+//            return;
+//        }
+        if (true == IBAannotationAlreadyExists(term, propagator, gn.getNode())) {
             return;
         }
         

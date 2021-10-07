@@ -1,5 +1,5 @@
 /**
- *  Copyright 2018 University Of Southern California
+ *  Copyright 2021 University Of Southern California
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -16,6 +16,9 @@
 package edu.usc.ksom.pm.panther.paintCommon;
 
 
+import com.sri.panther.paintCommon.Constant;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
@@ -407,6 +410,28 @@ public class QualifierDif {
         }
         return false;
     }
+    
+    public static String getQualifierString(Set<Qualifier> qSet) {
+        if (null == qSet) {
+            return null;
+        }
+        if (qSet.isEmpty()) {
+            return null;
+        }
+        ArrayList<String> qList = new ArrayList<String>(qSet.size());
+        for (Qualifier q: qSet) {
+            String text = q.getText();
+            if (null == text || 0 == text.length()) {
+                continue;
+            }
+            qList.add(text);
+        }
+        if (true == qList.isEmpty()) {
+            return null;
+        }
+        Collections.sort(qList);
+        return String.join(Constant.STR_COMMA, qList);
+    }    
     
 }
 //        // Handle case where the sizes of the sets are the same, but contents is not same.  Example NOT and colocalizes in both sets

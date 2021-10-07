@@ -1,5 +1,5 @@
 /**
- *  Copyright 2020 University Of Southern California
+ *  Copyright 2021 University Of Southern California
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -47,9 +47,13 @@ public class Book implements Comparable, Serializable {
     public static final int CURATION_STATUS_PARTIALLY_CURATED = 0x40;   // 64
     public static final int CURATION_STATUS_UNKNOWN = 0x80;             // 128
     public static final int CURATION_STATUS_REQUIRE_PAINT_REVIEW = 0x100;   // 256    
+    public static final int CURATION_STATUS_REQUIRE_PAINT_REVIEW_PTN_NOT_MAPPED = 0x200;   // 512
+    public static final int CURATION_STATUS_REQUIRE_PAINT_REVIEW_PTN_CHANGE_FAMILIES = 0x400;   // 1024
+    public static final int CURATION_STATUS_REQUIRE_PAINT_REVIEW_TRACKED_TO_CHILD_NODE = 0x800;   // 2048
     
     public static final int[] availableStatuses = {CURATION_STATUS_NOT_CURATED, CURATION_STATUS_AUTOMATICALLY_CURATED, 
-    CURATION_STATUS_MANUALLY_CURATED, CURATION_STATUS_CURATION_REVIEWED, CURATION_STATUS_QAED, CURATION_STATUS_CHECKED_OUT, CURATION_STATUS_PARTIALLY_CURATED, CURATION_STATUS_UNKNOWN, CURATION_STATUS_REQUIRE_PAINT_REVIEW};
+    CURATION_STATUS_MANUALLY_CURATED, CURATION_STATUS_CURATION_REVIEWED, CURATION_STATUS_QAED, CURATION_STATUS_CHECKED_OUT, CURATION_STATUS_PARTIALLY_CURATED, CURATION_STATUS_UNKNOWN,
+    CURATION_STATUS_REQUIRE_PAINT_REVIEW, CURATION_STATUS_REQUIRE_PAINT_REVIEW_PTN_NOT_MAPPED, CURATION_STATUS_REQUIRE_PAINT_REVIEW_PTN_CHANGE_FAMILIES, CURATION_STATUS_REQUIRE_PAINT_REVIEW_TRACKED_TO_CHILD_NODE};
     
     public static final String LABEL_CURATION_STATUS_NOT_CURATED = "Not Curated";
     public static final String LABEL_CURATION_STATUS_AUTOMATICALLY_CURATED = "Automatically Curated";
@@ -60,7 +64,9 @@ public class Book implements Comparable, Serializable {
     public static final String LABEL_CURATION_STATUS_PARTIALLY_CURATED = "Partially Curated";
     public static final String LABEL_CURATION_STATUS_UNKNOWN = "Unknown";
     public static final String LABEL_CURATION_STATUS_REQUIRE_PAINT_REVIEW = "Require PAINT review";    
-    
+    public static final String LABEL_CURATION_STATUS_REQUIRE_PAINT_REVIEW_PTN_NOT_MAPPED = "Review - PTN not mapped";
+    public static final String LABEL_CURATION_STATUS_REQUIRE_PAINT_REVIEW_PTN_CHANGE_FAMILIES = "Review - PTN changed families";
+    public static final String LABEL_CURATION_STATUS_REQUIRE_PAINT_REVIEW_PTN_TRACKED_TO_CHILD_NODE = "Review - PTN tracked to child node";    
     
     public Book(String id, String name, int curationStatus, User lockedBy) {
         this.id = id;
@@ -103,71 +109,143 @@ public class Book implements Comparable, Serializable {
         Book comp = (Book)o;
         return id.compareTo(comp.id);
     }
-    
+
     public static String getCurationStatusString(int status) {
-        StringBuffer sb = new StringBuffer();
+        ArrayList<String> statusList = new ArrayList<String>();
         
         if (0 != (status & CURATION_STATUS_NOT_CURATED)) {
-            sb.append(LABEL_CURATION_STATUS_NOT_CURATED);
-            sb.append(Constant.STR_COMMA);
-            sb.append(Constant.STR_SPACE);
+            statusList.add(LABEL_CURATION_STATUS_NOT_CURATED);
         }
 
 
         if (0 != (status & CURATION_STATUS_AUTOMATICALLY_CURATED)) {
-            sb.append(LABEL_CURATION_STATUS_AUTOMATICALLY_CURATED);
-            sb.append(Constant.STR_COMMA);
-            sb.append(Constant.STR_SPACE);
+            statusList.add(LABEL_CURATION_STATUS_AUTOMATICALLY_CURATED);
         }
 
 
         if (0 != (status & CURATION_STATUS_MANUALLY_CURATED)) {
-            sb.append(LABEL_CURATION_STATUS_MANUALLY_CURATED);
-            sb.append(Constant.STR_COMMA);
-            sb.append(Constant.STR_SPACE);
+            statusList.add(LABEL_CURATION_STATUS_MANUALLY_CURATED);
         }
 
 
         if (0 != (status & CURATION_STATUS_CURATION_REVIEWED)) {
-            sb.append(LABEL_CURATION_STATUS_CURATION_REVIEWED);
-            sb.append(Constant.STR_COMMA);
-            sb.append(Constant.STR_SPACE);
+            statusList.add(LABEL_CURATION_STATUS_CURATION_REVIEWED);
         }
 
 
         if (0 != (status & CURATION_STATUS_QAED)) {
-            sb.append(LABEL_CURATION_STATUS_QAED);
-            sb.append(Constant.STR_COMMA);
-            sb.append(Constant.STR_SPACE);
+            statusList.add(LABEL_CURATION_STATUS_QAED);
         }
 
 
         if (0 != (status & CURATION_STATUS_CHECKED_OUT)) {
-            sb.append(LABEL_CURATION_STATUS_CHECKED_OUT);
-            sb.append(Constant.STR_COMMA);
-            sb.append(Constant.STR_SPACE);
+            statusList.add(LABEL_CURATION_STATUS_CHECKED_OUT);
         }
 
         if (0 != (status & CURATION_STATUS_PARTIALLY_CURATED)) {
-            sb.append(LABEL_CURATION_STATUS_PARTIALLY_CURATED);
-            sb.append(Constant.STR_COMMA);
-            sb.append(Constant.STR_SPACE);
+            statusList.add(LABEL_CURATION_STATUS_PARTIALLY_CURATED);
         }
 
         if (0 != (status & CURATION_STATUS_UNKNOWN)) {
-            sb.append(LABEL_CURATION_STATUS_UNKNOWN);
-            sb.append(Constant.STR_COMMA);
-            sb.append(Constant.STR_SPACE);
+            statusList.add(LABEL_CURATION_STATUS_UNKNOWN);
         }
         
         if (0 != (status & CURATION_STATUS_REQUIRE_PAINT_REVIEW)) {
-            sb.append(LABEL_CURATION_STATUS_REQUIRE_PAINT_REVIEW);
-            sb.append(Constant.STR_COMMA);
-            sb.append(Constant.STR_SPACE);
-        }        
-        return sb.toString();
+            statusList.add(LABEL_CURATION_STATUS_REQUIRE_PAINT_REVIEW);
+        }
+        if (0 != (status & CURATION_STATUS_REQUIRE_PAINT_REVIEW_PTN_NOT_MAPPED)) {
+            statusList.add(LABEL_CURATION_STATUS_REQUIRE_PAINT_REVIEW_PTN_NOT_MAPPED);
+        }
+        if (0 != (status & CURATION_STATUS_REQUIRE_PAINT_REVIEW_PTN_CHANGE_FAMILIES)) {
+            statusList.add(LABEL_CURATION_STATUS_REQUIRE_PAINT_REVIEW_PTN_CHANGE_FAMILIES);
+        }
+        if (0 != (status & CURATION_STATUS_REQUIRE_PAINT_REVIEW_TRACKED_TO_CHILD_NODE)) {
+            statusList.add(LABEL_CURATION_STATUS_REQUIRE_PAINT_REVIEW_PTN_TRACKED_TO_CHILD_NODE);
+        }
+        return String.join(Constant.STR_COMMA + Constant.STR_SPACE, statusList);
         
-    }
+    }    
+    
+    
+//    public static String getCurationStatusStringOld(int status) {
+//        StringBuffer sb = new StringBuffer();
+//        
+//        if (0 != (status & CURATION_STATUS_NOT_CURATED)) {
+//            sb.append(LABEL_CURATION_STATUS_NOT_CURATED);
+//            sb.append(Constant.STR_COMMA);
+//            sb.append(Constant.STR_SPACE);
+//        }
+//
+//
+//        if (0 != (status & CURATION_STATUS_AUTOMATICALLY_CURATED)) {
+//            sb.append(LABEL_CURATION_STATUS_AUTOMATICALLY_CURATED);
+//            sb.append(Constant.STR_COMMA);
+//            sb.append(Constant.STR_SPACE);
+//        }
+//
+//
+//        if (0 != (status & CURATION_STATUS_MANUALLY_CURATED)) {
+//            sb.append(LABEL_CURATION_STATUS_MANUALLY_CURATED);
+//            sb.append(Constant.STR_COMMA);
+//            sb.append(Constant.STR_SPACE);
+//        }
+//
+//
+//        if (0 != (status & CURATION_STATUS_CURATION_REVIEWED)) {
+//            sb.append(LABEL_CURATION_STATUS_CURATION_REVIEWED);
+//            sb.append(Constant.STR_COMMA);
+//            sb.append(Constant.STR_SPACE);
+//        }
+//
+//
+//        if (0 != (status & CURATION_STATUS_QAED)) {
+//            sb.append(LABEL_CURATION_STATUS_QAED);
+//            sb.append(Constant.STR_COMMA);
+//            sb.append(Constant.STR_SPACE);
+//        }
+//
+//
+//        if (0 != (status & CURATION_STATUS_CHECKED_OUT)) {
+//            sb.append(LABEL_CURATION_STATUS_CHECKED_OUT);
+//            sb.append(Constant.STR_COMMA);
+//            sb.append(Constant.STR_SPACE);
+//        }
+//
+//        if (0 != (status & CURATION_STATUS_PARTIALLY_CURATED)) {
+//            sb.append(LABEL_CURATION_STATUS_PARTIALLY_CURATED);
+//            sb.append(Constant.STR_COMMA);
+//            sb.append(Constant.STR_SPACE);
+//        }
+//
+//        if (0 != (status & CURATION_STATUS_UNKNOWN)) {
+//            sb.append(LABEL_CURATION_STATUS_UNKNOWN);
+//            sb.append(Constant.STR_COMMA);
+//            sb.append(Constant.STR_SPACE);
+//        }
+//        
+//        if (0 != (status & CURATION_STATUS_REQUIRE_PAINT_REVIEW)) {
+//            sb.append(LABEL_CURATION_STATUS_REQUIRE_PAINT_REVIEW);
+//            sb.append(Constant.STR_COMMA);
+//            sb.append(Constant.STR_SPACE);
+//        }
+//        if (0 != (status & CURATION_STATUS_REQUIRE_PAINT_REVIEW_PTN_NOT_MAPPED)) {
+//            sb.append(LABEL_CURATION_STATUS_REQUIRE_PAINT_REVIEW_PTN_NOT_MAPPED);
+//            sb.append(Constant.STR_COMMA);
+//            sb.append(Constant.STR_SPACE);
+//        }
+//        if (0 != (status & CURATION_STATUS_REQUIRE_PAINT_REVIEW_PTN_CHANGE_FAMILIES)) {
+//            sb.append(LABEL_CURATION_STATUS_REQUIRE_PAINT_REVIEW_PTN_CHANGE_FAMILIES);
+//            sb.append(Constant.STR_COMMA);
+//            sb.append(Constant.STR_SPACE);
+//        }
+//        if (0 != (status & CURATION_STATUS_REQUIRE_PAINT_REVIEW_TRACKED_TO_CHILD_NODE)) {
+//            sb.append(LABEL_CURATION_STATUS_REQUIRE_PAINT_REVIEW_PTN_TRACKED_TO_CHILD_NODE);
+//            sb.append(Constant.STR_COMMA);
+//            sb.append(Constant.STR_SPACE);
+//        }        
+//        return sb.toString();
+//        
+//    }
         
     public boolean hasStatus(int compStatus) {
         if (0 != (curationStatus & compStatus)) {
