@@ -1,6 +1,6 @@
 Instructions for Building the gopaintCommon package
 
-1.  Install JDK1.8
+1.  Install JDK1.11
 
 2.  Install ant version 1.9
 
