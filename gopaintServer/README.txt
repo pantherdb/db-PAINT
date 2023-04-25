@@ -1,6 +1,6 @@
 Instructions for Building the PAINT server package
 
-1.  Install JDK1.8.  This is the version that was last used for building.
+1.  Install JDK1.11.  This is the version that was last used for building.
 
 2.  Install ant version 1.9
 
