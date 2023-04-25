@@ -1,5 +1,5 @@
 /**
- *  Copyright 2016 University Of Southern California
+ *  Copyright 2022 University Of Southern California
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -16,6 +16,7 @@
 package edu.usc.ksom.pm.panther.paintCommon;
 
 import java.io.Serializable;
+import java.util.ArrayList;
 
 /**
  *
@@ -24,6 +25,7 @@ import java.io.Serializable;
 public class MSA implements Serializable{
     String[] msaContents;
     String[] weightsContents;
+    ArrayList<KeyResidue> keyResidueList;
 
     public String[] getMsaContents() {
         return msaContents;
@@ -39,6 +41,14 @@ public class MSA implements Serializable{
 
     public void setWeightsContents(String[] weightsContents) {
         this.weightsContents = weightsContents;
+    }
+
+    public ArrayList<KeyResidue> getKeyResidueList() {
+        return keyResidueList;
+    }
+
+    public void setKeyResidueList(ArrayList<KeyResidue> keyResidueList) {
+        this.keyResidueList = keyResidueList;
     }
     
 }

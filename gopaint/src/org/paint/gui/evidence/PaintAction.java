@@ -1,5 +1,5 @@
 /**
- *  Copyright 2020 University Of Southern California
+ *  Copyright 2022 University Of Southern California
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -35,21 +35,13 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Set;
 import org.apache.log4j.Logger;
 import org.bbop.framework.GUIManager;
-import org.geneontology.db.model.Association;
-import org.geneontology.db.model.DBXref;
 import org.geneontology.db.model.Evidence;
-import org.geneontology.db.model.GeneProduct;
 import org.geneontology.db.model.Term;
-import org.obo.datamodel.LinkDatabase;
-import org.obo.datamodel.LinkedObject;
 import org.paint.datamodel.GeneNode;
 import org.paint.dialog.EvdnceCdeAndNewAnnotDlg;
 import org.paint.go.GOConstants;
-import org.paint.go.GO_Util;
-import org.paint.go.TermUtil;
 import org.paint.gui.DirtyIndicator;
 import org.paint.gui.event.AnnotationChangeEvent;
 import org.paint.gui.event.EventManager;
@@ -458,33 +450,33 @@ public class PaintAction {
 //		return null;
 //	}
 
-	private boolean descendantsAllBroader(GeneNode node, LinkedObject startingTerm, String go_aspect, boolean all_broader) {
-		Set<Association> associations = GO_Util.inst().getAssociations(node, go_aspect, false);
-		
-		if (associations != null) {
-			for (Association association : associations) {
-				// since we've decided to always do positive annotations with NOTs being added afterwards, should make sure that
-				// the association is positive
-				if (!association.isNot()) {
-					if (association.isMRC() || (node.isLeaf() && GO_Util.inst().isExperimental(association))) {
-						LinkedObject term = TermUtil.getLinkedObject(association.getTerm());
-						/*
-						 * First argument is the parent term, second term is the descendant
-						 * returns true if 2nd argument is a descendant of the 1st argument 
-						 */
-						all_broader &= TermUtil.isDescendant(term, startingTerm);
-					}
-				}
-			}
-		}
-		List<GeneNode> children = node.getChildren();
-		if (all_broader && children != null) {
-			for (GeneNode child : children) {
-				all_broader &= descendantsAllBroader(child, startingTerm, go_aspect, all_broader);
-			}
-		}
-		return all_broader;
-	}
+//	private boolean descendantsAllBroader(GeneNode node, LinkedObject startingTerm, String go_aspect, boolean all_broader) {
+//		Set<Association> associations = GO_Util.inst().getAssociations(node, go_aspect, false);
+//		
+//		if (associations != null) {
+//			for (Association association : associations) {
+//				// since we've decided to always do positive annotations with NOTs being added afterwards, should make sure that
+//				// the association is positive
+//				if (!association.isNot()) {
+//					if (association.isMRC() || (node.isLeaf() && GO_Util.inst().isExperimental(association))) {
+//						LinkedObject term = TermUtil.getLinkedObject(association.getTerm());
+//						/*
+//						 * First argument is the parent term, second term is the descendant
+//						 * returns true if 2nd argument is a descendant of the 1st argument 
+//						 */
+//						all_broader &= TermUtil.isDescendant(term, startingTerm);
+//					}
+//				}
+//			}
+//		}
+//		List<GeneNode> children = node.getChildren();
+//		if (all_broader && children != null) {
+//			for (GeneNode child : children) {
+//				all_broader &= descendantsAllBroader(child, startingTerm, go_aspect, all_broader);
+//			}
+//		}
+//		return all_broader;
+//	}
 
 	/*
 	 * Called when parsing a GAF file
@@ -1157,39 +1149,39 @@ public class PaintAction {
 //		return restoration;
 //	}
 	
-	private void collectBroaderAncestorTerms(GeneNode node, Set<Association> ancestral_collection, LinkedObject not_term, LinkDatabase go_root) {
-		GeneProduct gene_product = node.getGeneProduct();
-		Set<Association> ancestral_assocs = gene_product != null ? gene_product.getAssociations() : null;		
-		if (ancestral_assocs != null) {
-			/*
-			 * For each term
-			 * If it is a direct annotation
-			 * and
-			 * If there are no current annotations to that term or any of its child terms
-			 * 
-			 * Then an association to this term needs to be restored
-			 */
-			for (Association ancestral_assoc : ancestral_assocs) {
-				// Did a curator annotate this ancestor?
-				if (ancestral_assoc.isMRC()) {
-						// Is a child term of this already in the list?
-						// if yes then don't need to add it.
-					LinkedObject ancestral_term = (LinkedObject) GO_Util.inst().getObject(go_root, ancestral_assoc.getTerm().getAcc());
-						// is first term/argument (from ancestral protein) 
-						// is a broader term for the second term/argument (from descendant protein)
-						// then there is no need to re-associate the broader term.
-					boolean broader = !not_term.getID().equals(ancestral_term.getID());
-					broader &= TermUtil.isDescendant(ancestral_term, not_term);					
-					if (broader) {
-						ancestral_collection.add(ancestral_assoc);
-					}
-				}
-			}	
-			if (node.getParent() != null) {
-				collectBroaderAncestorTerms(node.getParent(), ancestral_collection, not_term, go_root);
-			}
-		}
-	}
+//	private void collectBroaderAncestorTerms(GeneNode node, Set<Association> ancestral_collection, LinkedObject not_term, LinkDatabase go_root) {
+//		GeneProduct gene_product = node.getGeneProduct();
+//		Set<Association> ancestral_assocs = gene_product != null ? gene_product.getAssociations() : null;		
+//		if (ancestral_assocs != null) {
+//			/*
+//			 * For each term
+//			 * If it is a direct annotation
+//			 * and
+//			 * If there are no current annotations to that term or any of its child terms
+//			 * 
+//			 * Then an association to this term needs to be restored
+//			 */
+//			for (Association ancestral_assoc : ancestral_assocs) {
+//				// Did a curator annotate this ancestor?
+//				if (ancestral_assoc.isMRC()) {
+//						// Is a child term of this already in the list?
+//						// if yes then don't need to add it.
+//					LinkedObject ancestral_term = (LinkedObject) GO_Util.inst().getObject(go_root, ancestral_assoc.getTerm().getAcc());
+//						// is first term/argument (from ancestral protein) 
+//						// is a broader term for the second term/argument (from descendant protein)
+//						// then there is no need to re-associate the broader term.
+//					boolean broader = !not_term.getID().equals(ancestral_term.getID());
+//					broader &= TermUtil.isDescendant(ancestral_term, not_term);					
+//					if (broader) {
+//						ancestral_collection.add(ancestral_assoc);
+//					}
+//				}
+//			}	
+//			if (node.getParent() != null) {
+//				collectBroaderAncestorTerms(node.getParent(), ancestral_collection, not_term, go_root);
+//			}
+//		}
+//	}
 
 //	public void redoAssociations(List<LogAssociation> archive, List<LogAssociation> removed) {
 //		removed.clear();
@@ -1227,43 +1219,43 @@ public class PaintAction {
 //		return assoc;
 //	}
 
-	private void collectAncestorTerms(GeneNode ancestral_node, Set<Association> ancestral_collection, LinkDatabase go_root) {
-		GeneProduct gene_product = ancestral_node.getGeneProduct();
-		Set<Association> ancestral_assocs = gene_product != null ? gene_product.getAssociations() : null;		
-		if (ancestral_assocs != null) {
-			/*
-			 * For each term
-			 * If it is a direct annotation
-			 * and
-			 * If there are no current annotations to that term or any of its child terms
-			 * 
-			 * Then an association to this term needs to be restored
-			 */
-			for (Association ancestral_assoc : ancestral_assocs) {
-				// Did a curator annotate this ancestor?
-				if (ancestral_assoc.isMRC()) {
-					// Is a child term of this already in the list?
-					// if yes then don't need to add it.
-					LinkedObject ancestral_term = (LinkedObject) GO_Util.inst().getObject(go_root, ancestral_assoc.getTerm().getAcc());
-					boolean covered = false;
-					for (Association check_assoc : ancestral_collection) {
-						Term check_term = check_assoc.getTerm();
-						// is first term/argument (from ancestral protein) 
-						// is a broader term for the second term/argument (from descendant protein)
-						// then there is no need to re-associate the broader term.
-						LinkedObject dup_check = (LinkedObject) GO_Util.inst().getObject(go_root, check_term.getAcc());
-						covered |= TermUtil.isDescendant(ancestral_term, dup_check);
-					}
-					if (!covered) {
-						ancestral_collection.add(ancestral_assoc);
-					}
-				}
-			}
-		}	
-		if (ancestral_node.getParent() != null) {
-			collectAncestorTerms(ancestral_node.getParent(), ancestral_collection, go_root);
-		}
-	}
+//	private void collectAncestorTerms(GeneNode ancestral_node, Set<Association> ancestral_collection, LinkDatabase go_root) {
+//		GeneProduct gene_product = ancestral_node.getGeneProduct();
+//		Set<Association> ancestral_assocs = gene_product != null ? gene_product.getAssociations() : null;		
+//		if (ancestral_assocs != null) {
+//			/*
+//			 * For each term
+//			 * If it is a direct annotation
+//			 * and
+//			 * If there are no current annotations to that term or any of its child terms
+//			 * 
+//			 * Then an association to this term needs to be restored
+//			 */
+//			for (Association ancestral_assoc : ancestral_assocs) {
+//				// Did a curator annotate this ancestor?
+//				if (ancestral_assoc.isMRC()) {
+//					// Is a child term of this already in the list?
+//					// if yes then don't need to add it.
+//					LinkedObject ancestral_term = (LinkedObject) GO_Util.inst().getObject(go_root, ancestral_assoc.getTerm().getAcc());
+//					boolean covered = false;
+//					for (Association check_assoc : ancestral_collection) {
+//						Term check_term = check_assoc.getTerm();
+//						// is first term/argument (from ancestral protein) 
+//						// is a broader term for the second term/argument (from descendant protein)
+//						// then there is no need to re-associate the broader term.
+//						LinkedObject dup_check = (LinkedObject) GO_Util.inst().getObject(go_root, check_term.getAcc());
+//						covered |= TermUtil.isDescendant(ancestral_term, dup_check);
+//					}
+//					if (!covered) {
+//						ancestral_collection.add(ancestral_assoc);
+//					}
+//				}
+//			}
+//		}	
+//		if (ancestral_node.getParent() != null) {
+//			collectAncestorTerms(ancestral_node.getParent(), ancestral_collection, go_root);
+//		}
+//	}
 
 	/**
 	 * This is called when the remove term button is clicked
@@ -1375,101 +1367,101 @@ public class PaintAction {
 //		}
 	}
 
-	public void unNot (Evidence evidence, GeneNode node, boolean log) {
-		Association assoc = evidence.getAssociation();
-		assoc.setNot(false);
-		assoc.setDirectNot(false);
-		evidence.setCode(GOConstants.ANCESTRAL_EVIDENCE_CODE);
-		evidence.getWiths().clear();
-		Association a = getAncestralNodeWithPositiveEvidenceForTerm(node.getParent(), assoc.getTerm());
-		if (a != null)
-			evidence.addWith(a.getGene_product().getDbxref());
-		LinkDatabase all_terms = PaintManager.inst().getGoRoot().getLinkDatabase();
-		propagateNegationDown(node, a.getGene_product().getDbxref(), assoc, evidence.getCode(), false, all_terms);
-		List<LogAssociation> removed = new ArrayList<LogAssociation>();
-		removeMoreGeneralTerms(node, assoc.getTerm(), removed);
-		if (log)
-			ActionLog.inst().logUnNot(node, evidence);
-		DirtyIndicator.inst().dirtyGenes(true);
-	}
+//	public void unNot (Evidence evidence, GeneNode node, boolean log) {
+//		Association assoc = evidence.getAssociation();
+//		assoc.setNot(false);
+//		assoc.setDirectNot(false);
+//		evidence.setCode(GOConstants.ANCESTRAL_EVIDENCE_CODE);
+//		evidence.getWiths().clear();
+//		Association a = getAncestralNodeWithPositiveEvidenceForTerm(node.getParent(), assoc.getTerm());
+//		if (a != null)
+//			evidence.addWith(a.getGene_product().getDbxref());
+//		LinkDatabase all_terms = PaintManager.inst().getGoRoot().getLinkDatabase();
+//		propagateNegationDown(node, a.getGene_product().getDbxref(), assoc, evidence.getCode(), false, all_terms);
+//		List<LogAssociation> removed = new ArrayList<LogAssociation>();
+//		removeMoreGeneralTerms(node, assoc.getTerm(), removed);
+//		if (log)
+//			ActionLog.inst().logUnNot(node, evidence);
+//		DirtyIndicator.inst().dirtyGenes(true);
+//	}
 
-	private Association getAncestralNodeWithPositiveEvidenceForTerm(GeneNode node, Term term) {
-		Set<Association> node_assocs = GO_Util.inst().getAssociations(node, term.getCv(), false);
-		if (node_assocs != null) {
-			for (Association a : node_assocs) {
-				if (a.getTerm().equals(term) && !a.isNot() && a.isMRC()) {
-					return a;
-				}
-			}
-		}
-		if (node.getParent() == null) {
-			return null;
-		} else {
-			return getAncestralNodeWithPositiveEvidenceForTerm(node.getParent(), term);
-		}
-	}
-
-	public Association getAncestralNegation(Association assoc, Term term) {
-		GeneNode node = GO_Util.inst().getGeneNode(assoc.getGene_product());
-		return getAncestralNegation(node, term);
-	}
-
-	private Association getAncestralNegation(GeneNode node, Term term) {
-		Set<Association> node_assocs = GO_Util.inst().getAssociations(node, term.getCv(), false);
-		if (node_assocs != null) {
-			for (Association a : node_assocs) {
-				if (a.getTerm().equals(term) && a.isNot() && a.isDirectNot()) {
-					return a;
-				}
-			}
-		}
-		if (node.getParent() == null) {
-			return null;
-		} else {
-			return getAncestralNegation(node.getParent(), term);
-		}
-	}
-
-	private void propagateNegationDown(GeneNode node, DBXref with, Association assoc, String code, boolean is_not, LinkDatabase all_terms) {
-		List<GeneNode> children = node.getChildren();
-		if (children == null)
-			return;
-		for (Iterator<GeneNode> node_it = children.iterator(); node_it.hasNext();) {
-			GeneNode child = node_it.next();
-			Set<Association> assoc_list = child.getGeneProduct().getAssociations();
-			for (Iterator<Association> assoc_it = assoc_list.iterator(); assoc_it.hasNext();) {
-				Association child_assoc = assoc_it.next();
-				// Should not modify any experimental evidence
-				if (GO_Util.inst().isExperimental(child_assoc)) {
-					continue;
-				}
-				/*
-				 * Better to see if the child term is_a (or is part_of) the parent term, rather than an exact match
-				 */
-				LinkedObject ancestor_obo = (LinkedObject) GO_Util.inst().getObject(all_terms, assoc.getTerm().getAcc());
-				LinkedObject child_obo = (LinkedObject) GO_Util.inst().getObject(all_terms, child_assoc.getTerm().getAcc());
-				if (TermUtil.isAncestor(child_obo, ancestor_obo, all_terms, null)) {
-					Set<Evidence> child_evidence = child_assoc.getEvidence();
-					child_assoc.setNot(is_not);
-					child_assoc.setDirectNot(false);
-					for (Evidence child_evi : child_evidence) {
-						// all inherited annotations should have evidence code of "IBA", including
-						// NOT annotations
-						//						child_evi.setCode(code);
-						child_evi.setCode(GOConstants.ANCESTRAL_EVIDENCE_CODE);
-						child_evi.getWiths().clear();
-						child_evi.addWith(with);
-					}
-					/*
-					 * Hope this is safe enough to do. Essentially saying that all descendant proteins must have 
-					 * exactly the same set of qualifiers as the ancestral protein for the association to this
-					 * particular term
-					 */
-					propagateNegationDown(child, with, assoc, code, is_not, all_terms);
-				}
-			}
-		}
-	}
+//	private Association getAncestralNodeWithPositiveEvidenceForTerm(GeneNode node, Term term) {
+//		Set<Association> node_assocs = GO_Util.inst().getAssociations(node, term.getCv(), false);
+//		if (node_assocs != null) {
+//			for (Association a : node_assocs) {
+//				if (a.getTerm().equals(term) && !a.isNot() && a.isMRC()) {
+//					return a;
+//				}
+//			}
+//		}
+//		if (node.getParent() == null) {
+//			return null;
+//		} else {
+//			return getAncestralNodeWithPositiveEvidenceForTerm(node.getParent(), term);
+//		}
+//	}
+//
+//	public Association getAncestralNegation(Association assoc, Term term) {
+//		GeneNode node = GO_Util.inst().getGeneNode(assoc.getGene_product());
+//		return getAncestralNegation(node, term);
+//	}
+//
+//	private Association getAncestralNegation(GeneNode node, Term term) {
+//		Set<Association> node_assocs = GO_Util.inst().getAssociations(node, term.getCv(), false);
+//		if (node_assocs != null) {
+//			for (Association a : node_assocs) {
+//				if (a.getTerm().equals(term) && a.isNot() && a.isDirectNot()) {
+//					return a;
+//				}
+//			}
+//		}
+//		if (node.getParent() == null) {
+//			return null;
+//		} else {
+//			return getAncestralNegation(node.getParent(), term);
+//		}
+//	}
+//
+//	private void propagateNegationDown(GeneNode node, DBXref with, Association assoc, String code, boolean is_not, LinkDatabase all_terms) {
+//		List<GeneNode> children = node.getChildren();
+//		if (children == null)
+//			return;
+//		for (Iterator<GeneNode> node_it = children.iterator(); node_it.hasNext();) {
+//			GeneNode child = node_it.next();
+//			Set<Association> assoc_list = child.getGeneProduct().getAssociations();
+//			for (Iterator<Association> assoc_it = assoc_list.iterator(); assoc_it.hasNext();) {
+//				Association child_assoc = assoc_it.next();
+//				// Should not modify any experimental evidence
+//				if (GO_Util.inst().isExperimental(child_assoc)) {
+//					continue;
+//				}
+//				/*
+//				 * Better to see if the child term is_a (or is part_of) the parent term, rather than an exact match
+//				 */
+//				LinkedObject ancestor_obo = (LinkedObject) GO_Util.inst().getObject(all_terms, assoc.getTerm().getAcc());
+//				LinkedObject child_obo = (LinkedObject) GO_Util.inst().getObject(all_terms, child_assoc.getTerm().getAcc());
+//				if (TermUtil.isAncestor(child_obo, ancestor_obo, all_terms, null)) {
+//					Set<Evidence> child_evidence = child_assoc.getEvidence();
+//					child_assoc.setNot(is_not);
+//					child_assoc.setDirectNot(false);
+//					for (Evidence child_evi : child_evidence) {
+//						// all inherited annotations should have evidence code of "IBA", including
+//						// NOT annotations
+//						//						child_evi.setCode(code);
+//						child_evi.setCode(GOConstants.ANCESTRAL_EVIDENCE_CODE);
+//						child_evi.getWiths().clear();
+//						child_evi.addWith(with);
+//					}
+//					/*
+//					 * Hope this is safe enough to do. Essentially saying that all descendant proteins must have 
+//					 * exactly the same set of qualifiers as the ancestral protein for the association to this
+//					 * particular term
+//					 */
+//					propagateNegationDown(child, with, assoc, code, is_not, all_terms);
+//				}
+//			}
+//		}
+//	}
         
 //    private void updateAnnotation(GeneNode gNode, boolean add, ArrayList<GeneNode> descList) {
 //        if (true == gNode.isPruned()) {

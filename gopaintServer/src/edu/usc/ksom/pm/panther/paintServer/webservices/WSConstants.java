@@ -1,5 +1,5 @@
 /**
- * Copyright 2021 University Of Southern California
+ * Copyright 2022 University Of Southern California
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -71,7 +71,8 @@ public class WSConstants {
     public static final String SEARCH_TYPE_FAMILY_COMMENT = "SEARCH_TYPE_FAMILY_COMMENT";
     public static final String SEARCH_TYPE_FAMILY_ANNOTATION_INFO = "SEARCH_TYPE_FAMILY_ANNOTATION_INFO";
     public static final String SEARCH_TYPE_FAMILY_ANNOTATION_INFO_DETAILS = "SEARCH_TYPE_FAMILY_ANNOTATION_INFO_DETAILS";
-    public static final String SEARCH_TYPE_FAMILY_LEAF_IBA_ANNOTATION_INFO_DETAILS = "SEARCH_TYPE_FAMILY_LEAF_IBA_ANNOTATION_INFO_DETAILS";    
+    public static final String SEARCH_TYPE_FAMILY_LEAF_IBA_ANNOTATION_INFO_DETAILS = "SEARCH_TYPE_FAMILY_LEAF_IBA_ANNOTATION_INFO_DETAILS";
+    public static final String SEARCH_TYPE_FAMILY_INTERNAL_IBA_ANNOTATION_INFO_DETAILS = "SEARCH_TYPE_FAMILY_INTERNAL_IBA_ANNOTATION_INFO_DETAILS";    
     public static final String SEARCH_TYPE_AGG_FAMILY_ANNOTATION_INFO = "SEARCH_TYPE_AGG_FAMILY_ANNOTATION_INFO";
     public static final String SEARCH_TYPE_FAMILY_EVIDENCE_INFO = "SEARCH_TYPE_FAMILY_OTHER_EVIDENCE";
     public static final String SEARCH_TYPE_FAMILY_CURATION_DETAILS = "SEARCH_TYPE_FAMILY_CURATION_DETAILS";
@@ -82,7 +83,8 @@ public class WSConstants {
     
     public static final String STR_EMPTY = "";
     public static final String STR_COMMA = ",";
-    
-
+    public static final String STR_HYPHEN = "-";    
+    public static final String STR_NEWLINE = "\n";     
+    public static final String STR_TAB = "\t";
         
 }

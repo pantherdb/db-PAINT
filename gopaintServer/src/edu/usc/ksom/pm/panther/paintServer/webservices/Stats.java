@@ -1,5 +1,5 @@
 /**
- * Copyright 2020 University Of Southern California
+ * Copyright 2021 University Of Southern California
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -32,11 +32,12 @@ import org.w3c.dom.Text;
 import org.w3c.dom.ls.DOMImplementationLS;
 import org.w3c.dom.ls.LSSerializer;
 import com.sri.panther.paintServer.tools.ServiceUtils;
+import edu.usc.ksom.pm.panther.paintServer.logic.DataAccessManager;
 
 
 public class Stats {
     public static final String CLASSIFICATION_VERSION_SID = ConfigFile.getProperty(ConfigFile.PROPERTY_CLASSIFICATION_VERSION_SID);
-    private static DataIO dataIO = new DataIO(ConfigFile.getProperty(ConfigFile.KEY_DB_JDBC_DBSID));
+    private static DataIO dataIO = DataAccessManager.getInstance().getDataIO();
     
     public static final String ELEMENT_SEARCH = "search";
     public static final String ELEMENT_SEARCH_TYPE = "search_type";

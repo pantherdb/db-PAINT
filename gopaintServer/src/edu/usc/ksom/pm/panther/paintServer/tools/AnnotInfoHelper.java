@@ -1,5 +1,5 @@
 /**
- *  Copyright 2021 University Of Southern California
+ *  Copyright 2022 University Of Southern California
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -256,7 +256,7 @@ public class AnnotInfoHelper {
     
     public static void main(String args[]) {
         System.out.println("Specify name of directory with book files");
-        outputInfo("C:\\paint\\fix_annot_20210529\\preUpdate");
+        outputInfo("C:\\paint\\generate_iba_20220713\\leafIBAInfo");
         if (args.length >= 1) {
             outputInfo(args[0]);
             return;

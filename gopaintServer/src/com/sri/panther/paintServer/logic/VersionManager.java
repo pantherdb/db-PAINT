@@ -1,5 +1,5 @@
 /**
- * Copyright 2019 University Of Southern California
+ * Copyright 2021 University Of Southern California
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -19,7 +19,7 @@ import com.sri.panther.paintServer.database.DataIO;
 import com.sri.panther.paintServer.datamodel.ClassificationVersion;
 import com.sri.panther.paintServer.datamodel.FullGOAnnotVersion;
 import com.sri.panther.paintServer.datamodel.PantherVersion;
-import com.sri.panther.paintServer.util.ConfigFile;
+import edu.usc.ksom.pm.panther.paintServer.logic.DataAccessManager;
 
 
 public class VersionManager {
@@ -27,6 +27,7 @@ public class VersionManager {
     private static ClassificationVersion cv;
     private static FullGOAnnotVersion fgav;
     private static PantherVersion pv;
+    private static DataIO dataIO = DataAccessManager.getInstance().getDataIO();
     
     private VersionManager() {
         
@@ -55,20 +56,17 @@ public class VersionManager {
         return pv;
     }
     
-    private static ClassificationVersion initClsVersion() {
-        DataIO dataIO = new DataIO(ConfigFile.getProperty(ConfigFile.KEY_DB_JDBC_DBSID));
+    private static ClassificationVersion initClsVersion() {       
         cv = dataIO.getCurVersionInfo();
         return cv;
     }
     
     private static FullGOAnnotVersion initFullGOVersion() {
-        DataIO dataIO = new DataIO(ConfigFile.getProperty(ConfigFile.KEY_DB_JDBC_DBSID));
         fgav = dataIO.getFullGOVersion();
         return fgav;
     }
     
     private static PantherVersion initPantherersion() {
-        DataIO dataIO = new DataIO(ConfigFile.getProperty(ConfigFile.KEY_DB_JDBC_DBSID));
         pv = dataIO.getPantherVersion();
         return pv;
     }

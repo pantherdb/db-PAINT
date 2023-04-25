@@ -1,5 +1,5 @@
 /**
- * Copyright 2019 University Of Southern California
+ * Copyright 2022 University Of Southern California
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -24,6 +24,11 @@ public class Domain implements Serializable {
     private int end;
     private String hmmAcc;
     private String hmmName;
+    public static final String URL_PFAM_DOMAIN_PREFIX = "https://www.ebi.ac.uk/interpro/entry/pfam/";
+    
+    public static String getPFAMDomainUrl(String hmmAcc) {
+        return URL_PFAM_DOMAIN_PREFIX + hmmAcc;
+    }
     
     public Domain(String proteinId, int start, int end, String hmmAcc, String hmmName) {
         this.proteinId = proteinId;

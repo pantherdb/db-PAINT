@@ -1,5 +1,5 @@
 /**
- * Copyright 2020 University Of Southern California
+ * Copyright 2022 University Of Southern California
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -21,9 +21,10 @@ import com.sri.panther.paintCommon.User;
 import com.sri.panther.paintCommon.util.Utils;
 import com.sri.panther.paintServer.database.DataIO;
 import com.sri.panther.paintServer.datamodel.Organism;
-import com.sri.panther.paintServer.util.ConfigFile;
 import com.sri.panther.paintServer.logic.OrganismManager;
 import edu.usc.ksom.pm.panther.paintCommon.CurationStatus;
+import edu.usc.ksom.pm.panther.paintServer.logic.BookManager;
+import edu.usc.ksom.pm.panther.paintServer.logic.DataAccessManager;
 import edu.usc.ksom.pm.panther.paintServer.services.ServiceUtils;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -64,15 +65,9 @@ public class LibraryStats {
     public static final String ELEMENT_USER_LAST_NAME = "user_last_name";    
     public static final String ELEMENT_ORG_LIST = "organism_list";
     public static final String ELEMENT_ORG = "organism";    
-    
+    private static DataIO dataIO = DataAccessManager.getInstance().getDataIO();    
     private static final OrganismManager OM = OrganismManager.getInstance();
-    private static final HashSet<String> BOOKS_WITH_LEAF_EXP_ANNOTS = initBooksWithExpLeaves();
-    
-    protected static HashSet<String> initBooksWithExpLeaves() {
-        DataIO dataIO = new DataIO(ConfigFile.getProperty(ConfigFile.KEY_DB_JDBC_DBSID));
-        return dataIO.getBooksWithExpEvdnceForLeaves();
-    }    
-    
+    private static final HashSet<String> BOOKS_WITH_LEAF_EXP_ANNOTS = BookManager.getInstance().getBooksWihtExpLeaves();
 
     
     public static String getStats(String requestType, String format) {
@@ -83,7 +78,6 @@ public class LibraryStats {
     }
     
     private static String booksStatus(String format) {
-        DataIO dataIO = new DataIO(ConfigFile.getProperty(ConfigFile.KEY_DB_JDBC_DBSID));
         ArrayList<Book> bookList = dataIO.getAllBooks(dataIO.CUR_CLASSIFICATION_VERSION_SID);
 
         if (null == bookList) {

@@ -113,7 +113,7 @@
             classpath="${classpath}"
             debug="${java.debug}"
             deprecation="${java.deprecation}"
-
+            includeantruntime="false"
             optimize="${java.optimize}"/>
             
         <jar destfile="${lib.output.dir}/paint.jar">
@@ -172,10 +172,12 @@
         <copy file="${src.dir}/preferences.xml" todir="${paintApp.dir}" overwrite="true"/>        
         <copy file="${src.dir}/log4j.properties" todir="${paintApp.dir}" overwrite="true"/>
         <copy file="${config.dir}/PANTHER.sh" todir="${paintApp.dir}" overwrite="true"/>
+        <copy file="${config.dir}/largeLaunchPAINT.sh" todir="${paintApp.dir}" overwrite="true"/>
+        <copy file="${config.dir}/largeLaunchPAINT.bat" todir="${paintApp.dir}" overwrite="true"/>
         <copy file="${config.dir}/launchPAINT.sh" todir="${paintApp.dir}" overwrite="true"/>
         <copy file="${config.dir}/launchPAINT.bat" todir="${paintApp.dir}" overwrite="true"/>
         <chmod file="${paintApp.dir}/launchPAINT.sh" perm="755"/>
-        
+        <chmod file="${paintApp.dir}/largeLaunchPAINT.sh" perm="755"/>        
         <copy todir="${paintApp.dir}">
             <fileset dir="${lib.dir}">
                 <include name="*.jar"/>

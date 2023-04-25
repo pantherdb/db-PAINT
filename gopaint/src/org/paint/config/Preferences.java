@@ -1,5 +1,5 @@
 /**
- *  Copyright 2021 University Of Southern California
+ *  Copyright 2022 University Of Southern California
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -124,7 +124,9 @@ public class Preferences {
 			new Color(21, 138, 255), new Color(220, 233, 255)
 	};
         
-
+//	private Color  msa_colors_key_residue[] = {
+//			new Color(0, 153, 0), new Color(77, 204, 77), new Color(253, 255, 153)
+//	};
 
 	private String high_throughput[] = {
 			"PMID:10341420",

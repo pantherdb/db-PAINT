@@ -1,5 +1,5 @@
 /**
- * Copyright 2019 University Of Southern California
+ * Copyright 2022 University Of Southern California
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -22,13 +22,16 @@ import com.sri.panther.paintCommon.User;
 import com.sri.panther.paintCommon.familyLibrary.EntryType;
 import com.sri.panther.paintCommon.familyLibrary.FileNameGenerator;
 import com.sri.panther.paintCommon.familyLibrary.LibrarySettings;
+import com.sri.panther.paintCommon.familyLibrary.PAINTFile;
 import com.sri.panther.paintCommon.util.FileUtils;
 import com.sri.panther.paintServer.database.DataIO;
+import com.sri.panther.paintServer.database.DataServer;
 import com.sri.panther.paintServer.datamodel.ClassificationVersion;
 import com.sri.panther.paintServer.datamodel.FamilyDomain;
 import com.sri.panther.paintServer.datamodel.FullGOAnnotVersion;
 import com.sri.panther.paintServer.datamodel.PantherVersion;
 import com.sri.panther.paintServer.logic.CategoryLogic;
+import com.sri.panther.paintServer.logic.KeyResiduesManager;
 import com.sri.panther.paintServer.logic.TaxonomyConstraints;
 import com.sri.panther.paintServer.logic.VersionManager;
 import com.sri.panther.paintServer.util.ConfigFile;
@@ -36,6 +39,7 @@ import edu.usc.ksom.pm.panther.paintCommon.Comment;
 import edu.usc.ksom.pm.panther.paintCommon.DataTransferObj;
 import edu.usc.ksom.pm.panther.paintCommon.Domain;
 import edu.usc.ksom.pm.panther.paintCommon.GOTermHelper;
+import edu.usc.ksom.pm.panther.paintCommon.KeyResidue;
 import edu.usc.ksom.pm.panther.paintCommon.MSA;
 import edu.usc.ksom.pm.panther.paintCommon.Node;
 import edu.usc.ksom.pm.panther.paintCommon.PAINTVersion;
@@ -43,6 +47,8 @@ import edu.usc.ksom.pm.panther.paintCommon.SaveBookInfo;
 import edu.usc.ksom.pm.panther.paintCommon.TaxonomyHelper;
 import edu.usc.ksom.pm.panther.paintCommon.VersionContainer;
 import edu.usc.ksom.pm.panther.paintCommon.VersionInfo;
+import edu.usc.ksom.pm.panther.paintServer.logic.BookManager;
+import edu.usc.ksom.pm.panther.paintServer.logic.DataAccessManager;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
@@ -52,6 +58,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Vector;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 import javax.servlet.http.HttpServlet;
@@ -75,6 +83,7 @@ public class DataServlet extends HttpServlet {
     public static final String ACTION_GET_FAMILY_NAME = "familyName";
     public static final String ACTION_GET_FAMILY_DOMAIN = "familyDomain";    
     public static final String ACTION_FAMILY_COMMENT = "familyComment";
+    public static final String ACTION_MSA_KEY_RESIDUE = "msaKeyResidue";
     public static final String ACTION_GET_USER_INFO = "userInfo";
     private static final String ACTION_VERIFY_USER = "VerifyUserInfo";
     public static final String ACTION_SAVE_BOOK = "saveBook";
@@ -94,19 +103,16 @@ public class DataServlet extends HttpServlet {
     public static final String REQUEST_MY_BOOKS = "MyBooks";
     public static final String REQUEST_SEARCH_REQUIRE_PAINT_REVIEW_UNLOCKED = "requirePaintReviewUnlocked";    
     
-    protected static final String PROPERTY_SUFFIX_MSA_LIB_ROOT = "_msa_lib_root";
-    protected static final String PROPERTY_SUFFIX_LIB_ROOT = "_lib_root";
-    protected static final String PROPERTY_SUFFIX_LIB_ENTRY_TYPE = "_entry_type";
-    protected static final String PROPERTY_SUFFIX_BOOK_TYPE = "_book_type";
+    public static final String PROPERTY_SUFFIX_LIB_ROOT = "_lib_root";
+    public static final String PROPERTY_SUFFIX_LIB_ENTRY_TYPE = "_entry_type";
+    public static final String PROPERTY_SUFFIX_BOOK_TYPE = "_book_type";
 
     protected static final String PROPERTY_SUFFIX_FLAT_LIB_ROOT = "_lib_flat_trees";
     protected static final String PROPERTY_SUFFIX_FLAT_LIB_ENTRY_TYPE = "_lib_flat_entry_type";
     
     protected static final String PROPERTY_USER_SERVER = "server_usr_info";
     protected static final String PROPERTY_SERVLET_USER_INFO = "server_usr_info_check";
-    
-
-    
+      
     private static final String SERVLET_CONNECTION_CONTENT_TYPE = "Content-Type";
     private static final String SERVLET_CONNECTION_OBJECT_TYPE_JAVA = "java/object";
     private static final String SERVLET_REQUEST_PROPERTY_COOKIE = "Cookie";    
@@ -129,6 +135,8 @@ public class DataServlet extends HttpServlet {
     public static final String MSG_ERROR_RETRIEVING_BOOK_INFO = "Error retrieving book information";
     public static final String MSG_ERROR_OPERATION_NOT_PERMITTED = "Operation not permitted";
     public static final String MSG_ERROR_CANNOT_VERIFY_VERSION_INFO = "Operation rejected, cannot verify version information";
+    
+    DataIO dataIO = DataAccessManager.getInstance().getDataIO();
     
     public void doGet(HttpServletRequest request, HttpServletResponse response) {
         doPost(request, response);
@@ -173,6 +181,10 @@ public class DataServlet extends HttpServlet {
             getMSA(request, response);
             return;
         }
+        if (ACTION_MSA_KEY_RESIDUE.equals(actionParam)) {
+            getMsaResidue(request, response);
+            return;
+        }        
         if (ACTION_GET_TREE.equals(actionParam)) {
             getTree(request, response);
             return;
@@ -380,7 +392,7 @@ public class DataServlet extends HttpServlet {
                 sendGZIP(response, serverOut);
                 return;
             }
-            DataIO dataIO = new DataIO(ConfigFile.getProperty(ConfigFile.KEY_DB_JDBC_DBSID));
+//            DataIO dataIO = new DataIO(ConfigFile.getProperty(ConfigFile.KEY_DB_JDBC_DBSID));
             String returnInfo = dataIO.saveBook(sbi, CLASSIFICATION_VERSION_SID);
             serverOut.setObj(returnInfo);
             sendGZIP(response, serverOut);
@@ -437,7 +449,7 @@ public class DataServlet extends HttpServlet {
                 sendGZIP(response, serverOut);
                 return;
             }
-            DataIO dataIO = new DataIO(ConfigFile.getProperty(ConfigFile.KEY_DB_JDBC_DBSID));
+//            DataIO dataIO = new DataIO(ConfigFile.getProperty(ConfigFile.KEY_DB_JDBC_DBSID));
 
             nodeLookup = dataIO.getNodeInfo(book, CLASSIFICATION_VERSION_SID, errorBuf, paintErrBuf);
             Vector outputInfo = new Vector();
@@ -494,7 +506,7 @@ public class DataServlet extends HttpServlet {
                 sendGZIP(response, serverOut);
                 return;
             }
-            DataIO dataIO = new DataIO(ConfigFile.getProperty(ConfigFile.KEY_DB_JDBC_DBSID));
+//            DataIO dataIO = new DataIO(ConfigFile.getProperty(ConfigFile.KEY_DB_JDBC_DBSID));
             String familyComment = null;
 
                 familyComment = dataIO.getFamilyComment(book, CLASSIFICATION_VERSION_SID, new ArrayList<Integer>());
@@ -552,7 +564,7 @@ public class DataServlet extends HttpServlet {
                 sendGZIP(response, serverOut);
                 return;
             }
-            DataIO dataIO = new DataIO(ConfigFile.getProperty(ConfigFile.KEY_DB_JDBC_DBSID));
+//            DataIO dataIO = new DataIO(ConfigFile.getProperty(ConfigFile.KEY_DB_JDBC_DBSID));
             String familyName = dataIO.getFamilyName(book, CLASSIFICATION_VERSION_SID);
 
             if (null == familyName) {
@@ -646,7 +658,7 @@ public class DataServlet extends HttpServlet {
                 sendGZIP(response, serverOut);
                 return;
             }
-            DataIO dataIO = new DataIO(ConfigFile.getProperty(ConfigFile.KEY_DB_JDBC_DBSID));
+//            DataIO dataIO = new DataIO(ConfigFile.getProperty(ConfigFile.KEY_DB_JDBC_DBSID));
             String treeStrs[] = dataIO.getTree(book, CLASSIFICATION_VERSION_SID);
             if (null == treeStrs) {
                 treeStrs = new String[0];
@@ -662,6 +674,50 @@ public class DataServlet extends HttpServlet {
             return;
         }
     }
+    
+//    public static Object getMSA(String book, String uplVersion) {
+//        LibrarySettings libSettings = null;
+//        EntryType et = null;
+//        String msaEntryType = ConfigFile.getProperty(uplVersion + PROPERTY_SUFFIX_LIB_ENTRY_TYPE);
+//
+//        if ((null == msaEntryType) || (0 == msaEntryType.length())) {
+//        } else {
+//            et = new EntryType();
+//            et.setEntryType(msaEntryType);
+//        }
+//        libSettings = new LibrarySettings(book, et, ConfigFile.getProperty(uplVersion + PROPERTY_SUFFIX_BOOK_TYPE), ConfigFile.getProperty(uplVersion + PROPERTY_SUFFIX_LIB_ROOT));
+//        return getMSA(libSettings);
+//    }
+
+    // Check for flat file else retrieve from database
+    public static String[] getTree(DataServer ds, String book, String uplVersion) {
+        String tree[] = null;
+        LibrarySettings tmpLibSettings = null;
+        EntryType tmpEt = null;
+        String tmpEntryType = ConfigFile.getProperty(uplVersion + PROPERTY_SUFFIX_FLAT_LIB_ENTRY_TYPE);
+        if (null != tmpEntryType && 0 != tmpEntryType.length()) {
+            tmpEt = new EntryType();
+            tmpEt.setEntryType(tmpEntryType);
+        }
+
+        tmpLibSettings = new LibrarySettings(book, tmpEt, null, null, ConfigFile.getProperty(uplVersion + PROPERTY_SUFFIX_FLAT_LIB_ROOT), true);
+        String paintName = FileNameGenerator.getPAINTPathName(tmpLibSettings);
+        try {
+            PAINTFile pf = PAINTFile.readPAINTFileURL(paintName);
+            String path = FileUtils.getURLPath(paintName);
+            String treeName = pf.getTreeFileName();
+
+            tree = getContents(FileUtils.appendFileToPath(path, treeName));
+        } catch (Exception e) {
+            // Tree is not available from flat file - get it from database
+            if (null == tree) {
+                tree = ds.getTree(book, uplVersion);
+            }
+
+        }
+        return tree;
+
+    }  
 
     private void getMSA(HttpServletRequest request, HttpServletResponse response) {
         System.out.println("Going to get msa");
@@ -706,6 +762,126 @@ public class DataServlet extends HttpServlet {
 
     }
 
+    private void getMsaResidue(HttpServletRequest request, HttpServletResponse response) {
+        System.out.println("Going to get msa and key residue");
+        response.setContentType("java/object");
+        try {
+            System.out.println("Before opening stream");
+            ObjectInputStream in = new ObjectInputStream(new GZIPInputStream(request.getInputStream()));
+            DataTransferObj clientRequest = (DataTransferObj) in.readObject();
+            DataTransferObj serverOut = new DataTransferObj();
+            VersionContainer vc = clientRequest.getVc();
+            if (null == vc) {
+                serverOut.setMsg(new StringBuffer(MSG_ERROR_CANNOT_VERIFY_VERSION_INFO));
+                sendGZIP(response, serverOut);
+                return;
+            }
+
+            String versionComp = versionContainer.compareForServerOps(vc);
+            if (null != versionComp) {
+                serverOut.setMsg(new StringBuffer(versionComp));
+                sendGZIP(response, serverOut);
+                return;
+            }             
+            String book = (String) clientRequest.getObj();
+            if (null == book) {
+                serverOut.setMsg(new StringBuffer("Book id not specified"));
+                sendGZIP(response, serverOut);
+                return;
+            }            
+
+            in.close();
+            System.out.println("Finished with stream and closed");
+
+            // Execute retrieval of MSA and key residue information in parallel
+            ExecutorService executor = Executors.newFixedThreadPool(2);
+            LoadKeyResidueWorker keyResidueWorker = new LoadKeyResidueWorker(book);
+            executor.execute(keyResidueWorker);
+            LoadMSAWorker msaWorker = new LoadMSAWorker(book);
+            executor.execute(msaWorker);
+            executor.shutdown();
+
+            // Wait until all threads finish
+            while (!executor.isTerminated()) {
+
+            }
+            MSA msa = msaWorker.msa;
+            if (null != msa) {
+                msa.setKeyResidueList(keyResidueWorker.residueList);
+            }
+            serverOut.setObj(msa);
+            sendGZIP(response, serverOut);
+        } catch (ClassNotFoundException cnfe) {
+            cnfe.printStackTrace();
+            return;
+        } catch (IOException ie) {
+            ie.printStackTrace();
+            return;
+        }
+
+    }
+    
+  public static Vector<String[]> getMSAStrs(String book, String uplVersion) {
+      LibrarySettings libSettings = null;
+      EntryType       et = null;
+      String          msaEntryType = ConfigFile.getProperty(uplVersion + PROPERTY_SUFFIX_LIB_ENTRY_TYPE);
+
+      if ((null == msaEntryType) || (0 == msaEntryType.length())) {}
+      else{
+        et = new EntryType();
+        et.setEntryType(msaEntryType);
+      }
+      libSettings = new LibrarySettings(book, et, ConfigFile.getProperty(uplVersion + PROPERTY_SUFFIX_BOOK_TYPE), ConfigFile.getProperty(uplVersion + PROPERTY_SUFFIX_LIB_ROOT));
+      return getMSAVect(libSettings);
+  }
+  
+  public static Vector<String[]> getMSAVect(LibrarySettings ls){
+    String  msaURLs[] = FileNameGenerator.getMSAFilesForPaint(ls);
+    
+
+    String msaURL = msaURLs[1];
+    // For now put the msa file information into a vector.  There may be a need to add other information
+    // to the MSA later
+    Vector  v = new Vector();    
+    try{
+      String[] msaContents = FileUtils.readFileFromURL(new URL(msaURL));
+      if (null == msaContents) {
+        System.out.println("Unable to read msa information from url " + msaURL);
+        return null;
+      }
+      v.addElement(msaContents);
+//      msaURL = FileNameGenerator.getMSAWts(ls);
+//      String[] msaWts = FileUtils.readFileFromURL(new URL(msaURL));
+//      if (null != msaWts) {
+//        v.addElement(msaWts);
+//      }
+//      else {
+//        System.out.println("Cannot read msa wts file" + msaURL);
+//      }
+      return v;
+    }
+    catch (IOException ie){
+      System.out.println(ie.getMessage() + " returned while attempting to read from url " + msaURL);
+      ie.printStackTrace();
+      if (0 != v.size()) {
+        return v;
+      }
+      else {
+        return null;
+      }  
+    }
+    catch (Exception e) {
+      System.out.println("Unable to read msa information from url " + msaURL);
+      if (0 != v.size()) {
+        return v;
+      }
+      else {
+        return null;
+      }  
+    }
+  }  
+    
+    
     public static MSA getMSA(String book, String uplVersion) {
         LibrarySettings libSettings = null;
         EntryType et = null;
@@ -781,7 +957,7 @@ public class DataServlet extends HttpServlet {
             String userName = (String) clientRequest.elementAt(0);
             String password = String.copyValueOf((char[]) clientRequest.elementAt(1));
             password = convertPassword(userName, password);
-            DataIO dataIO = new DataIO(ConfigFile.getProperty(ConfigFile.KEY_DB_JDBC_DBSID));
+//            DataIO dataIO = new DataIO(ConfigFile.getProperty(ConfigFile.KEY_DB_JDBC_DBSID));
             User user = dataIO.getUser(userName, password);
 
             objs.addElement(user);
@@ -912,8 +1088,8 @@ public class DataServlet extends HttpServlet {
             sendGZIP(response, serverOut);
             return;
         }         
-        DataIO dataIO = new DataIO(ConfigFile.getProperty(ConfigFile.KEY_DB_JDBC_DBSID));
-        HashSet<String> bookSet = dataIO.getBooksWithExpEvdnceForLeaves();
+//        DataIO dataIO = new DataIO(ConfigFile.getProperty(ConfigFile.KEY_DB_JDBC_DBSID));
+        HashSet<String> bookSet = BookManager.getInstance().getBooksWihtExpLeaves();
         serverOut.setObj(bookSet);
         sendGZIP(response, serverOut);
     }    
@@ -1005,7 +1181,7 @@ public class DataServlet extends HttpServlet {
                 searchField = (String)searchList.elementAt(0);
         }        
 
-        DataIO dataIO = new DataIO(ConfigFile.getProperty(ConfigFile.KEY_DB_JDBC_DBSID));
+        
         ArrayList<Book> books;
         if (SEARCH_TYPE_GENE_SYMBOL == type) {
             books = dataIO.searchBooksByGeneSymbol(searchField, CLASSIFICATION_VERSION_SID);
@@ -1113,7 +1289,7 @@ public class DataServlet extends HttpServlet {
         String password = String.copyValueOf((char[]) userInfo.elementAt(1));
         password = convertPassword(userName, password);
 
-        DataIO dataIO = new DataIO(ConfigFile.getProperty(ConfigFile.KEY_DB_JDBC_DBSID));
+//        DataIO dataIO = new DataIO(ConfigFile.getProperty(ConfigFile.KEY_DB_JDBC_DBSID));
 
         ArrayList<Book> books = dataIO.getMyBooks(userName, password, CLASSIFICATION_VERSION_SID);
         serverOut.setObj(books);
@@ -1149,7 +1325,7 @@ public class DataServlet extends HttpServlet {
       String password = String.copyValueOf((char[]) userInfo.elementAt(1));
       password = convertPassword(userName, password);
       
-      DataIO dataIO = new DataIO(ConfigFile.getProperty(ConfigFile.KEY_DB_JDBC_DBSID));
+//      DataIO dataIO = new DataIO(ConfigFile.getProperty(ConfigFile.KEY_DB_JDBC_DBSID));
 
       
       ArrayList<Book> books = dataIO.getMyBooks(userName, password, CLASSIFICATION_VERSION_SID);
@@ -1228,7 +1404,7 @@ public class DataServlet extends HttpServlet {
      Vector bookList = (Vector)clientInput.elementAt(1);
      
      //String db = FixedInfo.getDb(dbUplVersion);
-     DataIO dataIO = new DataIO(ConfigFile.getProperty(ConfigFile.KEY_DB_JDBC_DBSID));
+//     DataIO dataIO = new DataIO(ConfigFile.getProperty(ConfigFile.KEY_DB_JDBC_DBSID));
      //String uplVersion = FixedInfo.getCls(dbUplVersion);
      
      String operationInfo = null;
@@ -1351,7 +1527,7 @@ public class DataServlet extends HttpServlet {
             return;
         }
         
-        DataIO dataIO = new DataIO(ConfigFile.getProperty(ConfigFile.KEY_DB_JDBC_DBSID));        
+//        DataIO dataIO = new DataIO(ConfigFile.getProperty(ConfigFile.KEY_DB_JDBC_DBSID));        
 //
 //        String uplVersion = FixedInfo.getCls(dbUplVersion);
         
@@ -1449,5 +1625,50 @@ public class DataServlet extends HttpServlet {
           ex.printStackTrace();
         }
         System.out.println("Sent without exception");        
+    }
+    
+  public static String[] getContents(String url){
+
+    try{
+      String[] contents = FileUtils.readFileFromURL(new URL(url));
+      if (null == contents) {
+        System.out.println("Unable to read information from url " + url);
+        return null;
+      }
+      return contents;
+    }
+    catch (IOException ie){
+      System.out.println(ie.getMessage() + " returned while attempting to read from url " + url);
+      ie.printStackTrace();
+      return null;
+    }
+    catch (Exception e) {
+      System.out.println("Unable to read msa information from url " + url);
+      return null;
+    }
+  }    
+    
+    public class LoadKeyResidueWorker implements Runnable {        
+        public String book;
+        public ArrayList<KeyResidue> residueList;
+        public LoadKeyResidueWorker(String book) {
+            this.book = book;
+        }
+
+        public void run() {
+            residueList = KeyResiduesManager.getSitesForFamily(book);
+        }        
+    }
+    
+    public class LoadMSAWorker implements Runnable {
+        public String book;
+        MSA msa;
+        
+        public LoadMSAWorker(String book) {
+            this.book = book;
+        }
+        public void run() {
+            msa = DataServlet.getMSA(book, DataServlet.CLASSIFICATION_VERSION_SID);
+        }
     }
 }

@@ -37,6 +37,20 @@ public class AnnotationHelper implements Serializable {
     public static final String TCV_MSG_PART_2 = " to node ";
     public static final String TCV_MSG_PART_3 = " with species ";
     public static final String TCV_MSG_PART_4 = ".\n";
+    
+    public static final String IBA_MSG_ANNOT_NEGATES_NOT_EXP_TO_TERM_PART_1 =  "Info - " + Evidence.CODE_IBA + " to term ";
+    public static final String IBA_MSG_ANNOT_NEGATES_NOT_EXP_TO_TERM_PART_2 =  " for node ";
+    public static final String IBA_MSG_ANNOT_NEGATES_NOT_EXP_TO_TERM_PART_3 =  " with species ";
+    public static final String IBA_MSG_ANNOT_NEGATES_NOT_EXP_TO_TERM_PART_4 =  " negates 'NOT' experimental evidence for term ";    
+    public static final String IBA_MSG_ANNOT_NEGATES_NOT_EXP_TO_TERM_PART_5 =  ".\n";
+    
+    public static final String IBA_MSG_ANNOT_NEGATES_EXP_TO_TERM_PART_1 =  "Info - " + Evidence.CODE_IBA + " to term ";
+    public static final String IBA_MSG_ANNOT_NEGATES_EXP_TO_TERM_PART_2 =  " for node ";
+    public static final String IBA_MSG_ANNOT_NEGATES_EXP_TO_TERM_PART_3 =  " with species ";
+    public static final String IBA_MSG_ANNOT_NEGATES_EXP_TO_TERM_PART_4 =  " negates experimental evidence for term ";    
+    public static final String IBA_MSG_ANNOT_NEGATES_EXP_TO_TERM_PART_5 =  ".\n";
+    
+    
     public static final String STR_COMMA = ",";
     
     public static final String MSG_INFO_POSSIBLE_TO_ANNOTATE__TO_DESCENDANT_PART_1 = "The following nodes:  ";
@@ -44,8 +58,10 @@ public class AnnotationHelper implements Serializable {
     public static final String MSG_INFO_POSSIBLE_TO_ANNOTATE__TO_DESCENDANT_PART_3 = " and qualifier ";
     public static final String MSG_INFO_POSSIBLE_TO_ANNOTATE__TO_DESCENDANT_PART_4 = ".\n";    
 
-
-
+    public static final String MSG_ERROR_NODE_VIOLATES_TAXONOMY_CONSTRAINT_1 = "Node ";
+    public static final String MSG_ERROR_NODE_VIOLATES_TAXONOMY_CONSTRAINT_2 = " annotated to term ";           
+    public static final String MSG_ERROR_NODE_VIOLATES_TAXONOMY_CONSTRAINT_3 = " with species ";
+    public static final String MSG_ERROR_NODE_VIOLATES_TAXONOMY_CONSTRAINT_4 = " violates taxonomy constraints.\n";
     public static void allNonPrunedDescendents(AnnotationNode gNode, List<AnnotationNode> nodeList) {
         if (null == gNode || null == nodeList) {
             return;
@@ -743,6 +759,9 @@ public class AnnotationHelper implements Serializable {
             return;
         }
         // IBA may not be valid for node if it is already annotated with IBA to term. However descendants need to be checked
+        if ("PTN002597553".equals(nsi.getPublicId()) || "GO:0004568".equals(term)) {
+            System.out.println("Here");
+        }
         if (nvi != null && false == IBAValid(with, term, nvi.getGoAnnotationList())) {
             ArrayList<Node> children = nsi.getChildren();
             if (null != children) {
@@ -816,36 +835,42 @@ public class AnnotationHelper implements Serializable {
             return;
         }        
 
-        // If node is leaf, do not want to add an IBA that would negate existing experimental annotation
-        // CAN ADD IBA although there exists annotation that will negate IBA
-//        if (true == nsi.isLeaf() && null != nvi && null != nvi.getGoAnnotationList()) {
-//            ArrayList<Annotation> annots = nvi.getGoAnnotationList();
-//            boolean negAnnot = QualifierDif.containsNegative(qSet);
-//            GOTerm gTerm = goTermHelper.getTerm(term);
-//            ArrayList<GOTerm> ancestors = goTermHelper.getAncestors(gTerm);
-//            // Positive annotation
-//            if (false == negAnnot) {
-//                for (Annotation a : annots) {
-//                    if (a.isExperimental() && true == QualifierDif.containsNegative(a.getQualifierSet())) {
-//                        if (term.equals(a.getGoTerm()) || ancestors.contains(goTermHelper.getTerm(a.getGoTerm()))) {
-//                            errorBuf.insert(0, "Info - " + Evidence.CODE_IBA + " to term " + term + " not propagated to node " + nsi.getPublicId() + " because it has already been annotated with 'NOT' experimental evidence for term " + a.getGoTerm() + " that would negate IBA.\n");
-//                            return;
-//                        }
-//                    }
-//                }
-//
-//            } else {
-//                for (Annotation a : annots) {
-//                    if (a.isExperimental() && false == QualifierDif.containsNegative(a.getQualifierSet())) {
-//                        ArrayList<GOTerm> curAncestors = goTermHelper.getAncestors(goTermHelper.getTerm(a.getGoTerm()));
-//                        if (term.equals(a.getGoTerm()) || curAncestors.contains(gTerm)) {
-//                            errorBuf.insert(0, "Info - " + Evidence.CODE_IBA + " to term " + term + " not propagated to node " + nsi.getPublicId() + " because it has already been annotated with experimental evidence for term " + a.getGoTerm() + " that would negate IBA.\n");
-//                            return;
-//                        }
-//                    }
-//                }
+        // Previously, if there was experimental evidence on leaf that would negate an IBA, then IBA was not propagated.
+        // Now we add IBA although there exists experimental annotation that will negate IBA.  Some of these experimental annotations that would negate IBA are isoforms, etc.
+        // Output message indicating that there exists experimental evidence that would negate IBA
+        if (true == nsi.isLeaf() && null != nvi && null != nvi.getGoAnnotationList()) {
+//            if ("PTN000126805".equals(nsi.getPublicId())) {
+//                System.out.println("Here");
 //            }
-//        }
+            ArrayList<Annotation> annots = nvi.getGoAnnotationList();
+            boolean negAnnot = QualifierDif.containsNegative(qSet);
+            GOTerm gTerm = goTermHelper.getTerm(term);
+            ArrayList<GOTerm> ancestors = goTermHelper.getAncestors(gTerm);
+            // Positive annotation
+            if (false == negAnnot) {
+                for (Annotation a : annots) {
+                    if (a.isExperimental() && true == QualifierDif.containsNegative(a.getQualifierSet())) {
+                        if (term.equals(a.getGoTerm()) || ancestors.contains(goTermHelper.getTerm(a.getGoTerm()))) {
+                            errorBuf.insert(0, generateIBANegMsg(term, nsi.getPublicId(), nsi.getCalculatedSpecies(), a.getGoTerm()));
+                            //errorBuf.insert(0, "Info - " + Evidence.CODE_IBA + " to term " + term + " for node " + nsi.getPublicId() + " with species " +  nsi.getCalculatedSpecies() + " negates 'NOT' experimental evidence for term " + a.getGoTerm() + ".\n");
+//                            return;
+                        }
+                    }
+                }
+
+            } else {
+                for (Annotation a : annots) {
+                    if (a.isExperimental() && false == QualifierDif.containsNegative(a.getQualifierSet())) {
+                        ArrayList<GOTerm> curAncestors = goTermHelper.getAncestors(goTermHelper.getTerm(a.getGoTerm()));
+                        if (term.equals(a.getGoTerm()) || curAncestors.contains(gTerm)) {
+                            errorBuf.insert(0, generateIBAMsg(term, nsi.getPublicId(), nsi.getCalculatedSpecies(), a.getGoTerm()));
+                            //errorBuf.insert(0, "Info - " + Evidence.CODE_IBA + " to term " + term + " for node " + nsi.getPublicId()  + " with species " +  nsi.getCalculatedSpecies() + " negates experimental evidence for term " + a.getGoTerm() + ".\n");
+//                            return;
+                        }
+                    }
+                }
+            }
+        }
 
         if (null == nvi) {
             nvi = new NodeVariableInfo();
@@ -879,11 +904,17 @@ public class AnnotationHelper implements Serializable {
                 propagateIBA(child, term, qSet, with, withNodeSet, taxonomyHelper, goTermHelper, errorBuf, modifiedNodeSet, addedAnnotSet);
             }
         }
-
     }
 
     public static String generateTCVMsg(String term, String publicId, String species) {
         return TCV_MSG_PART_1 + term + TCV_MSG_PART_2 + publicId + TCV_MSG_PART_3 + species + TCV_MSG_PART_4;
+    }
+    
+    public static String generateIBANegMsg(String ibaTerm, String publicId, String species, String term) {
+        return IBA_MSG_ANNOT_NEGATES_NOT_EXP_TO_TERM_PART_1 + ibaTerm + IBA_MSG_ANNOT_NEGATES_NOT_EXP_TO_TERM_PART_2 + publicId + IBA_MSG_ANNOT_NEGATES_NOT_EXP_TO_TERM_PART_3 + species + IBA_MSG_ANNOT_NEGATES_NOT_EXP_TO_TERM_PART_4 + term + IBA_MSG_ANNOT_NEGATES_NOT_EXP_TO_TERM_PART_5;  
+    }
+    public static String generateIBAMsg(String ibaTerm, String publicId, String species, String term) {
+        return IBA_MSG_ANNOT_NEGATES_EXP_TO_TERM_PART_1 + ibaTerm + IBA_MSG_ANNOT_NEGATES_EXP_TO_TERM_PART_2 + publicId + IBA_MSG_ANNOT_NEGATES_EXP_TO_TERM_PART_3 + species + IBA_MSG_ANNOT_NEGATES_EXP_TO_TERM_PART_4 + term + IBA_MSG_ANNOT_NEGATES_EXP_TO_TERM_PART_5;
     }
 
     public static AnnotQualifierGroup possibleToAnnotateWithIBD(String term, Node node, StringBuffer errorMsgBuf, TaxonomyHelper taxonomyHelper, GOTermHelper goTermHelper) {
@@ -907,7 +938,7 @@ public class AnnotationHelper implements Serializable {
                     errorMsgSet.add(errorMsg);
                     continue;
                 }
-                expWiths.add(leafAnnot);
+                expWiths.addAll(possibleWiths);
             }
         }
         if (false == expWiths.isEmpty()) {
@@ -1136,7 +1167,14 @@ public class AnnotationHelper implements Serializable {
 //        getIBAWithSameTermForNode(parent, propagator, annotSet);
     }
 
-    public static void removeAnnotFromNodeAndDescendants(Node n, Annotation remove, String term) {
+    /**
+     * 
+     * @param n
+     * @param remove
+     * @param term
+     * @param errorBuf Error messages may have been added when propagating annotation to descendants.  Remove these since we are deleting the annotation
+     */
+    public static void removeAnnotFromNodeAndDescendants(Node n, Annotation remove, String term, StringBuffer errorBuf) {
         NodeVariableInfo nvi = n.getVariableInfo();
         if (null != nvi) {
             if (nvi.isPruned()) {
@@ -1144,12 +1182,25 @@ public class AnnotationHelper implements Serializable {
             }
             ArrayList<Annotation> annotList = nvi.getGoAnnotationList();
             if (null != annotList) {
+                boolean negAnnot = QualifierDif.containsNegative(remove.getQualifierSet());
+                NodeStaticInfo nsi = n.getStaticInfo();
                 HashSet<Annotation> removeSet = new HashSet<Annotation>();
                 for (Annotation a : annotList) {
                     if (null != a.getGoTerm() && a.getGoTerm().equals(term)) {
                         HashSet<Annotation> withSet = a.getAnnotationDetail().getWithAnnotSet();
                         if (null != withSet && withSet.contains(remove)) {
                             removeSet.add(a);
+                            
+                            if (Evidence.CODE_IBA.equals(a.getSingleEvidenceCodeFromSet())) {
+                                String msg = generateIBAMsg(term, nsi.getPublicId(), nsi.getCalculatedSpecies(), a.getGoTerm());
+                                if (false == negAnnot) {
+                                    msg = generateIBANegMsg(term, nsi.getPublicId(), nsi.getCalculatedSpecies(), a.getGoTerm());
+                                }
+                                int index = errorBuf.indexOf(msg);
+                                if (index >= 0) {
+                                    errorBuf.delete(index, index + msg.length());
+                                }
+                            }
                         }
                     }
                 }
@@ -1164,7 +1215,7 @@ public class AnnotationHelper implements Serializable {
             ArrayList<Node> children = nsi.getChildren();
             if (null != children) {
                 for (Node child : children) {
-                    removeAnnotFromNodeAndDescendants(child, remove, term);
+                    removeAnnotFromNodeAndDescendants(child, remove, term, errorBuf);
                 }
             }
         }
@@ -1696,7 +1747,45 @@ public class AnnotationHelper implements Serializable {
         }
         return false;
     }
-
+    
+    public static void checkTaxonomyViolationsForNodeAndDescendants(Node n, String term, StringBuffer sb, TaxonomyHelper taxonomyHelper) {
+        NodeVariableInfo nvi = n .getVariableInfo();
+        if (null != nvi && nvi.isPruned()) {
+            return;
+        }
+        ArrayList<Annotation> annotList = nvi.getGoAnnotationList();
+        if (null == annotList) {
+            return;
+        }
+        NodeStaticInfo nsi = n.getStaticInfo();
+        for (Annotation a: annotList) {
+            if (term.equals(a.getGoTerm())) {
+                if (true == termAndQualifierValidForSpeciesCheckTaxonomy(a, taxonomyHelper)) {
+                    continue;
+                }
+                sb.append(MSG_ERROR_NODE_VIOLATES_TAXONOMY_CONSTRAINT_1);
+                sb.append(nsi.getPublicId());
+                sb.append(MSG_ERROR_NODE_VIOLATES_TAXONOMY_CONSTRAINT_2);
+                sb.append(term);                
+                sb.append(MSG_ERROR_NODE_VIOLATES_TAXONOMY_CONSTRAINT_3);
+                sb.append(nsi.getCalculatedSpecies());
+                sb.append(MSG_ERROR_NODE_VIOLATES_TAXONOMY_CONSTRAINT_4);
+                return;
+            }
+        }
+        ArrayList<Node> children = nsi.getChildren();
+        if (null != children) {
+            for (Node child: children) {
+                checkTaxonomyViolationsForNodeAndDescendants(child, term, sb, taxonomyHelper);
+            }
+        }
+    }
+    
+    public static boolean termAndQualifierValidForSpeciesCheckTaxonomy(Annotation a, TaxonomyHelper taxonomyHelper) {
+        AnnotationDetail ad = a.getAnnotationDetail();
+        Node n = ad.getAnnotatedNode();
+        return taxonomyHelper.termAndQualifierValidForSpeciesCheckTaxonomy(a.getGoTerm(), n.getStaticInfo().getCalculatedSpecies(), ad.getQualifiers());
+    }
 }
 
 //                else if (Evidence.CODE_IBA.equals(code)) {

@@ -1,5 +1,5 @@
 /**
- *  Copyright 2019 University Of Southern California
+ *  Copyright 2022 University Of Southern California
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -31,13 +31,9 @@ import java.util.ArrayList;
 import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Set;
 
 import org.apache.log4j.Logger;
 import org.bbop.swing.HyperlinkLabel;
-import org.geneontology.db.model.Association;
-import org.geneontology.db.model.GeneProduct;
-import org.geneontology.db.model.Species;
 import org.paint.config.Preferences;
 import org.paint.go.GOConstants;
 import org.paint.go.GO_Util;
@@ -53,6 +49,7 @@ import com.sri.panther.paintCommon.Constant;
 import edu.usc.ksom.pm.panther.paintCommon.Domain;
 import edu.usc.ksom.pm.panther.paintCommon.GOTerm;
 import edu.usc.ksom.pm.panther.paintCommon.GOTermHelper;
+import edu.usc.ksom.pm.panther.paintCommon.KeyResidue;
 import edu.usc.ksom.pm.panther.paintCommon.Node;
 import edu.usc.ksom.pm.panther.paintCommon.NodeStaticInfo;
 import edu.usc.ksom.pm.panther.paintCommon.NodeVariableInfo;
@@ -103,6 +100,7 @@ public class GeneNode {
     private String sequence;
     private HashMap<String, ArrayList<Domain>> domainLookup;
     private ArrayList<ArrayList<Domain>> domainRows;
+    private ArrayList<KeyResidue> keyResidueList;
     private String nodeType;        // Indicates speciation, duplication, species, annotation id etc
     private String nodeNote;
     private String description;
@@ -152,14 +150,14 @@ public class GeneNode {
      * 1. whether or not this gene has any annotations recorded in the GO database
      * 2. whether or not these annotations have been retrieved yet from the GO database
      */
-    private boolean gotten_from_go;
+//    private boolean gotten_from_go;
     private Thread thread;
     private long startTime;
     private int bpCount;
     private int ccCount;
     private int mfCount;
 
-    private GeneProduct gene_product;
+//    private GeneProduct gene_product;
 
     private Node node;          // Information from server about the node
 
@@ -171,7 +169,7 @@ public class GeneNode {
     public GeneNode(boolean isExpanded) {
         this.is_expanded = isExpanded;
         this.visible = true;
-        this.gotten_from_go = false;
+//        this.gotten_from_go = false;
         this.ortho_mcl = Constant.STR_EMPTY;
     }
 
@@ -604,13 +602,13 @@ public class GeneNode {
     public String getSpeciesLabel() {
         String species = null;
 
-        GeneProduct gp = getGeneProduct();
-        if (gp != null) {
-            Species sp = gp.getSpecies();
-            if (sp != null) {
-                species = (sp.getGenus() + " " + sp.getSpecies()).trim();
-            }
-        }
+//        GeneProduct gp = getGeneProduct();
+//        if (gp != null) {
+//            Species sp = gp.getSpecies();
+//            if (sp != null) {
+//                species = (sp.getGenus() + " " + sp.getSpecies()).trim();
+//            }
+//        }
 
         if (species == null && this.species_labels != null) {
             /* 
@@ -740,6 +738,14 @@ public class GeneNode {
     public void setDomainRows(ArrayList<ArrayList<Domain>> domainRows) {
         this.domainRows = domainRows;
     }
+
+    public ArrayList<KeyResidue> getKeyResidueList() {
+        return keyResidueList;
+    }
+
+    public void setKeyResidueList(ArrayList<KeyResidue> keyResidueList) {
+        this.keyResidueList = keyResidueList;
+    }
     
     public HyperlinkLabel getAccLabel() {
         if (accLabel == null) {
@@ -793,19 +799,19 @@ public class GeneNode {
         return this.ortho_mcl;
     }
 
-    public GeneProduct getGeneProduct() {
-        return gene_product;
-    }
-
-    /*
-     * This is only called from the GeneProductThread once the gene product
-     * has been successfully retrieved from the GO database
-     * In turn, it creates another thread to retrieve the annotations. 
-     */
-    public void setGeneProduct(GeneProduct gene_product) {
-        this.gene_product = gene_product;
-        PaintManager.inst().indexByGP(this);
-    }
+//    public GeneProduct getGeneProduct() {
+//        return gene_product;
+//    }
+//
+//    /*
+//     * This is only called from the GeneProductThread once the gene product
+//     * has been successfully retrieved from the GO database
+//     * In turn, it creates another thread to retrieve the annotations. 
+//     */
+//    public void setGeneProduct(GeneProduct gene_product) {
+//        this.gene_product = gene_product;
+//        PaintManager.inst().indexByGP(this);
+//    }
 
     public String getDescription() {
         if (!isLeaf() && description == null) {
@@ -845,20 +851,20 @@ public class GeneNode {
         return attrLookup.get(type);
     }
 
-    public Set<Association> getAssociations() {
-        if (!gotten_from_go && thread != null) {
-            /*
-             * This returns one of 3 values
-             * PENDING, SUCCESS, FAILED
-             */
-            int status = GO_Util.inst().threadFinished(thread, startTime);
-            while (status == GO_Util.PENDING) {
-                status = GO_Util.inst().threadFinished(thread, startTime);
-            }
-            gotten_from_go = (status == GO_Util.SUCCESS);
-        }
-        return (gene_product != null ? gene_product.getAssociations() : null);
-    }
+//    public Set<Association> getAssociations() {
+//        if (!gotten_from_go && thread != null) {
+//            /*
+//             * This returns one of 3 values
+//             * PENDING, SUCCESS, FAILED
+//             */
+//            int status = GO_Util.inst().threadFinished(thread, startTime);
+//            while (status == GO_Util.PENDING) {
+//                status = GO_Util.inst().threadFinished(thread, startTime);
+//            }
+//            gotten_from_go = (status == GO_Util.SUCCESS);
+//        }
+//        return (gene_product != null ? gene_product.getAssociations() : null);
+//    }
 
     public String getSeqDB() {
         return seq_db;

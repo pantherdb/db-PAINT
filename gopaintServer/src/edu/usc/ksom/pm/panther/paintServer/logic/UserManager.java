@@ -1,5 +1,5 @@
 /**
- * Copyright 2021 University Of Southern California
+ * Copyright 2022 University Of Southern California
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -17,7 +17,6 @@ package edu.usc.ksom.pm.panther.paintServer.logic;
 
 import com.sri.panther.paintCommon.User;
 import com.sri.panther.paintServer.database.DataIO;
-import com.sri.panther.paintServer.util.ConfigFile;
 import java.util.ArrayList;
 import java.util.HashMap;
 
@@ -25,7 +24,8 @@ import java.util.HashMap;
 public class UserManager {
     private static UserManager instance = null;
     private static ArrayList<User> allUsers;
-    private static HashMap<String, User> userIdToUserLookup = null;
+    private static HashMap<String, User> userIdToUserLookup;
+    private static DataIO dataIO = DataAccessManager.getInstance().getDataIO();
     
     private UserManager() {
         
@@ -39,8 +39,7 @@ public class UserManager {
         return instance;
     }
     
-    private static void init() {
-        DataIO dataIO = new DataIO(ConfigFile.getProperty(ConfigFile.KEY_DB_JDBC_DBSID));
+    private static synchronized void init() {
         allUsers = dataIO.getAllUsers();
         if (null == allUsers) {
             System.out.println("Unable to retrieve all user list");

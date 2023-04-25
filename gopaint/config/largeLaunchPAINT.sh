@@ -1,0 +1,1 @@
+java -cp ".:*" -Xms512m -Xmx4096m -Xss128m org.paint.main.PAINT

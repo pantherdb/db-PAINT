@@ -1,5 +1,5 @@
 /**
- * Copyright 2019 University Of Southern California
+ * Copyright 2022 University Of Southern California
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -18,6 +18,7 @@ package org.paint.datamodel;
 import edu.usc.ksom.pm.panther.paintCommon.Comment;
 import edu.usc.ksom.pm.panther.paintCommon.DataTransferObj;
 import edu.usc.ksom.pm.panther.paintCommon.Domain;
+import edu.usc.ksom.pm.panther.paintCommon.KeyResidue;
 import edu.usc.ksom.pm.panther.paintCommon.MSA;
 import edu.usc.ksom.pm.panther.paintCommon.Node;
 import edu.usc.ksom.pm.panther.paintCommon.SaveBookInfo;
@@ -52,6 +53,8 @@ public class Family implements Serializable {
 //	private String    attrTable[];
     private String[] msa_content;
     private String[] wts_content;
+    private ArrayList<KeyResidue> keyResidueList;
+    HashMap<String, HashMap<String, ArrayList<Domain>>> nodeToDomainLookup;
 //	private String[] txt_content;
     private HashMap<String, Node> nodeLookup;
     private StringBuffer nodeInfoBuf;
@@ -59,7 +62,9 @@ public class Family implements Serializable {
     private String familyID;
     private String name;
     private Comment familyComment;
-    private  LoadFamilyDomain familyDomainWorker;
+    
+    
+    //private  LoadFamilyDomain familyDomainWorker;
 
 //	private RawComponentContainer rcc;
     
@@ -89,7 +94,7 @@ public class Family implements Serializable {
 
         FamilyAdapter adapter = new PantherAdapter(familyID);
 
-        ExecutorService executor = Executors.newFixedThreadPool(5);
+        ExecutorService executor = Executors.newFixedThreadPool(6);
 
         
         LoadTreeNodes nodesWorker = new LoadTreeNodes(familyID);
@@ -106,10 +111,12 @@ public class Family implements Serializable {
         LoadTreeStrings treeStringsWorker = new LoadTreeStrings(familyID);
         executor.execute(treeStringsWorker);
 
-        LoadMSA msaWorker = new LoadMSA(familyID);
-        executor.execute(msaWorker);
+        LoadMSAKeyResidue msaKeyResidueWorker = new LoadMSAKeyResidue(familyID);
+        executor.execute(msaKeyResidueWorker);
         
-        loadDomain(familyID);
+        LoadFamilyDomain familyDomainWorker = new LoadFamilyDomain(familyID);
+        executor.execute(familyDomainWorker);         
+   
  
         executor.shutdown();
         
@@ -130,43 +137,43 @@ public class Family implements Serializable {
         this.name = familyNameWorker.familyName;
 
 
-        MSA msa = msaWorker.msa;
+        MSA msa = msaKeyResidueWorker.msa;
         if (null != msa) {
             this.msa_content = msa.getMsaContents();
             this.wts_content = msa.getWeightsContents();
+            this.keyResidueList = msa.getKeyResidueList();
         }
         this.familyComment  = familyCommentWorker.familyComment;
         this.familyID = familyID;
+        this.nodeToDomainLookup = familyDomainWorker.nodeToDomainLookup;
         
         // Force garbage collection after a new book is opened
         System.gc();
         return isLoaded();
     }
     
-    public void loadDomain(String familyID){
-        ExecutorService domainExecutor = Executors.newFixedThreadPool(1);      // Do domain processing in a separate thread. The system can process the book independently
-                                                                               // of the domain information. When the domain information becomes available, update as necessary
-       
-        familyDomainWorker = new LoadFamilyDomain(familyID);
-        domainExecutor.execute(familyDomainWorker);         
-        domainExecutor.shutdown();        
-    }
+//    public void loadDomain(String familyID){
+//        ExecutorService domainExecutor = Executors.newFixedThreadPool(1);      // Do domain processing in a separate thread. The system can process the book independently
+//                                                                               // of the domain information. When the domain information becomes available, update as necessary
+//       
+//        familyDomainWorker = new LoadFamilyDomain(familyID);
+//        domainExecutor.execute(familyDomainWorker);         
+//        domainExecutor.shutdown();        
+//    }
+//    
+//    public String getDomainFamId() {
+//        if (null == familyDomainWorker) {
+//            return null;
+//        }
+//        return familyDomainWorker.familyId;
+//    }
     
-    public String getDomainFamId() {
-        if (null == familyDomainWorker) {
-            return null;
-        }
-        return familyDomainWorker.familyId;
+    public HashMap<String, HashMap<String, ArrayList<Domain>>> getNodeToDomainLookup() {
+        return this.nodeToDomainLookup;
     }
-    
-    public HashMap<String, HashMap<String, ArrayList<Domain>>> getNodeToDomainLookup(String famId) {
-        if (null == familyDomainWorker || null == famId) {
-            return null;
-        }
-        if (false == famId.equals(familyDomainWorker.familyId)) {
-            return null;
-        }
-        return familyDomainWorker.nodeToDomainLookup;
+
+    public ArrayList<KeyResidue> getKeyResidueList() {
+        return keyResidueList;
     }
 
     public boolean isLoaded() {
@@ -408,7 +415,7 @@ public class Family implements Serializable {
                 }             
                 nodeToDomainLookup = (HashMap<String, HashMap<String, ArrayList<Domain>>>)serverOutput.getObj();
                 System.out.println("End of get family domain execution for " + familyId + " at " + df.format(new java.util.Date(System.currentTimeMillis())));
-                PaintManager.inst().handleDomainInfo(this.familyId, this.nodeToDomainLookup);
+//                PaintManager.inst().handleDomainInfo(this.familyId, this.nodeToDomainLookup);
             }
 //            ObjectOutputStream oos = null;
 //            FileOutputStream fout = null;
@@ -463,12 +470,12 @@ public class Family implements Serializable {
         }
     }
 
-    public class LoadMSA implements Runnable {
+    public class LoadMSAKeyResidue implements Runnable {
 
         private final String familyId;
         public MSA msa = null;
 
-        LoadMSA(String familyId) {
+        LoadMSAKeyResidue(String familyId) {
             this.familyId = familyId;
         }
 
@@ -479,7 +486,7 @@ public class Family implements Serializable {
             DataTransferObj dto = new DataTransferObj();
             dto.setVc(PaintManager.inst().getVersionContainer());
             dto.setObj(familyId);
-            DataTransferObj serverOutput = PantherServer.inst().getMSA(Preferences.inst().getPantherURL(), dto);
+            DataTransferObj serverOutput = PantherServer.inst().getMsaKeyResidue(Preferences.inst().getPantherURL(), dto);
             if (null == serverOutput) {
                 //JOptionPane.showMessageDialog(GUIManager.getManager().getFrame(), MSG_ERROR_CANNOT_ACCESS_VERSION_INFO_MSA, MSG_ERROR, JOptionPane.ERROR_MESSAGE);
                 System.out.println(MSG_ERROR_CANNOT_ACCESS_VERSION_INFO_MSA);
@@ -488,11 +495,11 @@ public class Family implements Serializable {
                 StringBuffer sb = serverOutput.getMsg();
                 if (null != sb && 0 != sb.length()) {
                     //JOptionPane.showMessageDialog(GUIManager.getManager().getFrame(), sb.toString(), MSG_ERROR, JOptionPane.ERROR_MESSAGE);
-                    System.out.println("Error loading MSA with message: " + sb.toString());
+                    System.out.println("Error loading MSA and keyResidue with message: " + sb.toString());
                 } else {
                     msa = (MSA) serverOutput.getObj();
 //            msa = null;
-                    System.out.println("End of get msa  execution for " + familyId + " at " + df.format(new java.util.Date(System.currentTimeMillis())));
+                    System.out.println("End of get msa and Key Residue execution for " + familyId + " at " + df.format(new java.util.Date(System.currentTimeMillis())));
                 }
             }
             

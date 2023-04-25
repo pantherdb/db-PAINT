@@ -1,5 +1,5 @@
 /**
- *  Copyright 2021 University Of Southern California
+ *  Copyright 2022 University Of Southern California
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -26,8 +26,6 @@ import com.sri.panther.paintServer.database.DataServerManager;
 import com.sri.panther.paintServer.datamodel.Organism;
 import com.sri.panther.paintServer.logic.CategoryLogic;
 import com.sri.panther.paintServer.logic.OrganismManager;
-import com.sri.panther.paintServer.servlet.Client2Servlet;
-import com.sri.panther.paintServer.util.ConfigFile;
 import edu.usc.ksom.pm.panther.paintCommon.Annotation;
 import edu.usc.ksom.pm.panther.paintCommon.AnnotationDetail;
 import edu.usc.ksom.pm.panther.paintCommon.AnnotationHelper;
@@ -42,6 +40,9 @@ import edu.usc.ksom.pm.panther.paintCommon.Node;
 import edu.usc.ksom.pm.panther.paintCommon.NodeStaticInfo;
 import edu.usc.ksom.pm.panther.paintCommon.NodeVariableInfo;
 import edu.usc.ksom.pm.panther.paintCommon.Qualifier;
+import edu.usc.ksom.pm.panther.paintServer.logic.BookManager;
+import edu.usc.ksom.pm.panther.paintServer.logic.DataAccessManager;
+import edu.usc.ksom.pm.panther.paintServer.servlet.DataServlet;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -90,7 +91,7 @@ public class FamilyUtil {
     private static final String ELEMENT_TYPE = "type";
     private static final String ELEMENT_TAXON_ID = "taxon_id";
     
-    private static final String MSG_INVALID_ID_SPECIFIED = "Invalid id specified";
+    public static final String MSG_INVALID_ID_SPECIFIED = "Invalid id specified";
     private static final String ELEMENT_ERROR = "error";
     private static final String ELEMENT_ELAPSED_TIME = "elapsed_time";
     private static final String MS = " milliseconds.";
@@ -214,14 +215,10 @@ public class FamilyUtil {
     public static final String STR_EMPTY = "";
     public static final String DELIM_EV_CODE = ",";
     
+    private static DataIO dataIO = DataAccessManager.getInstance().getDataIO();
     private static OrganismManager organismManager = OrganismManager.getInstance();
     private static GOTermHelper goTermHelper = CategoryLogic.getInstance().getGOTermHelper();
-    private static final HashSet<String> BOOKS_WITH_LEAF_EXP_ANNOTS = initBooksWithExpLeaves();
-    
-    protected static HashSet<String> initBooksWithExpLeaves() {
-        DataIO dataIO = new DataIO(ConfigFile.getProperty(ConfigFile.KEY_DB_JDBC_DBSID));
-        return dataIO.getBooksWithExpEvdnceForLeaves();
-    }
+    private static final HashSet<String> BOOKS_WITH_LEAF_EXP_ANNOTS = BookManager.getInstance().getBooksWihtExpLeaves();
     
     public static String getFamilyInfo(String id, String database, String uplVersion, String searchType) {
         
@@ -264,10 +261,10 @@ public class FamilyUtil {
             return getXmlFamilyStructureDirectAnnotations(id, uplVersion);
         }
         if(true == searchType.equals(WSConstants.SEARCH_TYPE_FAMILY_STRUCTURE_ALL_ANNOTATIONS)) {
-            return getXmlFamilyStructureAllAnnotations(id, uplVersion, true);
+            return BookManager.getInstance().getFamilyStructureAllAnnot(id, uplVersion, WSConstants.SEARCH_TYPE_FAMILY_STRUCTURE_ALL_ANNOTATIONS);
         }
         if (true == searchType.equals(WSConstants.SEARCH_TYPE_FAMILY_STRUCTURE_ALL_ANNOTATIONS_NO_MSA)) {
-            return getXmlFamilyStructureAllAnnotations(id, uplVersion, false);
+            return BookManager.getInstance().getFamilyStructureAllAnnot(id, uplVersion, WSConstants.SEARCH_TYPE_FAMILY_STRUCTURE_ALL_ANNOTATIONS_NO_MSA);
         }
         if(true == searchType.equals(WSConstants.SEARCH_TYPE_FAMILY_COMMENT)) {
             return getXmlFamilyComment(id, uplVersion);
@@ -280,7 +277,16 @@ public class FamilyUtil {
             return getXMLAnnotationInfoDetails(id, uplVersion);
         }
         if (true == searchType.equals(WSConstants.SEARCH_TYPE_FAMILY_LEAF_IBA_ANNOTATION_INFO_DETAILS)) {
-            return getXMLForLeafIBAAnnotationInfoDetails(id, uplVersion);
+            StringBuffer leafBuf = new StringBuffer();
+            StringBuffer internalBuf = new StringBuffer();
+            getXMLForIBAAnnotationInfoDetails(id, uplVersion, leafBuf, internalBuf);
+            return leafBuf.toString();
+        }
+        if (true == searchType.equals(WSConstants.SEARCH_TYPE_FAMILY_INTERNAL_IBA_ANNOTATION_INFO_DETAILS)) {
+            StringBuffer leafBuf = new StringBuffer();
+            StringBuffer internalBuf = new StringBuffer();
+            getXMLForIBAAnnotationInfoDetails(id, uplVersion, leafBuf, internalBuf);
+            return internalBuf.toString();
         }        
         if (true == searchType.equals(WSConstants.SEARCH_TYPE_AGG_FAMILY_ANNOTATION_INFO)) {
             return getXMLAggAnnotationInfo(id, uplVersion);
@@ -299,10 +305,9 @@ public class FamilyUtil {
     private static String getXmlFamilyComment(String familyId, String uplVersion) {
         ArrayList<Integer> commentArray = new ArrayList<Integer>();
         long timeStart = System.currentTimeMillis();        
-        DataIO di = new DataIO(ConfigFile.getProperty(ConfigFile.KEY_DB_JDBC_DBSID));
         String comment = null;
         try {
-            comment = di.getFamilyComment(familyId, uplVersion, commentArray);
+            comment = dataIO.getFamilyComment(familyId, uplVersion, commentArray);
         }
         catch(Exception e) {
             
@@ -319,15 +324,14 @@ public class FamilyUtil {
             return getErrorDoc(WSConstants.SEARCH_TYPE_FAMILY_STRUCTURE_ALL_ANNOTATIONS, MSG_INVALID_ID_SPECIFIED);
         }
         if (true == includeMSA) {
-            Vector msaInfo = (Vector) Client2Servlet.getMSA(familyId, uplVersion);
+            Vector msaInfo = (Vector) DataServlet.getMSAStrs(familyId, uplVersion);
             MSAUtil.parsePIRForNonGO(msaInfo, new Vector(tl.getIdToNodeTbl().values()), true);
         }
-        DataIO di = new DataIO(ConfigFile.getProperty(ConfigFile.KEY_DB_JDBC_DBSID));
-        di.getGeneInfo(familyId, uplVersion, nodeLookup);
+        dataIO.getGeneInfo(familyId, uplVersion, nodeLookup);
         String familyName = null;
         try {
-            familyName = di.getFamilyName(familyId, uplVersion);
-            di.getAnnotationNodeLookup(familyId, uplVersion, nodeLookup);   // This will get all nodes in tree
+            familyName = dataIO.getFamilyName(familyId, uplVersion);
+            dataIO.getAnnotationNodeLookup(familyId, uplVersion, nodeLookup);   // This will get all nodes in tree
         }
         catch(Exception e) {
             
@@ -346,14 +350,14 @@ public class FamilyUtil {
         }
 
         try {
-            di.addPruned(familyId, uplVersion, nodeLookup);
+            dataIO.addPruned(familyId, uplVersion, nodeLookup);
             HashMap<edu.usc.ksom.pm.panther.paintCommon.Annotation, ArrayList<IWith>> annotToPosWithLookup = new HashMap<edu.usc.ksom.pm.panther.paintCommon.Annotation, ArrayList<IWith>>();
             StringBuffer errorBuf = new StringBuffer();
             StringBuffer paintErrBuf = new StringBuffer();
             HashSet<edu.usc.ksom.pm.panther.paintCommon.Annotation> removeSet = new HashSet<edu.usc.ksom.pm.panther.paintCommon.Annotation>();
             HashSet<String> modifySet = new HashSet<String>();
             HashSet<edu.usc.ksom.pm.panther.paintCommon.Annotation> removedFromGOAnnot = new HashSet<edu.usc.ksom.pm.panther.paintCommon.Annotation>();
-            di.getFullGOAnnotations(familyId, uplVersion, nodeLookup, annotToPosWithLookup, errorBuf, paintErrBuf, removeSet, modifySet, new HashSet<Annotation>(), removedFromGOAnnot, false);
+            dataIO.getFullGOAnnotations(familyId, uplVersion, nodeLookup, annotToPosWithLookup, errorBuf, paintErrBuf, removeSet, modifySet, new HashSet<Annotation>(), removedFromGOAnnot, false);
         }
         catch(Exception e) {
             
@@ -371,11 +375,10 @@ public class FamilyUtil {
         long timeStart = System.currentTimeMillis();
         TreeLogic tl = new TreeLogic();
         tl.setTreeStructure(familyId, uplVersion, nodeLookup);
-        DataIO di = new DataIO(ConfigFile.getProperty(ConfigFile.KEY_DB_JDBC_DBSID));
         String familyName = null;
         try {
-            familyName = di.getFamilyName(familyId, uplVersion);
-            di.getAnnotationNodeLookup(familyId, uplVersion, nodeLookup);   // This will get all nodes in tree
+            familyName = dataIO.getFamilyName(familyId, uplVersion);
+            dataIO.getAnnotationNodeLookup(familyId, uplVersion, nodeLookup);   // This will get all nodes in tree
         }
         catch (Exception e) {
             
@@ -390,7 +393,7 @@ public class FamilyUtil {
             an.setNode(nodeLookup.get(an.getAccession()));
         }
         
-        di.getFullPAINTAnnotations(familyId, uplVersion, nodeLookup);
+        dataIO.getFullPAINTAnnotations(familyId, uplVersion, nodeLookup);
         // Keep list of non-propagated annotations
         HashSet<edu.usc.ksom.pm.panther.paintCommon.Annotation> nonPropAnnotSet = new HashSet<edu.usc.ksom.pm.panther.paintCommon.Annotation>();
         for (Node n: nodeLookup.values()) {
@@ -412,8 +415,7 @@ public class FamilyUtil {
     private static String getXmlFamilyDirectAnnotations(String familyId, String uplVersion) {
         HashMap<String, Node> nodeLookup = new HashMap<String, Node>();
         long timeStart = System.currentTimeMillis();        
-        DataIO di = new DataIO(ConfigFile.getProperty(ConfigFile.KEY_DB_JDBC_DBSID));
-        di.getFullPAINTAnnotations(familyId, uplVersion, nodeLookup);
+        dataIO.getFullPAINTAnnotations(familyId, uplVersion, nodeLookup);
         // Keep list of non-propagated annotations
         HashSet<edu.usc.ksom.pm.panther.paintCommon.Annotation> nonPropAnnotSet = new HashSet<edu.usc.ksom.pm.panther.paintCommon.Annotation>();
         for (Node n: nodeLookup.values()) {
@@ -430,7 +432,7 @@ public class FamilyUtil {
         
         String familyName = null;
         try {
-            familyName = di.getFamilyName(familyId, uplVersion);
+            familyName = dataIO.getFamilyName(familyId, uplVersion);
         }
         catch (Exception e) {
             
@@ -977,7 +979,7 @@ public class FamilyUtil {
         }            
     }
 
-    private static String getErrorDoc (String searchType, String errorMsg) {
+    public static String getErrorDoc (String searchType, String errorMsg) {
         try {        
             DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
             DocumentBuilder builder = factory.newDocumentBuilder();
@@ -1011,7 +1013,7 @@ public class FamilyUtil {
         }            
     }
     
-    private static String outputFamilyStructureAnnotations(TreeLogic tl, HashMap<String, Node> nodeLookup, String familyId, String familyName, long duration, String searchType) {
+    public static String outputFamilyStructureAnnotations(TreeLogic tl, HashMap<String, Node> nodeLookup, String familyId, String familyName, long duration, String searchType) {
         try {        
             DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
             DocumentBuilder builder = factory.newDocumentBuilder();
@@ -1624,7 +1626,6 @@ public class FamilyUtil {
     public static String getXMLAnnotationInfo(String familyId, String uplVersion) {
         HashMap<String, Node> treeNodeLookup = new HashMap<String, Node>();
         long start = System.currentTimeMillis();
-        DataIO dataIO = new DataIO(ConfigFile.getProperty(ConfigFile.KEY_DB_JDBC_DBSID));
         dataIO.getAnnotationNodeLookup(familyId, uplVersion, treeNodeLookup);
         HashMap<edu.usc.ksom.pm.panther.paintCommon.Annotation, ArrayList<IWith>> annotToPosWithLookup = new HashMap<edu.usc.ksom.pm.panther.paintCommon.Annotation, ArrayList<IWith>>();
         StringBuffer errorBuf = new StringBuffer();
@@ -1633,6 +1634,7 @@ public class FamilyUtil {
         HashSet<String> modifySet = new HashSet<String>();
         HashSet<edu.usc.ksom.pm.panther.paintCommon.Annotation> removedFromGOAnnot = new HashSet<edu.usc.ksom.pm.panther.paintCommon.Annotation>();
         try {
+            dataIO.addPruned(familyId, uplVersion, treeNodeLookup);
             dataIO.getFullGOAnnotations(familyId, uplVersion, treeNodeLookup, annotToPosWithLookup, errorBuf, paintErrBuf, removeSet, modifySet, new HashSet<Annotation>(), removedFromGOAnnot, false);
             return outputFamilyAnnotationInfoStr(errorBuf, paintErrBuf, familyId, System.currentTimeMillis() - start, WSConstants.SEARCH_TYPE_FAMILY_ANNOTATION_INFO);
         } catch (Exception e) {
@@ -1644,7 +1646,6 @@ public class FamilyUtil {
     public static String getXMLAnnotationInfoDetails(String familyId, String uplVersion) {
         HashMap<String, Node> treeNodeLookup = new HashMap<String, Node>();
         long start = System.currentTimeMillis();
-        DataIO dataIO = new DataIO(ConfigFile.getProperty(ConfigFile.KEY_DB_JDBC_DBSID));
         dataIO.getAnnotationNodeLookup(familyId, uplVersion, treeNodeLookup);
         HashMap<edu.usc.ksom.pm.panther.paintCommon.Annotation, ArrayList<IWith>> annotToPosWithLookup = new HashMap<edu.usc.ksom.pm.panther.paintCommon.Annotation, ArrayList<IWith>>();
         StringBuffer errorBuf = new StringBuffer();
@@ -1653,6 +1654,7 @@ public class FamilyUtil {
         HashSet<String> modifySet = new HashSet<String>();
         HashSet<edu.usc.ksom.pm.panther.paintCommon.Annotation> removedFromGOAnnot = new HashSet<edu.usc.ksom.pm.panther.paintCommon.Annotation>();
         try {
+            dataIO.addPruned(familyId, uplVersion, treeNodeLookup);
             dataIO.getFullGOAnnotations(familyId, uplVersion, treeNodeLookup, annotToPosWithLookup, errorBuf, paintErrBuf, removeSet, modifySet, new HashSet<Annotation>(), removedFromGOAnnot, false);
             return outputFamilyAnnotationInfoDetailsStr(treeNodeLookup, errorBuf, paintErrBuf, familyId, System.currentTimeMillis() - start, WSConstants.SEARCH_TYPE_FAMILY_ANNOTATION_INFO);
         } catch (Exception e) {
@@ -1661,30 +1663,30 @@ public class FamilyUtil {
         }
     }    
 
-    public static String getXMLForLeafIBAAnnotationInfoDetails(String familyId, String uplVersion) {
-        HashMap<String, Node> treeNodeLookup = new HashMap<String, Node>();
-        long start = System.currentTimeMillis();
-        DataIO dataIO = new DataIO(ConfigFile.getProperty(ConfigFile.KEY_DB_JDBC_DBSID));
-        dataIO.getAnnotationNodeLookup(familyId, uplVersion, treeNodeLookup);
-        dataIO.getGeneInfo(familyId, uplVersion, treeNodeLookup);
-        HashMap<edu.usc.ksom.pm.panther.paintCommon.Annotation, ArrayList<IWith>> annotToPosWithLookup = new HashMap<edu.usc.ksom.pm.panther.paintCommon.Annotation, ArrayList<IWith>>();
-        StringBuffer errorBuf = new StringBuffer();
-        StringBuffer paintErrBuf = new StringBuffer();
-        HashSet<edu.usc.ksom.pm.panther.paintCommon.Annotation> removeSet = new HashSet<edu.usc.ksom.pm.panther.paintCommon.Annotation>();
-        HashSet<String> modifySet = new HashSet<String>();
-        HashSet<edu.usc.ksom.pm.panther.paintCommon.Annotation> removedFromGOAnnot = new HashSet<edu.usc.ksom.pm.panther.paintCommon.Annotation>();
+    public static void getXMLForIBAAnnotationInfoDetails(String familyId, String uplVersion, StringBuffer leafNodeIBABuf, StringBuffer internlNodeIBABuf) {
         try {
+            HashMap<String, Node> treeNodeLookup = new HashMap<String, Node>();
+            long start = System.currentTimeMillis();
+            dataIO.getAnnotationNodeLookup(familyId, uplVersion, treeNodeLookup);
+            dataIO.getGeneInfo(familyId, uplVersion, treeNodeLookup);
+            dataIO.addPruned(familyId, uplVersion, treeNodeLookup);
+            HashMap<edu.usc.ksom.pm.panther.paintCommon.Annotation, ArrayList<IWith>> annotToPosWithLookup = new HashMap<edu.usc.ksom.pm.panther.paintCommon.Annotation, ArrayList<IWith>>();
+            StringBuffer errorBuf = new StringBuffer();
+            StringBuffer paintErrBuf = new StringBuffer();
+            HashSet<edu.usc.ksom.pm.panther.paintCommon.Annotation> removeSet = new HashSet<edu.usc.ksom.pm.panther.paintCommon.Annotation>();
+            HashSet<String> modifySet = new HashSet<String>();
+            HashSet<edu.usc.ksom.pm.panther.paintCommon.Annotation> removedFromGOAnnot = new HashSet<edu.usc.ksom.pm.panther.paintCommon.Annotation>();
+
             dataIO.getFullGOAnnotations(familyId, uplVersion, treeNodeLookup, annotToPosWithLookup, errorBuf, paintErrBuf, removeSet, modifySet, new HashSet<Annotation>(), removedFromGOAnnot, false);
-            return getXMLForLeafIBAAnnotationInfoDetails(treeNodeLookup, errorBuf, paintErrBuf, familyId, System.currentTimeMillis() - start, WSConstants.SEARCH_TYPE_FAMILY_ANNOTATION_INFO);
+            getXMLForIBAAnnotationInfoDetails(treeNodeLookup, errorBuf, paintErrBuf, familyId, System.currentTimeMillis() - start, WSConstants.SEARCH_TYPE_FAMILY_ANNOTATION_INFO, leafNodeIBABuf, internlNodeIBABuf);
         } catch (Exception e) {
             e.printStackTrace();
-            return null;
+            return;
         }
     }   
     public static String getXMLAggAnnotationInfo(String familyId, String uplVersion) {
         HashMap<String, Node> treeNodeLookup = new HashMap<String, Node>();
         long start = System.currentTimeMillis();
-        DataIO dataIO = new DataIO(ConfigFile.getProperty(ConfigFile.KEY_DB_JDBC_DBSID));
         dataIO.getAnnotationNodeLookup(familyId, uplVersion, treeNodeLookup);
         HashMap<edu.usc.ksom.pm.panther.paintCommon.Annotation, ArrayList<IWith>> annotToPosWithLookup = new HashMap<edu.usc.ksom.pm.panther.paintCommon.Annotation, ArrayList<IWith>>();
         StringBuffer errorBuf = new StringBuffer();
@@ -1693,6 +1695,7 @@ public class FamilyUtil {
         HashSet<String> modifySet = new HashSet<String>();
         HashSet<edu.usc.ksom.pm.panther.paintCommon.Annotation> removedFromGOAnnot = new HashSet<edu.usc.ksom.pm.panther.paintCommon.Annotation>();
         try {
+            dataIO.addPruned(familyId, uplVersion, treeNodeLookup);            
             dataIO.getFullGOAnnotations(familyId, uplVersion, treeNodeLookup, annotToPosWithLookup, errorBuf, paintErrBuf, removeSet, modifySet, new HashSet<Annotation>(), removedFromGOAnnot, true);
             return outputFamilyAnnotationInfoStr(errorBuf, paintErrBuf, familyId, System.currentTimeMillis() - start, WSConstants.SEARCH_TYPE_AGG_FAMILY_ANNOTATION_INFO);
         } catch (Exception e) {
@@ -1703,7 +1706,6 @@ public class FamilyUtil {
     public static String getXMLOtherEvdnce(String familyId, String uplVersion) {
         HashMap<String, Node> treeNodeLookup = new HashMap<String, Node>();
         long start = System.currentTimeMillis();
-        DataIO dataIO = new DataIO(ConfigFile.getProperty(ConfigFile.KEY_DB_JDBC_DBSID));
         dataIO.getAnnotationNodeLookup(familyId, uplVersion, treeNodeLookup);
         HashMap<edu.usc.ksom.pm.panther.paintCommon.Annotation, ArrayList<IWith>> annotToPosWithLookup = new HashMap<edu.usc.ksom.pm.panther.paintCommon.Annotation, ArrayList<IWith>>();
         StringBuffer errorBuf = new StringBuffer();
@@ -1712,6 +1714,7 @@ public class FamilyUtil {
         HashSet<String> modifySet = new HashSet<String>();
         HashSet<edu.usc.ksom.pm.panther.paintCommon.Annotation> removedFromGOAnnot = new HashSet<edu.usc.ksom.pm.panther.paintCommon.Annotation>();
         try {
+            dataIO.addPruned(familyId, uplVersion, treeNodeLookup);            
             dataIO.getFullGOAnnotations(familyId, uplVersion, treeNodeLookup, annotToPosWithLookup, errorBuf, paintErrBuf, removeSet, modifySet, new HashSet<Annotation>(), removedFromGOAnnot, false);
             return outputFamilyOtherEvdnce(annotToPosWithLookup, familyId, System.currentTimeMillis() - start, WSConstants.SEARCH_TYPE_FAMILY_EVIDENCE_INFO);
         } catch (Exception e) {
@@ -1721,7 +1724,6 @@ public class FamilyUtil {
     }
     
     public static String getXMLFamilyCurationDetails(String familyId, String uplVersion) {
-        DataIO dataIO = new DataIO(ConfigFile.getProperty(ConfigFile.KEY_DB_JDBC_DBSID));
         Book b = null;
         try {
             b = dataIO.getBookStatusComment(familyId, uplVersion);
@@ -2030,7 +2032,7 @@ public class FamilyUtil {
         }            
     }    
     
-    private static String getXMLForLeafIBAAnnotationInfoDetails(HashMap<String, Node> treeNodeLookup, StringBuffer otherAnnotInfo, StringBuffer paintAnnotInfo, String familyId, long duration, String searchType) {
+    private static void getXMLForIBAAnnotationInfoDetails(HashMap<String, Node> treeNodeLookup, StringBuffer otherAnnotInfo, StringBuffer paintAnnotInfo, String familyId, long duration, String searchType, StringBuffer leafNodeBuf, StringBuffer internalNodeBuf) {
         try {        
             DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
             DocumentBuilder builder = factory.newDocumentBuilder();
@@ -2092,26 +2094,57 @@ public class FamilyUtil {
             }
             
             
-            Element ibaTreeInfoElem = getIBAInfoForTree(doc, treeNodeLookup);
-            if (null != ibaTreeInfoElem) {
-                root.appendChild(ibaTreeInfoElem);
+            Element ibaLeafTreeInfoElem = getIBAInfoForTree(doc, treeNodeLookup, true);
+            if (null != ibaLeafTreeInfoElem) {
+                root.appendChild(ibaLeafTreeInfoElem);
             }
+            
             
             // Output information
             DOMImplementationLS domImplementation = (DOMImplementationLS) doc.getImplementation();
             LSSerializer lsSerializer = domImplementation.createLSSerializer();
-            return lsSerializer.writeToString(doc); 
+            String leafStr = lsSerializer.writeToString(doc);
+            if (null != leafStr) {
+                leafNodeBuf.append(leafStr);
+            }
+            
+            //  Remove leaf information, if necessary
+            if (null != ibaLeafTreeInfoElem) {
+                Element oldChild = (Element) root.removeChild(ibaLeafTreeInfoElem);
+                if (oldChild != ibaLeafTreeInfoElem) {
+                    System.out.println("Unable to replace element in document for " + familyId);
+                    return;
+                }
+            }
+            Element ibaInternalTreeInfoElem = getIBAInfoForTree(doc, treeNodeLookup, false);
+            if (null != ibaInternalTreeInfoElem) {
+                root.appendChild(ibaInternalTreeInfoElem);
+            }
+            domImplementation = (DOMImplementationLS) doc.getImplementation();
+            lsSerializer = domImplementation.createLSSerializer();
+            String internalStr = lsSerializer.writeToString(doc);
+            if (null != internalStr) {
+                internalNodeBuf.append(internalStr);
+            }
+
         }
         catch(Exception e) {
              e.printStackTrace();
-             return null;
+             return;
         }            
     } 
     
-    private static Element getIBAInfoForTree(Document doc, HashMap<String, Node> treeNodeLookup) {
+    /**
+     * 
+     * @param doc
+     * @param treeNodeLookup
+     * @param leaf true for leaves only and false for internal only
+     * @return 
+     */
+    private static Element getIBAInfoForTree(Document doc, HashMap<String, Node> treeNodeLookup, boolean leaf) {
         HashSet<Node> nodeSet = new HashSet<Node>();
         for (Node n: treeNodeLookup.values()) {
-            if (false == n.getStaticInfo().isLeaf()) {
+            if ((false == n.getStaticInfo().isLeaf()  && true == leaf) || (true == n.getStaticInfo().isLeaf()  && false == leaf)) {
                 continue;
             }
             NodeVariableInfo nvi = n.getVariableInfo();
@@ -2141,7 +2174,9 @@ public class FamilyUtil {
             NodeStaticInfo nsi = n.getStaticInfo();
             
             // Output long gene name, gene name and gene symbol, taxon for leaves
-            nodeElem.appendChild(Utils.createTextNode(doc, ELEMENT_GENE_LONG_ID, nsi.getLongGeneName()));
+            if (null != nsi.getLongGeneName()) {
+                nodeElem.appendChild(Utils.createTextNode(doc, ELEMENT_GENE_LONG_ID, nsi.getLongGeneName()));
+            }
             if (null != nsi.getGeneName() && 0 != nsi.getGeneName().size()) {
                 HashSet<String> geneNames = new HashSet<String>(nsi.getGeneName());
                 String combined = String.join(Constant.STR_COMMA, geneNames).replaceAll(StringUtils.XML10_ILLEGAL_CHARS_PATTERN, WSConstants.STR_EMPTY);
@@ -2160,8 +2195,8 @@ public class FamilyUtil {
             if (null != taxonId) {
                 nodeElem.appendChild(Utils.createTextNode(doc, ELEMENT_TAXON_ID, taxonId));
             }
-            else {
-                System.out.println("Did not find taxon id for " + nsi.getPublicId() + " long gene name " + nsi.getLongGeneName() + " species " + nsi.getSpecies());
+            else if (true ==  leaf) {
+                System.out.println("Did not find taxon id for " + nsi.getPublicId() + " long gene name " + nsi.getLongGeneName() + " with species " + nsi.getSpecies());
             }
             
             
@@ -2345,23 +2380,40 @@ public class FamilyUtil {
     
     public static void main(String[] args) {
         try {
-            Path curFilePath = Paths.get("C:/temp/PTHR10004.xml");
-            String IBAInfo = FamilyUtil.getXMLForLeafIBAAnnotationInfoDetails("PTHR10004", WSConstants.PROPERTY_CLS_VERSION);
+            StringBuffer leafNodeBuf = new StringBuffer();
+            StringBuffer internalNodeBuf = new StringBuffer();
+            Path leafFilePath = Paths.get("C:/temp/PTHR10004_leaf.xml");
+            Path internalFilePath = Paths.get("C:/temp/PTHR10004_internal.xml");            
+            FamilyUtil.getXMLForIBAAnnotationInfoDetails("PTHR10004", WSConstants.PROPERTY_CLS_VERSION, leafNodeBuf, internalNodeBuf);
             ArrayList<String> IBAInfoList = new ArrayList<String>();
-            IBAInfoList.add(IBAInfo);
-            Files.write(curFilePath, IBAInfoList, StandardCharsets.UTF_8);            
+            IBAInfoList.add(leafNodeBuf.toString());
+            Files.write(leafFilePath, IBAInfoList, StandardCharsets.UTF_8);
+            IBAInfoList.clear();
+            IBAInfoList.add(internalNodeBuf.toString());
+            Files.write(internalFilePath, IBAInfoList, StandardCharsets.UTF_8);
+
             
-            curFilePath = Paths.get("C:/temp/PTHR16631.xml");
-            IBAInfo = FamilyUtil.getXMLForLeafIBAAnnotationInfoDetails("PTHR16631", WSConstants.PROPERTY_CLS_VERSION);
-            IBAInfoList = new ArrayList<String>();
-            IBAInfoList.add(IBAInfo);
-            Files.write(curFilePath, IBAInfoList, StandardCharsets.UTF_8);
+            leafFilePath = Paths.get("C:/temp/PTHR16631leaf.xml");
+            internalFilePath = Paths.get("C:/temp/PTHR16631_internal.xml");
+            leafNodeBuf.setLength(0);
+            internalNodeBuf.setLength(0);
+            FamilyUtil.getXMLForIBAAnnotationInfoDetails("PTHR16631", WSConstants.PROPERTY_CLS_VERSION, leafNodeBuf, internalNodeBuf);
+            IBAInfoList.clear();
+            IBAInfoList.add(leafNodeBuf.toString());
+            Files.write(leafFilePath, IBAInfoList, StandardCharsets.UTF_8);
+            IBAInfoList.clear();
+            IBAInfoList.add(internalNodeBuf.toString());
+            Files.write(internalFilePath, IBAInfoList, StandardCharsets.UTF_8);
             
-            curFilePath = Paths.get("C:/temp/PTHR22762.xml");
-            IBAInfo = FamilyUtil.getXMLForLeafIBAAnnotationInfoDetails("PTHR22762", WSConstants.PROPERTY_CLS_VERSION);
-            IBAInfoList = new ArrayList<String>();
-            IBAInfoList.add(IBAInfo);
-            Files.write(curFilePath, IBAInfoList, StandardCharsets.UTF_8);
+            leafFilePath = Paths.get("C:/temp/PTHR22762leaf.xml");
+            internalFilePath = Paths.get("C:/temp/PTHR22762_internal.xml");     
+            FamilyUtil.getXMLForIBAAnnotationInfoDetails("PTHR22762", WSConstants.PROPERTY_CLS_VERSION, leafNodeBuf, internalNodeBuf);
+            IBAInfoList.clear();
+            IBAInfoList.add(leafNodeBuf.toString());
+            Files.write(leafFilePath, IBAInfoList, StandardCharsets.UTF_8);
+            IBAInfoList.clear();
+            IBAInfoList.add(internalNodeBuf.toString());
+            Files.write(internalFilePath, IBAInfoList, StandardCharsets.UTF_8);
             
         } catch (IOException e) {
             e.printStackTrace();

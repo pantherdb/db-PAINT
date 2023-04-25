@@ -1,5 +1,5 @@
 /**
- *  Copyright 2021 University Of Southern California
+ *  Copyright 2022 University Of Southern California
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -19,10 +19,10 @@ import com.sri.panther.paintCommon.util.Utils;
 import com.sri.panther.paintServer.database.DataIO;
 import com.sri.panther.paintServer.database.DataServer;
 import com.sri.panther.paintServer.database.DataServerManager;
-import com.sri.panther.paintServer.servlet.Client2Servlet;
-import com.sri.panther.paintServer.util.ConfigFile;
 import edu.usc.ksom.pm.panther.paintCommon.AnnotationNode;
 import edu.usc.ksom.pm.panther.paintCommon.Node;
+import edu.usc.ksom.pm.panther.paintServer.logic.DataAccessManager;
+import edu.usc.ksom.pm.panther.paintServer.servlet.DataServlet;
 import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.StringTokenizer;
@@ -47,7 +47,7 @@ public class TreeLogic {
     protected static final String DELIM_SQUARE_BRACKET_CLOSE = "]";
     public static final String DELIM_TREE = ",();";
     
-    private static final DataIO DATA_IO = new DataIO(ConfigFile.getProperty(ConfigFile.KEY_DB_JDBC_DBSID));
+    private static final DataIO DATA_IO = DataAccessManager.getInstance().getDataIO();
     
     public TreeLogic() {
         
@@ -161,7 +161,7 @@ public class TreeLogic {
         if (null == ds) {
             return false;
         }
-        String treeStrings[] = Client2Servlet.getTree(ds, familyId, uplVersion);
+        String treeStrings[] = DataServlet.getTree(ds, familyId, uplVersion);
         
         if (null == treeStrings) {
             invalidFamilyId = true;
@@ -212,7 +212,7 @@ public class TreeLogic {
         
         // Save family name
         familyName = ds.getFamilyName(familyId, uplVersion);
-        Vector msaInfo = (Vector) Client2Servlet.getMSA(familyId, uplVersion);
+        Vector msaInfo = (Vector) DataServlet.getMSAStrs(familyId, uplVersion);
         
         
         MSAUtil.parsePIRForNonGO(msaInfo, nodeList, true);
@@ -277,7 +277,7 @@ public class TreeLogic {
         }
         Vector <AnnotationNode> nodeList = new Vector<AnnotationNode>();
         nodeList.add(node);
-        Vector msaInfo = (Vector) Client2Servlet.getMSA(familyId, uplVersion);
+        Vector msaInfo = (Vector) DataServlet.getMSAStrs(familyId, uplVersion);
         MSAUtil.parsePIRForNonGO(msaInfo, nodeList, false);
         return node.getSequence();
     }

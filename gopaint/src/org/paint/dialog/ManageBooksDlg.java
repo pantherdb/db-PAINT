@@ -1,5 +1,5 @@
 /**
- *  Copyright 2019 University Of Southern California
+ *  Copyright 2022 University Of Southern California
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -32,8 +32,14 @@ import java.awt.Point;
 import java.awt.Rectangle;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.InputEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashSet;
@@ -44,6 +50,7 @@ import javax.swing.BoxLayout;
 import javax.swing.ButtonGroup;
 import javax.swing.JButton;
 import javax.swing.JDialog;
+import javax.swing.JFileChooser;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
@@ -55,12 +62,16 @@ import javax.swing.JTextField;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 import javax.swing.event.TableModelEvent;
+import javax.swing.filechooser.FileFilter;
+import javax.swing.filechooser.FileNameExtensionFilter;
 import javax.swing.table.AbstractTableModel;
 import javax.swing.table.TableCellRenderer;
 import javax.swing.table.TableModel;
 import javax.swing.table.TableRowSorter;
+import org.bbop.framework.GUIManager;
 import org.paint.dataadapter.PantherServer;
 import org.paint.main.PaintManager;
+import org.paint.util.HTMLUtil;
 
 
 public class ManageBooksDlg extends JDialog {
@@ -102,6 +113,8 @@ public class ManageBooksDlg extends JDialog {
     public static final String MSG_SERVER_ERROR_CANNOT_LOCK_UNLOCK_BOOKS =  "Server returned error, cannot lock and unlock books";
     public static final String MSG_SERVER_ERROR_CANNOT_ACCESS_LOCKED_BOOKS =  "Server returned error, cannot access locked books";
     public static final String MSG_NO_BOOKS_FOR_SEARCH_CRITERIA = "No books found matching search criteria";
+    public static final String MSG_NO_BOOKS_FOR_EXPORTING = "No books found for exporting";
+    public static final String MSG_SUCCESS_EXPORTED = "Information has  been exported";
     
     
     public static final String MSG_HEADER_LOCK_BOOKS = "Lock Books";
@@ -113,6 +126,7 @@ public class ManageBooksDlg extends JDialog {
     
     public static final String LABEL_SEARCH = "Search Term";
     public static final String LABEL_SUBMIT = "Submit";
+    public static final String LABEL_EXPORT = "Export";
     
     public static final String LABEL_SELECT_ALL = "Select all";
     public static final String LABEL_DESELECT_ALL = "Deselect all";
@@ -146,22 +160,25 @@ public class ManageBooksDlg extends JDialog {
     private static final String COLUMN_NUM_LEAVES = "# leaves";
     private static final String COLUMN_NAME_LOCKED_BY = "Locked by";
     private static final String COLUMN_NAME_DATE = "Last Status Change";
+    private static final String COLUMN_NAME_DATE_ANNOTATION = "Last Annotation Change";
     private static final String COLUMN_NAME_OPEN = "Open";
     private static final String COLUMN_NAME_LOCK_UNLOCK = "Lock/UnLock";
     private static final String COLUMN_NAME_UNLOCK = "Unlock";
     private static final String[] COLUMN_NAMES_SEARCH =
-    { COLUMN_NAME_BOOK_ID, COLUMN_NAME_NAME, COLUMN_NAME_CURATION_STATUS, COLUMN_NAME_DATE, COLUMN_NAME_EXP_EVDNCE, COLUMN_NAME_NOTES, COLUMN_NAME_ORG, COLUMN_NUM_LEAVES, COLUMN_NAME_OPEN,  COLUMN_NAME_LOCK_UNLOCK, COLUMN_NAME_LOCKED_BY};
+    { COLUMN_NAME_BOOK_ID, COLUMN_NAME_NAME, COLUMN_NAME_CURATION_STATUS, COLUMN_NAME_DATE, COLUMN_NAME_DATE_ANNOTATION, COLUMN_NAME_EXP_EVDNCE, COLUMN_NAME_NOTES, COLUMN_NAME_ORG, COLUMN_NUM_LEAVES, COLUMN_NAME_OPEN,  COLUMN_NAME_LOCK_UNLOCK, COLUMN_NAME_LOCKED_BY};
     
-    public static final Class[] COLUMN_TYPES_SEARCH = {String.class, String.class, String.class, Date.class, Boolean.class, Boolean.class, String.class, Integer.class, JButton.class, Boolean.class, String.class};
+    public static final Class[] COLUMN_TYPES_SEARCH = {String.class, String.class, String.class, Date.class, Date.class, Boolean.class, Boolean.class, String.class, Integer.class, JButton.class, Boolean.class, String.class};
 
+    public static final String LABEL_LOCKED = "Locked";
     public static final String LINE_BREAK = "\\\\n";
     public static final String HTML_LINEBREAK = "<BR>";
     public static final String HTML_START = "<HTML>";
+    public static final String CLICK_MSG = "Left click to view notes in pantree" + HTML_LINEBREAK;
     public static final String HTML_END = "</HTML>";
     
-    int defaultSortColSearchTbl = 7;
-    int nonSortCol = 6;
-    int COL_INDEX_COMMENT = 5;
+    int defaultSortColSearchTbl = 8;
+    int nonSortCol = 9;
+    int COL_INDEX_COMMENT = 6;
     private static final String[] COLUMN_NAMES_MY_BOOKS =     { COLUMN_NAME_BOOK_ID, COLUMN_NAME_NAME, COLUMN_NAME_CURATION_STATUS, COLUMN_NAME_OPEN, COLUMN_NAME_UNLOCK};
     private static final Class[] COLUMN_TYPES_MY_BOOKS = {String.class, String.class, String.class, JButton.class, Boolean.class};
     
@@ -180,6 +197,9 @@ public class ManageBooksDlg extends JDialog {
     
     JRadioButton lastValidSearchBtn = null;
     String lastValidSearchStr = null;
+    
+    public static final String URL_LINK_PREFIX_PANTREE_BOOK_COMMENT = "http://pantree.org/tree/familyCuratorNotes.jsp?accession=";
+    
 
     public ManageBooksDlg(Frame frame, String servletUrl, Vector userInfo) {
         super(frame, true);
@@ -302,7 +322,9 @@ public class ManageBooksDlg extends JDialog {
         submitBtn.addActionListener(new SearchActionListener());
         JPanel submitPanel = new JPanel();
         submitPanel.add(submitBtn);
-
+        JButton exportBtn = new JButton(LABEL_EXPORT);
+        exportBtn.addActionListener(new ExportActionListener());
+        submitPanel.add(exportBtn);
 
         searchPanel.add(searchTermPanel);
         searchPanel.add(centerPanel);
@@ -604,8 +626,8 @@ public class ManageBooksDlg extends JDialog {
                 java.awt.Point p = e.getPoint();
                 int rowIndex = ManageBooksDlg.this.searchBooksTable.rowAtPoint(p);
                 int colIndex = ManageBooksDlg.this.searchBooksTable.columnAtPoint(p);
-                JTable source = (JTable)e.getSource();
-            int row = ManageBooksDlg.this.searchBooksTable.convertRowIndexToModel(rowIndex);
+                //JTable source = (JTable)e.getSource();
+                int row = ManageBooksDlg.this.searchBooksTable.convertRowIndexToModel(rowIndex);
                 int realColumnIndex = ManageBooksDlg.this.searchBooksTable.convertColumnIndexToModel(colIndex);
 
                 if (realColumnIndex == COL_INDEX_COMMENT) {
@@ -614,14 +636,14 @@ public class ManageBooksDlg extends JDialog {
                     tip = aBook.getCommentUser();
                     if (null != tip) {
                         tip = tip.replaceAll(LINE_BREAK, HTML_LINEBREAK);
-                        tip = HTML_START + tip + HTML_END;
+                        tip = HTML_START + CLICK_MSG + tip + HTML_END;
                     }
                 }
                 if (null == tip) {
                     return Constant.STR_EMPTY;
                 }
                 return tip;
-            }            
+            }
         };
         searchBooksTable.setDefaultRenderer(JButton.class, new ButtonCellRenderer(BUTTON_LABEL_VIEW));    
         searchBooksTable.addMouseListener(new LaunchBtnMouseAdapter(searchBooksTable));        
@@ -940,6 +962,9 @@ public class ManageBooksDlg extends JDialog {
             else if (COLUMN_NAME_DATE.equals(header)) {
                 return aBook.getCurationStatusUpdateDate();
             }
+            else if (COLUMN_NAME_DATE_ANNOTATION.equals(header)) {
+                return aBook.getLastAnnotationUpdateDate();
+            }
             else if (COLUMN_NAME_OPEN.equals(header)) {
                 return Constant.STR_EMPTY;
             }
@@ -1106,7 +1131,103 @@ public class ManageBooksDlg extends JDialog {
         }
     }
 
+    public class ExportActionListener implements ActionListener {
+        public void actionPerformed(ActionEvent e) {
+            if (null == ManageBooksDlg.this.searchBooksTable) {
+                JOptionPane.showMessageDialog(ManageBooksDlg.this.frame,
+                                              MSG_NO_BOOKS_FOR_EXPORTING,
+                                              MSG_HEADER_SEARCH_BOOKS,
+                                              JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+            SearchBookTableModel model = (SearchBookTableModel)ManageBooksDlg.this.searchBooksTable.getModel();
+            int numBooks = model.getRowCount();
+            
+            if (numBooks <= 0) {
+                JOptionPane.showMessageDialog(ManageBooksDlg.this.frame,
+                                              MSG_NO_BOOKS_FOR_EXPORTING,
+                                              MSG_HEADER_SEARCH_BOOKS,
+                                              JOptionPane.ERROR_MESSAGE);
+                return;                
+            }
+            
+                            
+                
+                
+            int numCols = COLUMN_NAMES_SEARCH.length;
+            StringBuffer sb = new StringBuffer();
+            for (int j = 0; j < numCols; j++) {
+                int realColumnIndex = ManageBooksDlg.this.searchBooksTable.convertColumnIndexToModel(j);
+                if (COLUMN_NAME_OPEN.equals(COLUMN_NAMES_SEARCH[realColumnIndex])) {
+                    continue;
+                }
+                if (COLUMN_NAME_LOCK_UNLOCK.equals(COLUMN_NAMES_SEARCH[realColumnIndex])) {
+                    sb.append(LABEL_LOCKED);
+                }
+                else {
+                    sb.append(COLUMN_NAMES_SEARCH[realColumnIndex]);    
+                }
+                
+                if (realColumnIndex + 1 == numCols) {
+                    sb.append(Constant.STR_NEWLINE);
+                }
+                else {
+                    sb.append(Constant.STR_TAB);
+                }
+            }
+            for (int i = 0; i < numBooks; i++) {
+                int row = ManageBooksDlg.this.searchBooksTable.convertRowIndexToModel(i);
+                for (int j = 0; j < numCols; j++) {
+                    int realColumnIndex = ManageBooksDlg.this.searchBooksTable.convertColumnIndexToModel(j);
+                    Object o = model.getValueAt(row, realColumnIndex);
+                    if (null == o) {
+                        o = Constant.STR_DASH;
+                    }
+                    if (COLUMN_NAME_OPEN.equals(COLUMN_NAMES_SEARCH[j])) {
+                        continue;
+                    }
+                    sb.append(o.toString());
+                    if (realColumnIndex + 1 == numCols) {
+                        sb.append(Constant.STR_NEWLINE);
+                    } else {
+                        sb.append(Constant.STR_TAB);
+                    }
+                }
+            }
+            
+            // Output to file
+            JFileChooser dlg = new JFileChooser();
+            FileFilter filter = new FileNameExtensionFilter("Export file", "txt");
+            dlg.setFileFilter(filter);
+            if (null != PaintManager.inst().getCurrentDirectory()) {
+                dlg.setCurrentDirectory(PaintManager.inst().getCurrentDirectory());
+            }
+            int rtrnVal = dlg.showSaveDialog(GUIManager.getManager().getFrame());
 
+            if (JFileChooser.APPROVE_OPTION != rtrnVal) {
+                return;
+            }
+            File f = dlg.getSelectedFile();
+
+            try {
+                FileWriter fstream = new FileWriter(f);
+                BufferedWriter out = new BufferedWriter(fstream);
+                out.write(sb.toString());
+                //Close the output stream
+                out.close();
+                JOptionPane.showMessageDialog(ManageBooksDlg.this.frame,
+                        MSG_SUCCESS_EXPORTED,
+                        MSG_HEADER_SEARCH_BOOKS,
+                        JOptionPane.INFORMATION_MESSAGE);
+
+            } catch (FileNotFoundException fnfe) {
+                fnfe.printStackTrace();
+            } catch (IOException ie) {
+                ie.printStackTrace();
+            }
+            
+        }
+    }
     public class SearchActionListener implements ActionListener {
         public void actionPerformed(ActionEvent e) {
             String searchStr = ManageBooksDlg.this.searchTerm.getText();
@@ -1437,17 +1558,20 @@ public class ManageBooksDlg extends JDialog {
             else if (tm instanceof SearchBookTableModel) {
                 String header = COLUMN_NAMES_SEARCH[column];
                 if (true == header.equals(COLUMN_NAME_OPEN)) {
-                    
-                    Book aBook = ((BookTableModel)tm).getBookAtRow(convertRow);
-                    openBook(aBook);
-                }
-            }
-            
-            
-            
-            
 
-            
+                    Book aBook = ((BookTableModel) tm).getBookAtRow(convertRow);
+                    openBook(aBook);
+                    return;
+                } // Left click on notes page opens up comment page in pantree
+                else if (true == header.equals(COLUMN_NAME_NOTES)) {
+                    int modifiers = e.getModifiers();
+                    if ((modifiers & InputEvent.BUTTON1_MASK) != 0 && (modifiers & InputEvent.BUTTON3_MASK) == 0) {
+                        Book aBook = ((BookTableModel) tm).getBookAtRow(convertRow);
+                        String id = aBook.getId();
+                        HTMLUtil.bringUpInBrowser(PaintManager.inst().getBrowserLauncher(), URL_LINK_PREFIX_PANTREE_BOOK_COMMENT + id);
+                    }
+                }
+            }          
         }
     }
     

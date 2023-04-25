@@ -1,5 +1,5 @@
 /**
- *  Copyright 2020 University Of Southern California
+ *  Copyright 2022 University Of Southern California
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -22,7 +22,6 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 
-import org.geneontology.db.model.Association;
 import org.geneontology.db.model.Term;
 import org.obo.datamodel.LinkDatabase;
 import org.obo.datamodel.LinkedObject;
@@ -57,7 +56,7 @@ public class EventManager {
 	private HashSet<CurationColorListener> colorChangeListeners;
 	private HashSet<AnnotationDragListener> annotationDragListeners;
         private HashSet<CommentChangeListener> commentChangeListeners;
-        private HashSet<DomainChangeListener> domainChangeListeners;
+
 
 	protected List<GeneNode> selectedNodes;
 	protected List<Term> term_selection;
@@ -224,12 +223,6 @@ public class EventManager {
             commentChangeListeners.add(listener);
         }
         
-        public void registerDomainChangeListener(DomainChangeListener listener) {
-            if (null == domainChangeListeners) {
-                domainChangeListeners = new HashSet<DomainChangeListener>();
-            }
-            domainChangeListeners.add(listener);
-        }
 
 	/**
 	 * Components that wish to be notified of aspect change events 
@@ -346,84 +339,84 @@ public class EventManager {
         
 
 
-	/*
+    /*
 	 * Inform the components that have registered an interest that an event has occurred
 	 * so that they can handle it.
 	 * This event is fired when terms are selected so that the nodes can update their highlight color 
-	 */
-	public List<GeneNode> fireTermEvent(TermSelectEvent e) {
-		/*
+     */
+    public List<GeneNode> fireTermEvent(TermSelectEvent e) {
+        /*
 		 * Hold onto current terms, but replace current term_selection object with the event's new term selection
-		 */
-		Collection<Term> old_terms = term_selection;
-		Collection<Term> new_terms = e.getTermSelection();
-		List<GeneNode> new_nodes = new ArrayList<GeneNode>();
-		/*
+         */
+        Collection<Term> old_terms = term_selection;
+        Collection<Term> new_terms = e.getTermSelection();
+        List<GeneNode> new_nodes = new ArrayList<GeneNode>();
+        /*
 		 * This reads weird, but the event has a TermSelection object which holds a collection of terms
 		 * include all of the currently selected terms for this go aspect
-		 */
-		term_selection = null;
-		if ((new_terms != null && !new_terms.isEmpty()) && (old_terms != null && !old_terms.isEmpty())) {
-			/* 
+         */
+        term_selection = null;
+        if ((new_terms != null && !new_terms.isEmpty()) && (old_terms != null && !old_terms.isEmpty())) {
+            /* 
 			 * Retain terms from the other GO aspects in the selection as well
-			 */
-			LinkDatabase go_root = PaintManager.inst().getGoRoot().getLinkDatabase();
-			String aspect = AspectSelector.inst().getAspect().name();
-			for (Iterator<Term> term_it = old_terms.iterator(); term_it.hasNext();) {
-				Term old_term = term_it.next();
-				LinkedObject obo_term = (LinkedObject) GO_Util.inst().getObject(go_root, old_term.getAcc());
-				if (!obo_term.getNamespace().getID().equals(aspect) && !new_terms.contains(old_term)) {
-					new_terms.add(old_term);
-				}
-			}
-		}
+             */
+            LinkDatabase go_root = PaintManager.inst().getGoRoot().getLinkDatabase();
+            String aspect = AspectSelector.inst().getAspect().name();
+            for (Iterator<Term> term_it = old_terms.iterator(); term_it.hasNext();) {
+                Term old_term = term_it.next();
+                LinkedObject obo_term = (LinkedObject) GO_Util.inst().getObject(go_root, old_term.getAcc());
+                if (!obo_term.getNamespace().getID().equals(aspect) && !new_terms.contains(old_term)) {
+                    new_terms.add(old_term);
+                }
+            }
+        }
 
-		if (new_terms != null && new_terms.size() > 0) {
-			GeneNode mrca = null;
-			top_node = e.selectNode();
-			if (top_node == null) {
-				TreePanel tree = PaintManager.inst().getTree();
-				List<GeneNode> genes = tree.getAllNodes();
-				GeneNode min_node = null;
-				GeneNode max_node = null;
-				for (int i = 0; i < genes.size(); i++) {
-					GeneNode node = genes.get(i);
-					node.setSelected(false);
-					for (Iterator<Term> it = new_terms.iterator(); it.hasNext();) {
-						Term term = it.next();
-						Association assoc = GO_Util.inst().isAnnotatedToTerm(node, term);
-						if (assoc != null && GO_Util.inst().isExperimental(assoc) && node.isLeaf()) {
-							node.setSelected(true);
-							new_nodes.add(node);
-							if (min_node == null)
-								min_node = node;
-							max_node = node;
-						}
-					}
-				}
-				/* 
+        if (new_terms != null && new_terms.size() > 0) {
+            GeneNode mrca = null;
+            top_node = e.selectNode();
+            if (top_node == null) {
+                TreePanel tree = PaintManager.inst().getTree();
+                List<GeneNode> genes = tree.getAllNodes();
+                GeneNode min_node = null;
+                GeneNode max_node = null;
+                for (int i = 0; i < genes.size(); i++) {
+                    GeneNode node = genes.get(i);
+                    node.setSelected(false);
+//					for (Iterator<Term> it = new_terms.iterator(); it.hasNext();) {
+//						Term term = it.next();
+////						Association assoc = GO_Util.inst().isAnnotatedToTerm(node, term);
+////						if (assoc != null && GO_Util.inst().isExperimental(assoc) && node.isLeaf()) {
+////							node.setSelected(true);
+////							new_nodes.add(node);
+////							if (min_node == null)
+////								min_node = node;
+////							max_node = node;
+////						}
+//					}
+                }
+                /* 
 				 * Now have to figure out the most recent common ancestor of these 2
 				 * and expand the selection to any siblings
-				 */
-				if (!min_node.equals(max_node)) {
-					mrca = tree.getMRCA(min_node, max_node);
-					new_nodes.add(mrca);
+                 */
+                if (!min_node.equals(max_node)) {
+                    mrca = tree.getMRCA(min_node, max_node);
+                    new_nodes.add(mrca);
 
-				} else {
-					mrca = min_node;
-				}
-				top_node = mrca;
-			} else {
-				new_nodes.add(top_node);
-			}
-			top_node.setSelected(true);
-			for (Iterator<TermSelectionListener> it = term_listeners.iterator(); it.hasNext();) {
-				TermSelectionListener listener = it.next();
-				listener.handleTermEvent(e);
-			}
-		}
-		return new_nodes;
-	}
+                } else {
+                    mrca = min_node;
+                }
+                top_node = mrca;
+            } else {
+                new_nodes.add(top_node);
+            }
+            top_node.setSelected(true);
+            for (Iterator<TermSelectionListener> it = term_listeners.iterator(); it.hasNext();) {
+                TermSelectionListener listener = it.next();
+                listener.handleTermEvent(e);
+            }
+        }
+        return new_nodes;
+    }
 
 	/*
 	 * Inform the components that have registered an interest that an event has occurred
@@ -502,15 +495,6 @@ public class EventManager {
             for (CommentChangeListener listener: commentChangeListeners) {
                 listener.handleCommentChangeEvent(event);
             }
-        }
-        
-        public void fireDomainChangeEvent(DomainChangeEvent event) {
-            if (null == domainChangeListeners) {
-                return;
-            }
-            for (DomainChangeListener listener: domainChangeListeners) {
-                listener.handleDomainChangeEvent(event);
-            }            
         }
 
 	/**

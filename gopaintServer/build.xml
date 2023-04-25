@@ -43,6 +43,7 @@
                         ${lib.dir}/thirdParty/apache/commons/commons-dbcp.jar:
                         ${lib.dir}/thirdParty/apache/commons/commons-logging.jar:
                         ${lib.dir}/thirdParty/apache/commons/commons-pool.jar:
+                        ${lib.dir}/thirdParty/apache/commons/commons-io-2.11.0.jar:
                         ${lib.dir}/thirdparty/postgreSQL/postgresql-9.1-902.jdbc4.jar:
                         ${lib.dir}/thirdParty/jackson/jackson-annotations-2.10.2.jar:
                         ${lib.dir}/thirdParty/jackson/jackson-core-2.10.2.jar:
@@ -85,6 +86,7 @@
             classpath="${classpath}"
             debug="${java.debug}"
             deprecation="${java.deprecation}"
+            includeantruntime="false"            
             optimize="${java.optimize}"/>
             
         <jar destfile="${lib.output.dir}/gopaintServer.jar">
@@ -110,6 +112,7 @@
         <copy file="${lib.dir}/thirdParty/apache/commons/commons-logging.jar" todir="${webroot.lib.dir}" overwrite="true"/>
         <copy file="${lib.dir}/thirdParty/apache/commons/commons-collections.jar" todir="${webroot.lib.dir}" overwrite="true"/>
         <copy file="${lib.dir}/thirdParty/apache/commons/commons-pool.jar" todir="${webroot.lib.dir}" overwrite="true"/>
+        <copy file="${lib.dir}/thirdParty/apache/commons/commons-io-2.11.0.jar" todir="${webroot.lib.dir}" overwrite="true"/>
         <copy file="${lib.dir}/thirdparty/postgreSQL/postgresql-9.1-902.jdbc4.jar" todir="${webroot.lib.dir}" overwrite="true"/>
         <copy file="${lib.dir}/thirdparty/jackson/jackson-annotations-2.10.2.jar" todir="${webroot.lib.dir}" overwrite="true"/>
         <copy file="${lib.dir}/thirdparty/jackson/jackson-core-2.10.2.jar" todir="${webroot.lib.dir}" overwrite="true"/>

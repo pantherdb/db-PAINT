@@ -1,5 +1,5 @@
 /**
- *  Copyright 2019 University Of Southern California
+ *  Copyright 2021 University Of Southern California
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -324,11 +324,11 @@ public class AnnotationMatrixCellRenderer extends JLabel implements TableCellRen
             return;
         }
         else if (true == nodeInfo.isExpBackground()) {
-            if (true == multipleQualifiers && false == nodeInfo.isExpNot()) {
+            if (true == multipleQualifiers && (false == nodeInfo.isExpNot() && false == nodeInfo.isNonExpNot())) {
                 g.setColor(Color.yellow);
                 g.fillOval(1 , 1, width - 3, height - 3);                
             }
-            else if (true == multipleQualifiers && true == nodeInfo.isExpNot()) {
+            else if (true == multipleQualifiers && (true == nodeInfo.isExpNot() || true == nodeInfo.isNonExpNot())) {
                 g.setColor(Color.pink);
                 g.fillOval(1 , 1, width - 3, height - 3);                
             }            
@@ -346,11 +346,11 @@ public class AnnotationMatrixCellRenderer extends JLabel implements TableCellRen
             return;
         }
         else if (false == nodeInfo.isExpBackground() && true == nodeInfo.isNonExpBackground()) {
-            if (true == multipleQualifiers && false == nodeInfo.isNonExpNot()) {
+            if (true == multipleQualifiers && (false == nodeInfo.isExpNot() && false == nodeInfo.isNonExpNot())) {
                 g.setColor(Color.yellow);
                 g.fillOval(1 , 1, width - 3, height - 3);                
             }
-            else if (true == multipleQualifiers && true == nodeInfo.isNonExpNot()) {
+            else if (true == multipleQualifiers && ((true == nodeInfo.isExpNot() || true == nodeInfo.isNonExpNot()))) {
                 g.setColor(Color.pink);
                 g.fillOval(1 , 1, width - 3, height - 3);                 
             }

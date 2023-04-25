@@ -1,5 +1,5 @@
 /**
- *  Copyright 2021 University Of Southern California
+ *  Copyright 2022 University Of Southern California
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -26,6 +26,7 @@ public class Book implements Comparable, Serializable {
     protected String name;
     protected int curationStatus;
     protected Date curationStatusUpdateDate;        // Does not include check out date
+    protected Date lastAnnotationUpdateDate;
     protected User lockedBy;
     protected int numLeaves;
     protected HashSet<String> orgSet;
@@ -260,6 +261,14 @@ public class Book implements Comparable, Serializable {
 
     public void setCurationStatusUpdateDate(Date curationStatusUpdateDate) {
         this.curationStatusUpdateDate = curationStatusUpdateDate;
+    }
+
+    public Date getLastAnnotationUpdateDate() {
+        return lastAnnotationUpdateDate;
+    }
+
+    public void setLastAnnotationUpdateDate(Date lastAnnotationUpdateDate) {
+        this.lastAnnotationUpdateDate = lastAnnotationUpdateDate;
     }
 
     public int getNumLeaves() {

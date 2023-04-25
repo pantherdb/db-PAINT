@@ -1,5 +1,5 @@
 /**
- * Copyright 2021 University Of Southern California
+ * Copyright 2023 University Of Southern California
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -27,6 +27,7 @@ import com.sri.panther.paintServer.datamodel.Organism;
 import com.sri.panther.paintServer.datamodel.PANTHERTree;
 import com.sri.panther.paintServer.datamodel.PANTHERTreeNode;
 import com.sri.panther.paintServer.datamodel.PantherVersion;
+import com.sri.panther.paintServer.filemanager.TreeNodeUtility;
 import com.sri.panther.paintServer.logic.CategoryLogic;
 import com.sri.panther.paintServer.logic.DataValidationManager;
 import com.sri.panther.paintServer.logic.FamilyManager;
@@ -54,6 +55,8 @@ import edu.usc.ksom.pm.panther.paintCommon.SaveBookInfo;
 import edu.usc.ksom.pm.panther.paintCommon.TaxonomyHelper;
 import edu.usc.ksom.pm.panther.paintCommon.TreeNodes;
 import edu.usc.ksom.pm.panther.paintCommon.WithEvidence;
+import edu.usc.ksom.pm.panther.paintServer.logic.BookManager;
+import edu.usc.ksom.pm.panther.paintServer.logic.DataAccessManager;
 import java.io.FileInputStream;
 import java.io.ObjectInputStream;
 import java.math.BigDecimal;
@@ -87,7 +90,8 @@ public class DataIO {
     private static final Logger log = Logger.getLogger(DataIO.class);
     private GOTermHelper goTermHelper = CategoryLogic.getInstance().getGOTermHelper();
     private TaxonomyHelper taxonomyHelper = TaxonomyConstraints.getInstance().getTaxomomyHelper();
-    private DataValidationManager dataValidationManager = DataValidationManager.getInstance();
+    private OrganismManager organismManager = OrganismManager.getInstance();     
+//    private DataValidationManager dataValidationManager = DataValidationManager.getInstance();
 
     private static final java.text.SimpleDateFormat DATE_FORMATTER = new java.text.SimpleDateFormat("yyyy.MM.dd G 'at' HH:mm:ss z");
     private static final java.text.SimpleDateFormat DATE_FORMATTER_COMMENT = new java.text.SimpleDateFormat("yyyy-MM-dd");
@@ -208,7 +212,8 @@ public class DataIO {
     public static final String  CREATION_DATE_CLAUSE = " and tblName.CREATION_DATE < to_date('%1', 'yyyy-mm-dd, hh:mi:ss') ";    
     
     public static final String NODE_GENE = "select n.accession, g.primary_ext_acc, g.gene_symbol, g.gene_name from node n, GENE g, GENE_NODE gn where n.classification_version_sid = %1 and n.accession like '%2' and n.node_id = gn.node_id and gn.gene_id = g.gene_id";
-
+    public static final String NODE_GENE_NAME = "select n.accession, g.gene_name from node n, GENE g, GENE_NODE gn where n.classification_version_sid = %1 and n.accession like '%2' and n.node_id = gn.node_id and gn.gene_id = g.gene_id";
+    
     public static final String EVIDENCE_TYPE = "select * from evidence_type";
     public static final String ANNOTATION_TYPE = "select * from annotation_type";
     public static final String QUALIFIER_TYPE = "select * from qualifier";
@@ -248,7 +253,7 @@ public class DataIO {
     
     public static final String IDENTIFIER_AN = "select n.accession, it.IDENTIFIER_TYPE_SID, i.NAME, it.name as identifier_type from node n, protein_node pn, protein p, identifier i, identifier_type it where n.classification_version_sid = %1 and n.accession like '%2' and n.node_id = pn.node_id and pn.protein_id = p.protein_id and p.PROTEIN_ID = i.primary_object_id and i.IDENTIFIER_TYPE_SID = it.IDENTIFIER_TYPE_SID and it.IDENTIFIER_TYPE_SID in (%3)";
     
-    public static final String FULL_GO_ANNOTATIONS_PART_1 = "select pa.annotation_id, n.accession, clf.accession term, et.type, pe.evidence_id, pe.evidence, cc.confidence_code, q.qualifier, pa.creation_date, 'true' as paint_annot\n" +
+    public static final String FULL_GO_ANNOTATIONS_PART_1 = "select pa.annotation_id, n.accession, clf.accession term, et.type, pe.evidence_id, pe.evidence, cc.confidence_code, q.qualifier, pa.creation_date, NULL  as contrib_group, 'true' as paint_annot\n" +
                                                                 "from paint_evidence pe\n" +
                                                                 "join paint_annotation pa\n" +
                                                                 "on pe.annotation_id = pa.annotation_id\n" +
@@ -316,7 +321,7 @@ public class DataIO {
     
     public static final String FULL_GO_ANNOTATIONS_AGGREGATE = "select *, 'false' as paint_annot from go_aggregate\n" +
                                                                 "where accession like '%1' union\n" +
-                                                                "select *, 'true' as paint_annot from paint_aggregate\n" +
+                                                                "select *, NULL  as contrib_group, 'true' as paint_annot from paint_aggregate\n" +
                                                                 "where accession like '%1'";
     
     
@@ -396,6 +401,14 @@ public class DataIO {
                                                         "and c.depth = %2 and c.obsolescence_date is null\n" +
                                                         "and c.classification_id = cm.classification_id\n" +
                                                         "and cm.obsolescence_date is null";
+    
+    public static final String ANNOTATION_UPDATE_FOR_ALL = "select distinct substr(n.accession, 0, 10) accession, MAX(CASE WHEN ( pa.obsolescence_date IS NULL OR pa.creation_date > pa.obsolescence_date)\n" +
+                                                            "                                                   THEN pa.creation_date ELSE  pa.obsolescence_date END)  maxdate\n" +
+                                                            "from paint_annotation pa, node n\n" +
+                                                            "where n.classification_version_sid = %1 \n" +
+                                                            "and n.obsolescence_date is null\n" +
+                                                            "and n.node_id = pa.node_id\n" +
+                                                            "group by substr(n.accession, 0, 10)";
     
     
     public static final String  CLS_COMMENT_PRIMARY_OBJECT_ID = "select CLASSIFICATION_ID, REMARK from COMMENTS where (CLASSIFICATION_ID, CREATION_DATE) in (select c.CLASSIFICATION_ID, max(c.CREATION_DATE) from   (select classification_id  from classification c where c.classification_version_sid = %2 and c.depth = %3 and c.accession like '%4'  %1 ) e, COMMENTS c where e.classification_id = c.CLASSIFICATION_ID and c.PRIMARY_OBJECT_ID is null %1  group by c.CLASSIFICATION_ID )";
@@ -564,6 +577,7 @@ public class DataIO {
     protected static final String COLUMN_NAME_EVIDENCE_ID = "evidence_id";
     protected static final String COLUMN_NAME_PAINT_ANNOT = "paint_annot";    
     protected static final String COLUMN_NAME_EVIDENCE_TYPE_SID = "evidence_type_sid";
+    protected static final String COLUMN_NAME_MAX_DATE = "maxdate";
     protected static final String COLUMN_NAME_SPECIES = "species";
     protected static final String COLUMN_TYPE = "type";
     protected static final String COLUMN_USER_ID = "user_id";
@@ -669,8 +683,8 @@ public class DataIO {
     protected static final String CURATION_STATUS_REQUIRE_PAINT_REVIEW = "go_require_paint_review";
     protected static final String CURATION_STATUS_REQUIRE_PAINT_REVIEW_PTN_NOT_MAPPED = "go_require_paint_review_ptn_not_mapped";
     protected static final String CURATION_STATUS_REQUIRE_PAINT_REVIEW_PTN_CHANGE_FAMILIES = "go_require_paint_review_ptn_change_families";
-    protected static final String CURATION_STATUS_REQUIRE_PAINT_REVIEW_PTN_TRACKED_TO_CHILD_NODE = "go_require_paint_review_ptn_tracked_to_child_node";    
-    
+    protected static final String CURATION_STATUS_REQUIRE_PAINT_REVIEW_PTN_TRACKED_TO_CHILD_NODE = "go_require_paint_review_ptn_tracked_to_child_node";
+
     protected static final String LEVEL_FAMILY = "_famLevel";
     protected static final String LEVEL_SUBFAMILY = "_subfamLevel";
     protected static final String TYPE_PRUNED = "_pruned";
@@ -682,42 +696,45 @@ public class DataIO {
     public static final String OP_OBSOLETE = "Obsolete";
     public static final String OP_SAVE = "Save";
     public static final String STR_BRACKET_START = "(";
-    public static final String STR_BRACKET_END = ")";    
+    public static final String STR_BRACKET_END = ")";
     public static final String ASPECT_FUNCTION = "F";
     public static final String ASPECT_PROCESS = "P";
-    public static final String ASPECT_CELL_LOC = "C";    
+    public static final String ASPECT_CELL_LOC = "C";
 
     protected static final String RANK_PROP_GO_CURATOR = "panther_curator_rank";
     public static final String RANK_CURATOR_GO = ConfigFile.getProperty(RANK_PROP_GO_CURATOR);
-    
-    public static final SimpleDateFormat ANNOTATION_DATE_FORMATTER = new java.text.SimpleDateFormat("yyyyMMdd");
-  
-    // Required for saving PAINT annotations back to database
-    private Hashtable<String, String> EVIDENCE_TYPE_SID_LOOKUP = null;
-    private Hashtable<String, String> ANNOTATION_TYPE_ID_LOOKUP = null;
-    private Hashtable<String, String> QUALIFIER_TYPE_ID_LOOKUP = null;
-    private Hashtable<String, String> CONFIDENCE_CODE_TYPE_ID_LOOKUP = null;
-    
-  
     protected static final String RANK_PANTHER_CURATOR = "panther_curator_rank";
+
+    public static final SimpleDateFormat ANNOTATION_DATE_FORMATTER = new java.text.SimpleDateFormat("yyyyMMdd");
+
+
   
+    // Required for saving PAINT annotations back to database - Initialized in constructor
+    // Value to id
     private final Hashtable<String, String> EVIDENCE_TYPE_TO_SID_LOOKUP = new Hashtable<String, String>();      
     private final Hashtable<String, String> ANNOTATION_TYPE_TO_ID_LOOKUP = new Hashtable<String, String>();
     private final Hashtable<String, String> QUALIFIER_TYPE_TO_ID_LOOKUP = new Hashtable<String, String>();
     private final Hashtable<String, String> CONFIDENCE_CODE_TYPE_TO_ID_LOOKUP = new Hashtable<String, String>();
     
-    private OrganismManager organismManager = OrganismManager.getInstance();    
-
+    // Id to value
+    private Hashtable<String, String> EVIDENCE_TYPE_SID_TO_VALUE_LOOKUP = null;
+    private Hashtable<String, String> ANNOTATION_TYPE_ID__TO_VALUE_LOOKUP = null;
+    private Hashtable<String, String> QUALIFIER_TYPE_ID_TO_VALUE_LOOKUP = null;
+    private Hashtable<String, String> CONFIDENCE_CODE_TYPE_ID_TO_VALUE_LOOKUP = null;
+    
     public DataIO(String dbStr) {
         this.dbStr = dbStr;
-
+        EVIDENCE_TYPE_SID_TO_VALUE_LOOKUP = initEvidenceLookup();
+        ANNOTATION_TYPE_ID__TO_VALUE_LOOKUP = initAnnotationIdLookup();
+        QUALIFIER_TYPE_ID_TO_VALUE_LOOKUP = initQualifierIdLookup();
+        CONFIDENCE_CODE_TYPE_ID_TO_VALUE_LOOKUP = initConfidenceCodeLookup();
     }
 
     protected Connection getConnection() throws SQLException {
-        return DBConnectionPool.getConnection(dbStr);
+        return DBConnectionPool.getInstance().getConnection(dbStr);
     }
     
-    public Hashtable<String, String> initConfidenceCodeLookup() throws Exception {
+    private Hashtable<String, String> initConfidenceCodeLookup() {
         Hashtable<String, String> ccLookup = new Hashtable<String, String>();
         
         Connection con = null;
@@ -747,7 +764,7 @@ public class DataIO {
         } catch (SQLException se) {
             System.out.println("Unable to retrieve information from database about confidence code type, exception " + se.getMessage()
                     + " has been returned.");
-            throw se;
+            //throw se;
         } finally {
             if (null != con) {
                 ReleaseResources.releaseDBResources(rst, stmt, con);
@@ -759,7 +776,7 @@ public class DataIO {
     }
 
     
-    public Hashtable<String, String> initQualifierIdLookup() throws Exception {
+    private Hashtable<String, String> initQualifierIdLookup() {
         Hashtable<String, String> qualifierLookup = new Hashtable<String, String>();
         Connection con = null;
 
@@ -788,7 +805,7 @@ public class DataIO {
         } catch (SQLException se) {
             System.out.println("Unable to retrieve information from database about annotation type, exception " + se.getMessage()
                     + " has been returned.");
-            throw se;
+            //throw se;
         } finally {
             if (null != con) {
                 ReleaseResources.releaseDBResources(rst, stmt, con);
@@ -799,7 +816,7 @@ public class DataIO {
         
     }
     
-    public Hashtable<String, String> initAnnotationIdLookup() throws Exception {
+    private Hashtable<String, String> initAnnotationIdLookup() {
         Hashtable<String, String> annotationLookup = new Hashtable<String, String>();
         Connection con = null;
 
@@ -828,7 +845,7 @@ public class DataIO {
         } catch (SQLException se) {
             System.out.println("Unable to retrieve information from database about annotation type, exception " + se.getMessage()
                     + " has been returned.");
-            throw se;
+            //throw se;
         } finally {
             if (null != con) {
                 ReleaseResources.releaseDBResources(rst, stmt, con);
@@ -838,7 +855,7 @@ public class DataIO {
         return annotationLookup;         
     }
     
-    public Hashtable<String, String> initEvidenceLookup() throws Exception {
+    private Hashtable<String, String> initEvidenceLookup() {
         Hashtable<String, String> evidenceLookup = new Hashtable<String, String>();
         
        Connection con = null;
@@ -869,7 +886,7 @@ public class DataIO {
         } catch (SQLException se) {
             System.out.println("Unable to retrieve information from database about evidence type, exception " + se.getMessage()
                     + " has been returned.");
-            throw se;
+            //throw se;
         } finally {
             if (null != con) {
                 ReleaseResources.releaseDBResources(rst, stmt, con);
@@ -1118,6 +1135,75 @@ public class DataIO {
             ReleaseResources.releaseDBResources(grslt, gstmt, con);
         }
         return geneLookup;
+    }
+
+    public void getGeneName(String book, String uplVersion, HashMap<String, Node> nodeLookup) {
+        if (null == book || null == uplVersion || null == nodeLookup) {
+            return;
+        }
+
+        Connection con = null;
+        Statement gstmt = null;
+        ResultSet grslt = null;
+        try {
+            con = getConnection();
+            if (null == con) {
+                return;
+            }
+
+            // Make sure release dates can be retrieved, else return null
+            initClsLookup();
+            if (null == clsIdToVersionRelease) {
+                return;
+            }
+            String query = addVersionReleaseClause(uplVersion, Constant.STR_EMPTY, TABLE_NAME_n);
+            query = addVersionReleaseClause(uplVersion, query, TABLE_NAME_gn);
+            query = addVersionReleaseClause(uplVersion, query, TABLE_NAME_g);
+            query = NODE_GENE_NAME + query;
+//            System.out.println(query);
+
+            query = Utils.replace(query, QUERY_PARAMETER_1, uplVersion);
+            query = Utils.replace(query, QUERY_PARAMETER_2, book + QUERY_WILDCARD);
+
+            gstmt = con.createStatement();
+
+            java.text.SimpleDateFormat df = new java.text.SimpleDateFormat("hh:mm:ss:SSS");
+            System.out.println(book + " start of gene name execution " + df.format(new java.util.Date(System.currentTimeMillis())));
+
+            grslt = gstmt.executeQuery(query);
+
+            System.out.println(book + " end of gene name execution, time is " + df.format(new java.util.Date(System.currentTimeMillis())));
+            grslt.setFetchSize(100);
+            while (grslt.next()) {
+
+                // annotation id to gene information
+                String annotId = grslt.getString(COLUMN_NAME_ACCESSION);
+                String geneName = grslt.getString(COLUMN_NAME_GENE_NAME);
+                if (null == annotId || 0 == annotId.length()) {
+                    continue;
+                }
+                Node nodeInfo = nodeLookup.get(annotId);
+                if (null == nodeInfo) {
+                    nodeInfo = new Node();
+                    nodeLookup.put(annotId, nodeInfo);
+                }
+                NodeStaticInfo staticInfo = nodeInfo.getStaticInfo();
+                if (null == staticInfo) {
+                    staticInfo = new NodeStaticInfo();
+                    nodeInfo.setStaticInfo(staticInfo);
+                }
+                
+                staticInfo.setNodeAcc(annotId);
+                if (null != geneName) {
+                    staticInfo.addGeneName(geneName);
+                }
+            }
+        } catch (SQLException se) {
+            System.out.println("Unable to retrieve gene name information from database, exception "
+                    + se.getMessage() + " has been returned.");
+        } finally {
+            ReleaseResources.releaseDBResources(grslt, gstmt, con);
+        }
     }    
 
     public void getGeneInfo(String book, String uplVersion, HashMap<String, Node> nodeLookup) {
@@ -1162,7 +1248,7 @@ public class DataIO {
                 // annotation id to gene information
                 String annotId = grslt.getString(COLUMN_NAME_ACCESSION);
                 String geneIdentifier = grslt.getString(COLUMN_NAME_GENE_PRIMARY_EXT_ACC);
-                geneIdentifier = geneIdentifier; //formatGeneIdentifer(geneIdentifier);
+                //geneIdentifier = geneIdentifier; //formatGeneIdentifer(geneIdentifier);
                 String geneSymbol = grslt.getString(COLUMN_NAME_GENE_SYMBOL);
                 String geneName = grslt.getString(COLUMN_NAME_GENE_NAME);
                 if (null == annotId || 0 == annotId.length()) {
@@ -1195,6 +1281,7 @@ public class DataIO {
                 }
                 if (null != geneName) {
                     staticInfo.addGeneName(geneName);
+                    staticInfo.setDefinition(geneName);     // Protein definition is now gene name
                 }
             }
         } catch (SQLException se) {
@@ -1716,7 +1803,7 @@ public class DataIO {
             errorBuf.insert(0, "book id, uplVersion or nodeLookup information is not specified.\n");
             return false;
         }
-        HashMap<String, HashSet<String>> bookOrgLookup = dataValidationManager.getBooksWithIncompleteTaxonInfo();
+        HashMap<String, HashSet<String>> bookOrgLookup = DataValidationManager.getInstance().getBooksWithIncompleteTaxonInfo();
         if (null == bookOrgLookup) {
             errorBuf.insert(0, "Unable to validate taxonomy information for book\n");
             return false;
@@ -3863,7 +3950,7 @@ public class DataIO {
             }
             
             // Remove IBA's from propagator
-            AnnotationHelper.removeAnnotFromNodeAndDescendants(node, propagator, ird.getGoTerm());
+            AnnotationHelper.removeAnnotFromNodeAndDescendants(node, propagator, ird.getGoTerm(), paintErrBuf);
             
             // Add the annotation to the node
             NodeVariableInfo nvi = node.getVariableInfo();
@@ -3959,7 +4046,7 @@ public class DataIO {
             } 
             
             // Remove IBA's from propagator            
-            AnnotationHelper.removeAnnotFromNodeAndDescendants(node, propagator, ikr.getGoTerm());
+            AnnotationHelper.removeAnnotFromNodeAndDescendants(node, propagator, ikr.getGoTerm(), paintErrBuf);
             
             NodeVariableInfo nvi = node.getVariableInfo();
             if (null == nvi) {
@@ -4316,7 +4403,7 @@ public class DataIO {
             // If previous withs were different from current withs, then this annotation has to be added into the list of modified annotation set.
             HashSet<Annotation> previousWithSet = ibd.getAnnotationDetail().getWithAnnotSet();
             if (null == previousWithSet || false == withSet.equals(previousWithSet)) {
-                paintErrBuf.insert(0, "Info - Modified list of annotations providing experimental evidence for " + Evidence.CODE_IBD + " with term " + ibd.getGoTerm() + " for node " + node.getStaticInfo().getPublicId() + ".\n");                       
+                paintErrBuf.insert(0, "Modified list of annotations providing experimental evidence for " + Evidence.CODE_IBD + " with term " + ibd.getGoTerm() + " for node " + node.getStaticInfo().getPublicId() + ".\n");                       
                 modifiedAnnotSet.add(annotId);
                 
                 // Clear previous set and add what is currently applicable
@@ -5302,10 +5389,10 @@ public class DataIO {
             return MSG_ERROR_USER_INFO_NOT_SPECIFIED;
         }
         System.out.println(DATE_FORMATTER.format(new java.util.Date(System.currentTimeMillis())) + "***** Attempting to save book " + bookId + " for user " + user.getLoginName());
-        EVIDENCE_TYPE_SID_LOOKUP = initEvidenceLookup();
-        ANNOTATION_TYPE_ID_LOOKUP = initAnnotationIdLookup();
-        QUALIFIER_TYPE_ID_LOOKUP = initQualifierIdLookup();
-        CONFIDENCE_CODE_TYPE_ID_LOOKUP = initConfidenceCodeLookup();
+//        EVIDENCE_TYPE_SID_LOOKUP = initEvidenceLookup();
+//        ANNOTATION_TYPE_ID_LOOKUP = initAnnotationIdLookup();
+//        QUALIFIER_TYPE_ID_LOOKUP = initQualifierIdLookup();
+//        CONFIDENCE_CODE_TYPE_ID_LOOKUP = initConfidenceCodeLookup();
 
         ArrayList<Node> prunedList = sbi.getPrunedList();
         if (null == prunedList) {
@@ -5789,6 +5876,7 @@ public class DataIO {
             if (null == useUpdateConnection) {
                 ReleaseResources.releaseDBResources(null, null, updateCon);
             }
+            BookManager.getInstance().clearFamilyStructureAllAnnotNoMSA(bookId);
         }
     }
     
@@ -6383,14 +6471,61 @@ public class DataIO {
 
     }   
 
+    public void addGeneAndDefInfo(String book, String uplVersion, HashMap<String, Node> treeNodeLookup, boolean useFileSystemIfPossible) {
+        if (null == treeNodeLookup) {
+            return;
+        }
+        if (true == useFileSystemIfPossible) {
+            getGeneName(book, uplVersion, treeNodeLookup);
+            HashMap<String, Node> publicIdToNodeLookup =  TreeNodeUtility.getDefnIdGeneSymbol(uplVersion, book);
+            if (null != publicIdToNodeLookup) {
+                for (Node n: treeNodeLookup.values()) {
+                    NodeStaticInfo nsi = n.getStaticInfo();
+                    String publicId = nsi.getPublicId();
+                    if (null == publicId) {
+                        continue;
+                    }
+                    Node infoNode = publicIdToNodeLookup.get(publicId);
+                    if (null == infoNode) {
+                        continue;
+                    }
+                    NodeStaticInfo infoFrom = infoNode.getStaticInfo();
+                    nsi.setDefinition(infoFrom.getDefinition());
+                    nsi.setGeneName(infoFrom.getGeneName());
+                    nsi.setGeneSymbol(infoFrom.getGeneSymbol());
+                    String geneIdentifier = infoFrom.getLongGeneName();
+
+                    if (null != geneIdentifier) {
+                        nsi.setLongGeneName(geneIdentifier);
+                        String shortName = AnnotationNode.getShortSpeciesFromLongName(geneIdentifier);
+                        nsi.setShortOrg(shortName);
+                        Organism org = organismManager.getOrganismForShortName(shortName);
+                        if (null != org) {
+                            nsi.setSpeciesConversion(org.getConversion());
+                        }
+                    }
+                }
+                
+                return;
+            }
+        }
+        //getIdentifierInfo(book, uplVersion, treeNodeLookup);      // Definition is now same as gene name and orthoMCL information is no longer available in the database
+        getGeneInfo(book, uplVersion, treeNodeLookup);      
+    }    
+    
     public HashMap<String, Node> getNodeInfo(String book, String uplVersion, StringBuffer errorBuf, StringBuffer paintErrBuf) throws Exception {
         HashMap<String, Node> treeNodeLookup = new HashMap<String, Node>();
         try {
             long startTime = System.currentTimeMillis();      
             getAnnotationNodeLookup(book, uplVersion, treeNodeLookup);
-            getIdentifierInfo(book, uplVersion, treeNodeLookup);
-            getGeneInfo(book, uplVersion, treeNodeLookup);
+            System.out.println("It took " + (System.currentTimeMillis() - startTime) / 1000 + " secs to retrieve annotation node information for book " + book);
+            addGeneAndDefInfo(book, uplVersion, treeNodeLookup, true);
+            System.out.println("It took " + (System.currentTimeMillis() - startTime) / 1000 + " secs to retrieve gene definition information for book " + book);
+            //getIdentifierInfo(book, uplVersion, treeNodeLookup);      // No longer necessary.  Protein definition is stored as gene name.  Just copy over after getting
+                                                                        // gene information. OrthoMCL is no longer stored in the database
+            //getGeneInfo(book, uplVersion, treeNodeLookup);
             addPruned(book, uplVersion, treeNodeLookup);
+            System.out.println("It took " + (System.currentTimeMillis() - startTime) / 1000 + " secs to retrieve pruned information for book " + book);
             //getEvidence(book, uplVersion, treeNodeLookup);
             HashMap<Annotation, ArrayList<IWith>> annotToPosWithLookup = new HashMap<Annotation, ArrayList<IWith>>();
             HashSet<Annotation> removedAnnotSet = new HashSet<Annotation>();
@@ -7068,8 +7203,11 @@ public class DataIO {
         return b;
     }
     
-    public Hashtable<String, Book> getListOfBooksAndStatus(String uplVersion) {
-
+    public Hashtable<String, Book> getStaticInfoForAllBooks(String uplVersion) {
+        initClsLookup();
+        if (null == clsIdToVersionRelease) {
+            return null;
+        }
         String query = addVersionReleaseClause(uplVersion, Constant.STR_EMPTY, TABLE_NAME_c);
         query = GET_LIST_OF_BOOKS + query;
 
@@ -7079,7 +7217,6 @@ public class DataIO {
         Connection con = null;
         Statement stmt = null;
         ResultSet rst = null;
-        ResultSet irslt = null;
         Hashtable<String, Book> bookTbl = new Hashtable<String, Book>();
         HashMap<String, Book> leafCountLookup = FamilyManager.getInstance().getBookLookup();
         HashMap<String, HashSet<String>> orgLookup = FamilyManager.getInstance().getOrgLookup();
@@ -7101,10 +7238,33 @@ public class DataIO {
                 bookTbl.put(accession, b);
             }
             rst.close();
+            stmt.close();
+            con.close();
+        } catch (SQLException se) {
+            log.error(MSG_ERROR_UNABLE_TO_RETRIEVE_INFO_ERROR_RETURNED + se.getMessage());
+            se.printStackTrace();
+        } finally {
+            ReleaseResources.releaseDBResources(rst, stmt, con);
+        }
+        return bookTbl;
+    }
+    
+    public Hashtable<String, Book> getListOfBooksAndStatus(String uplVersion) {
+        Connection con = null;
+        Statement stmt = null;
+        ResultSet irslt = null;
+        Hashtable<String, Book> bookTbl = BookManager.getInstance().allBooksStaticInfo();
 
+        try {
+            con = getConnection();
+            if (null == con) {
+                return null;
+            }
+
+            stmt = con.createStatement();
             // Get status and user information
             String checkOutStatus = ConfigFile.getProperty(CURATION_STATUS_CHECKOUT);
-            query = addVersionReleaseClause(uplVersion, Constant.STR_EMPTY, TABLE_NAME_c);
+            String query = addVersionReleaseClause(uplVersion, Constant.STR_EMPTY, TABLE_NAME_c);
             query = GET_STATUS_USER_INFO + query;
 
             query = Utils.replace(query, QUERY_PARAMETER_1, ConfigFile.getProperty(uplVersion + LEVEL_FAMILY));
@@ -7173,14 +7333,14 @@ public class DataIO {
 
             irslt.close();
             stmt.close();
+            con.close();
         } catch (SQLException se) {
             log.error(MSG_ERROR_UNABLE_TO_RETRIEVE_INFO_ERROR_RETURNED + se.getMessage());
             se.printStackTrace();
         } finally {
-            ReleaseResources.releaseDBResources(rst, stmt, con);
-            ReleaseResources.releaseDBResources(irslt, null, null);
+            ReleaseResources.releaseDBResources(irslt, stmt, con);
         }
-        
+        setAnnotationUpdateDateForBooks(bookTbl, uplVersion);       // Add annotation update date
         setCommentForBooks(bookTbl, uplVersion);    // Add comment
         return bookTbl;
 
@@ -7270,12 +7430,56 @@ public class DataIO {
 
             rst.close();
             stmt.close();
+            con.close();
         } catch (SQLException se) {
             log.error(MSG_ERROR_UNABLE_TO_RETRIEVE_INFO_ERROR_RETURNED + se.getMessage());
             se.printStackTrace();
         } finally {
             ReleaseResources.releaseDBResources(rst, stmt, con);
 
+        }        
+    }
+    
+    public void setAnnotationUpdateDateForBooks(Hashtable<String, Book> bookLookup, String uplVersion) {
+        if (null == bookLookup) {
+            return;
+        }
+
+        Connection con = null;
+        Statement stmt = null;
+        ResultSet rst = null;
+        try {
+            con = getConnection();
+            if (null == con) {
+                return;
+            }
+            stmt = con.createStatement();
+            String query = ANNOTATION_UPDATE_FOR_ALL.replace(QUERY_PARAMETER_1, uplVersion);
+
+            rst = stmt.executeQuery(query);
+
+            
+            while (rst.next()) {
+                String accession = rst.getString(COLUMN_NAME_ACCESSION);
+                java.sql.Timestamp creationDateTs = rst.getTimestamp(COLUMN_NAME_MAX_DATE);
+                if (null == creationDateTs || null == accession) {
+                    continue;
+                }
+
+                Book b = bookLookup.get(accession);
+                if (null == b) {
+                    continue;
+                }
+                b.setLastAnnotationUpdateDate(new java.util.Date(creationDateTs.getTime()));
+            }
+
+        } catch (SQLException se) {
+            System.out.println("Unable to retrieve max annotation update date information, exception " + se.getMessage()
+                    + " has been returned.");
+        } finally {
+            if (null != con) {
+                ReleaseResources.releaseDBResources(rst, stmt, con);
+            }
         }        
     }
     
@@ -7330,6 +7534,8 @@ public class DataIO {
     
     public String[] getBookAccession(String query) {
         Connection  con = null;
+        Statement stmt = null;
+        ResultSet rst = null;
         Hashtable<String, String> bookTbl = new Hashtable<String, String>();
 
         try{
@@ -7338,11 +7544,11 @@ public class DataIO {
             return null;
           }
 
-          Statement stmt = con.createStatement();
+          stmt = con.createStatement();
 
 
           System.out.println(query);
-          ResultSet rst = stmt.executeQuery(query);
+          rst = stmt.executeQuery(query);
 
           while (rst.next()){
               String accession = rst.getString(COLUMN_NAME_ACCESSION);
@@ -7351,6 +7557,7 @@ public class DataIO {
           }
           rst.close();
           stmt.close();
+          con.close();
         }
         catch (SQLException se){
           System.out.println("Unable to retrieve information from database, exception " + se.getMessage()
@@ -7366,6 +7573,7 @@ public class DataIO {
             }
 
           }
+          ReleaseResources.releaseDBResources(rst, stmt, con);
         }
         
         int size = bookTbl.size();
@@ -7957,6 +8165,7 @@ public class DataIO {
             }
             rst.close();
             stmt.close();
+            con.close();
         } catch (SQLException se) {
             System.out.println("Unable to retrieve information from database, exception " + se.getMessage()
                     + " has been returned.");
@@ -8008,6 +8217,7 @@ public class DataIO {
             }
             rst.close();
             stmt.close();
+            con.close();
         } catch (SQLException se) {
             System.out.println("Unable to retrieve information from database, exception " + se.getMessage()
                     + " has been returned.");
@@ -8018,50 +8228,50 @@ public class DataIO {
         return famName;
     }
   
-  public String getUserId(String userName, String password){
-    Integer userId = null;
+    public String getUserId(String userName, String password) {
+        Integer userId = null;
 
-    if ((0 == userName.length()) || (0 == password.length())){
-      return null;
-    }
-    Connection  con = null;
-
-    try{
-      con = getConnection();
-      if (null == con){
-        return null;
-      }
-      PreparedStatement stmt = con.prepareStatement(PREPARED_USER_VALIDATION);
-
-      stmt.setString(1, userName);
-      stmt.setString(2, password);
-
-      //System.out.println(QueryString.PREPARED_USER_VALIDATION);
-      ResultSet rst = stmt.executeQuery();
-
-      while (rst.next()){
-        userId = new Integer(rst.getInt(1));
-      }
-      rst.close();
-      stmt.close();
-    }
-    catch (SQLException se){
-      System.out.println("Unable to retrieve information from database, exception " + se.getMessage()
-                         + " has been returned.");
-    }
-    finally{
-      if (null != con){
-        try{
-          con.close();
+        if ((0 == userName.length()) || (0 == password.length())) {
+            return null;
         }
-        catch (SQLException se){
-          System.out.println("Unable to close connection, exception " + se.getMessage() + " has been returned.");
-          return null;
+        Connection con = null;
+        PreparedStatement stmt = null;
+        ResultSet rst = null;
+        try {
+            con = getConnection();
+            if (null == con) {
+                return null;
+            }
+            stmt = con.prepareStatement(PREPARED_USER_VALIDATION);
+
+            stmt.setString(1, userName);
+            stmt.setString(2, password);
+
+            //System.out.println(QueryString.PREPARED_USER_VALIDATION);
+            rst = stmt.executeQuery();
+
+            while (rst.next()) {
+                userId = new Integer(rst.getInt(1));
+            }
+            rst.close();
+            stmt.close();
+            con.close();
+        } catch (SQLException se) {
+            System.out.println("Unable to retrieve information from database, exception " + se.getMessage()
+                    + " has been returned.");
+        } finally {
+            if (null != con) {
+                try {
+                    con.close();
+                } catch (SQLException se) {
+                    System.out.println("Unable to close connection, exception " + se.getMessage() + " has been returned.");
+                    return null;
+                }
+            }
+            ReleaseResources.releaseDBResources(rst, stmt, con);
         }
-      }
-    }
-    return userId.toString();
-  }  
+        return userId.toString();
+    }  
   
     public ArrayList<Book> getMyBooks(String userName, String password, String uplVersion) {
         String  userId  = getUserId(userName, password);
@@ -8072,73 +8282,70 @@ public class DataIO {
     }
     
     protected ArrayList<Book> getLockedBooks(String userId, String uplVersion) {
-        if (null == userId){
-          return null;
-        }
-        Connection  con = null;
-        ArrayList<Book>    bookRslt = new ArrayList<Book>();
-
-        try{
-          con = getConnection();
-          if (null == con){
+        if (null == userId) {
             return null;
-          }
-
-
-
-          String            query = PREPARED_UNLOCKING_BOOK_LIST;
-          int               checkOut = Integer.parseInt(ConfigFile.getProperty(CURATION_STATUS_CHECKOUT));
-          PreparedStatement stmt = con.prepareStatement(query);
-
-          stmt.setInt(1, Integer.parseInt(uplVersion));
-          stmt.setInt(2, Integer.parseInt(userId));
-          stmt.setInt(3, checkOut);
-          int depth = Integer.parseInt(ConfigFile.getProperty(uplVersion + LEVEL_FAMILY));
-
-          stmt.setInt(4, depth);
-
-          //System.out.println(query);
-          ResultSet rst = stmt.executeQuery();
-
-
-          while (rst.next()){
-            String bookId = rst.getString(1);
-            String bookName = rst.getString(2);
-            int status = rst.getInt(3);
-            
-            // Get information about user
-            String firstNameLName = rst.getString(5);
-            String email = rst.getString(COLUMN_NAME_EMAIL);
-            String loginName = rst.getString(COLUMN_NAME_LOGIN_NAME);
-            int rank = rst.getInt(COLUMN_NAME_PRIVILEGE_RANK);
-            String groupName = rst.getString(COLUMN_NAME_GROUP_NAME);
-            User u = new User(firstNameLName, null, email, loginName, rank, groupName);
-            int statusConversion = getCurationStatusConversion(status);
-            Book aBook = new Book(bookId, bookName, statusConversion, u);
-
-            bookRslt.add(aBook);
-          }
-          rst.close();
-          stmt.close();
-
         }
-        catch (SQLException se){
-          System.out.println("Unable to retrieve mybooks information from database, exception " + se.getMessage()
-                             + " has been returned.");
-        }
-        finally{
-          if (null != con){
-            try{
-              con.close();
+        Connection con = null;
+        PreparedStatement stmt = null;
+        ResultSet rst = null;
+        ArrayList<Book> bookRslt = new ArrayList<Book>();
+
+        try {
+            con = getConnection();
+            if (null == con) {
+                return null;
             }
-            catch (SQLException se){
-              System.out.println("Unable to close connection, exception " + se.getMessage() + " has been returned.");
+
+            String query = PREPARED_UNLOCKING_BOOK_LIST;
+            int checkOut = Integer.parseInt(ConfigFile.getProperty(CURATION_STATUS_CHECKOUT));
+            stmt = con.prepareStatement(query);
+
+            stmt.setInt(1, Integer.parseInt(uplVersion));
+            stmt.setInt(2, Integer.parseInt(userId));
+            stmt.setInt(3, checkOut);
+            int depth = Integer.parseInt(ConfigFile.getProperty(uplVersion + LEVEL_FAMILY));
+
+            stmt.setInt(4, depth);
+
+            //System.out.println(query);
+            rst = stmt.executeQuery();
+
+            while (rst.next()) {
+                String bookId = rst.getString(1);
+                String bookName = rst.getString(2);
+                int status = rst.getInt(3);
+
+                // Get information about user
+                String firstNameLName = rst.getString(5);
+                String email = rst.getString(COLUMN_NAME_EMAIL);
+                String loginName = rst.getString(COLUMN_NAME_LOGIN_NAME);
+                int rank = rst.getInt(COLUMN_NAME_PRIVILEGE_RANK);
+                String groupName = rst.getString(COLUMN_NAME_GROUP_NAME);
+                User u = new User(firstNameLName, null, email, loginName, rank, groupName);
+                int statusConversion = getCurationStatusConversion(status);
+                Book aBook = new Book(bookId, bookName, statusConversion, u);
+
+                bookRslt.add(aBook);
             }
-            return bookRslt;
-          }
+            rst.close();
+            stmt.close();
+            con.close();
+        } catch (SQLException se) {
+            System.out.println("Unable to retrieve mybooks information from database, exception " + se.getMessage()
+                    + " has been returned.");
+        } finally {
+            if (null != con) {
+                try {
+                    con.close();
+                } catch (SQLException se) {
+                    System.out.println("Unable to close connection, exception " + se.getMessage() + " has been returned.");
+                }
+                return bookRslt;
+            }
+            ReleaseResources.releaseDBResources(rst, stmt, con);
         }
         return bookRslt;
-        }
+    }
     
     
     private boolean annotationsSame(Annotation a1, Annotation a2) {
@@ -8443,57 +8650,55 @@ public class DataIO {
    *
    * @see
    */
-  protected String getClsIdForBookToLock(String userId, String uplVersion, String book){
-    Integer clsId = null;
+    protected String getClsIdForBookToLock(String userId, String uplVersion, String book) {
+        Integer clsId = null;
 
-    if (0 == userId.length()){
-      return null;
-    }
-    Connection  con = null;
-
-    try{
-      con = getConnection();
-      if (null == con){
-        return null;
-      }
-      int               checkOut = Integer.parseInt(ConfigFile.getProperty("panther_check_out"));
-      PreparedStatement stmt = con.prepareStatement(PREPARED_CLSID_FOR_BOOK_USER_LOCK);
-
-      stmt.setInt(1, Integer.parseInt(uplVersion));
-      stmt.setString(2, book);
-      stmt.setInt(3, checkOut);
-
-      //System.out.println(QueryString.PREPARED_CLSID_FOR_BOOK_USER_LOCK);
-      ResultSet rst = stmt.executeQuery();
-
-      if (rst.next()){
-        clsId = new Integer(rst.getInt(1));
-      }
-      rst.close();
-      stmt.close();
-    }
-    catch (SQLException se){
-      System.out.println("Unable to retrieve information from database, exception " + se.getMessage()
-                         + " has been returned.");
-    }
-    finally{
-      if (null != con){
-        try{
-          con.close();
+        if (0 == userId.length()) {
+            return null;
         }
-        catch (SQLException se){
-          System.out.println("Unable to close connection, exception " + se.getMessage() + " has been returned.");
-          return null;
+        Connection con = null;
+        PreparedStatement stmt = null;
+        ResultSet rst = null;
+        try {
+            con = getConnection();
+            if (null == con) {
+                return null;
+            }
+            int checkOut = Integer.parseInt(ConfigFile.getProperty("panther_check_out"));
+            stmt = con.prepareStatement(PREPARED_CLSID_FOR_BOOK_USER_LOCK);
+
+            stmt.setInt(1, Integer.parseInt(uplVersion));
+            stmt.setString(2, book);
+            stmt.setInt(3, checkOut);
+
+            //System.out.println(QueryString.PREPARED_CLSID_FOR_BOOK_USER_LOCK);
+            rst = stmt.executeQuery();
+
+            if (rst.next()) {
+                clsId = new Integer(rst.getInt(1));
+            }
+            rst.close();
+            stmt.close();
+        } catch (SQLException se) {
+            System.out.println("Unable to retrieve information from database, exception " + se.getMessage()
+                    + " has been returned.");
+        } finally {
+            if (null != con) {
+                try {
+                    con.close();
+                } catch (SQLException se) {
+                    System.out.println("Unable to close connection, exception " + se.getMessage() + " has been returned.");
+                    return null;
+                }
+            }
+            ReleaseResources.releaseDBResources(rst, stmt, con);
         }
-      }
+        if (null == clsId) {
+            return null;
+        } else {
+            return clsId.toString();
+        }
     }
-    if (null == clsId){
-      return null;
-    }
-    else{
-      return clsId.toString();
-    }
-  }
   
 
     public String unlockBooks(String userName, String password, String uplVersion, Vector bookList) throws Exception {
@@ -8625,39 +8830,37 @@ public class DataIO {
 
     }
     
-  public Integer  getRank(String userId){
+    public Integer getRank(String userId) {
 
-    Connection  con = null;
-    Statement stmt = null;
-    ResultSet rst = null;
-    System.out.println("Getting userid to rank information");
-    try{
-      con = getConnection();
-      if (null == con){
-        return null;
-      }
-      stmt = con.createStatement();
-      String    query = USER_ID.replace(QUERY_PARAMETER_1, userId);
+        Connection con = null;
+        Statement stmt = null;
+        ResultSet rst = null;
+        System.out.println("Getting userid to rank information");
+        try {
+            con = getConnection();
+            if (null == con) {
+                return null;
+            }
+            stmt = con.createStatement();
+            String query = USER_ID.replace(QUERY_PARAMETER_1, userId);
 
-      //System.out.println(query);
-      rst = stmt.executeQuery(query);
+            //System.out.println(query);
+            rst = stmt.executeQuery(query);
 
-
-      if (rst.next()){
-        return new Integer(rst.getInt(COLUMN_NAME_PRIVILEGE_RANK));
-      }
-      rst.close();
-      stmt.close();
-    }
-    catch (SQLException se){
-      System.out.println("Unable to retrieve information from database, exception " + se.getMessage()
-                         + " has been returned.");
-    }
-    finally{
+            if (rst.next()) {
+                return new Integer(rst.getInt(COLUMN_NAME_PRIVILEGE_RANK));
+            }
+            rst.close();
+            stmt.close();
+            con.close();
+        } catch (SQLException se) {
+            System.out.println("Unable to retrieve information from database, exception " + se.getMessage()
+                    + " has been returned.");
+        } finally {
             ReleaseResources.releaseDBResources(rst, stmt, con);
-      }
-    return null;
-  }    
+        }
+        return null;
+    }
     
     protected String checkUserCanLockorUnlockBooks(String userId) {
 
@@ -8752,6 +8955,8 @@ public class DataIO {
     protected Vector getClsIdsForBooksToLock(String uplVersion, Vector books) throws Exception {
 
       Connection  con = null;
+      PreparedStatement stmt = null;
+      ResultSet rst = null;
       if (null == books || 0 == books.size()) {
           return null;
       }
@@ -8765,19 +8970,20 @@ public class DataIO {
         int               checkOut = Integer.parseInt(ConfigFile.getProperty(CURATION_STATUS_CHECKOUT));
         String query = PREPARED_CLSIDS_FOR_BOOKS_USER_LOCK;
         query = Utils.replace(query, REPLACE_STR_PERCENT_1, bookStr);
-        PreparedStatement stmt = con.prepareStatement(query);
+        stmt = con.prepareStatement(query);
 
         stmt.setInt(1, Integer.parseInt(uplVersion));
         stmt.setInt(2, checkOut);
 
         System.out.println(query);
-        ResultSet rst = stmt.executeQuery();
+        rst = stmt.executeQuery();
 
         while (rst.next()){
           returnInfo.add(Integer.toString(rst.getInt(1)));
         }
         rst.close();
         stmt.close();
+        con.close();
       }
       catch (SQLException se){
         System.out.println("Unable to retrieve information from database, exception " + se.getMessage()
@@ -8794,6 +9000,7 @@ public class DataIO {
             return null;
           }
         }
+        ReleaseResources.releaseDBResources(rst, stmt, con);
       }
 
       return returnInfo;
@@ -8829,6 +9036,7 @@ public class DataIO {
             }
             rst.close();
             stmt.close();
+            con.close();
         } catch (SQLException se) {
             log.error(MSG_ERROR_UNABLE_TO_RETRIEVE_INFO_ERROR_RETURNED + se.getMessage());
             se.printStackTrace();
@@ -8905,47 +9113,45 @@ public class DataIO {
    *
    * @see
    */
-  private int getUserPrivilegeLevel(String userId){
-    Connection  con = null;
-    int         userPrivilege = -1;
+    private int getUserPrivilegeLevel(String userId) {
+        Connection con = null;
+        int userPrivilege = -1;
 
-    // check whether the user has enough privilege to do the curation
-    try{
-      con = getConnection();
-      PreparedStatement stmt = con.prepareStatement(USER_PRIVILEGE);
+        // check whether the user has enough privilege to do the curation
+        try {
+            con = getConnection();
+            PreparedStatement stmt = con.prepareStatement(USER_PRIVILEGE);
 
-      stmt.setInt(1, Integer.parseInt(userId));
-      ResultSet rst = stmt.executeQuery();
+            stmt.setInt(1, Integer.parseInt(userId));
+            ResultSet rst = stmt.executeQuery();
 
-      if (rst.next()){
-        userPrivilege = rst.getInt(1);
-      }
-      rst.close();
-      stmt.close();
-    }
-    catch (SQLException se){
-      System.out.println("Unable to retrieve the user privilege from the database, exception " + se.getMessage()
-                         + " has been returned.");
-    }
-    finally{
-      if (null != con){
-        try{
-          con.close();
+            if (rst.next()) {
+                userPrivilege = rst.getInt(1);
+            }
+            rst.close();
+            stmt.close();
+            con.close();
+        } catch (SQLException se) {
+            System.out.println("Unable to retrieve the user privilege from the database, exception " + se.getMessage()
+                    + " has been returned.");
+        } finally {
+            if (null != con) {
+                try {
+                    con.close();
+                } catch (SQLException se) {
+                    System.out.println("Unable to close connection, exception " + se.getMessage() + " has been returned.");
+                }
+            }
         }
-        catch (SQLException se){
-          System.out.println("Unable to close connection, exception " + se.getMessage() + " has been returned.");
-        }
-      }
+        return userPrivilege;
     }
-    return userPrivilege;
-  }
   
     public static void main(String args[]) {
         
     }
     
     public static void main2(String args[]) {
-        DataIO di = new DataIO(ConfigFile.getProperty(ConfigFile.KEY_DB_JDBC_DBSID)); 
+        DataIO di = DataAccessManager.getInstance().getDataIO();
         SaveBookInfo sbi = null;
         
             try {

@@ -1,26 +1,20 @@
-/* 
- * 
- * Copyright (c) 2010, Regents of the University of California 
- * All rights reserved.
+/**
+ *  Copyright 2022 University Of Southern California
  *
- * Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
- * 
- * Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.
- * Neither the name of the Lawrence Berkeley National Lab nor the names of its contributors may be used to endorse 
- * or promote products derived from this software without specific prior written permission.
- * 
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, 
- * INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. 
- * IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, 
- * OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; 
- * OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) 
- * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- * 
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing,
+ *  software distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
  */
 package org.paint.go;
 
-import edu.usc.ksom.pm.panther.paintCommon.DBReference;
-import edu.usc.ksom.pm.panther.paintCommon.NodeVariableInfo;
 import java.awt.Frame;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -39,7 +33,6 @@ import org.geneontology.db.factory.GOobjectFactory;
 import org.geneontology.db.model.Association;
 import org.geneontology.db.model.DB;
 import org.geneontology.db.model.DBXref;
-import org.geneontology.db.model.Evidence;
 import org.geneontology.db.model.GeneProduct;
 import org.geneontology.db.model.GraphPath;
 import org.geneontology.db.model.Species;
@@ -214,19 +207,19 @@ public class GO_Util {
 		return node;
 	}
 
-	public boolean isExperimental(Evidence evidence) {
-		return EXP_strings.contains(evidence.getCode());
-	}
-
-	public boolean isExperimental(Association assoc) {
-		boolean experimental = false;
-		if (assoc.getEvidence() != null && assoc.getEvidence().iterator() != null) {
-			for (Iterator<Evidence> ev_set = assoc.getEvidence().iterator(); ev_set.hasNext() && !experimental;) {
-				experimental = isExperimental(ev_set.next()) && !isPAINTAnnotation(assoc);
-			}
-		}
-		return experimental;
-	}
+//	public boolean isExperimental(Evidence evidence) {
+//		return EXP_strings.contains(evidence.getCode());
+//	}
+//
+//	public boolean isExperimental(Association assoc) {
+//		boolean experimental = false;
+//		if (assoc.getEvidence() != null && assoc.getEvidence().iterator() != null) {
+//			for (Iterator<Evidence> ev_set = assoc.getEvidence().iterator(); ev_set.hasNext() && !experimental;) {
+//				experimental = isExperimental(ev_set.next()) && !isPAINTAnnotation(assoc);
+//			}
+//		}
+//		return experimental;
+//	}
 
 	public synchronized Term getTermByAcc(String acc) {
 		if (accToTerm == null) {
@@ -456,127 +449,127 @@ public class GO_Util {
 		return db;
 	}
         
-        public boolean isPAINTAnnotation(edu.usc.ksom.pm.panther.paintCommon.Annotation annot) {
-            return annot.isPaint();
-        }
+//        public boolean isPAINTAnnotation(edu.usc.ksom.pm.panther.paintCommon.Annotation annot) {
+//            return annot.isPaint();
+//        }
+//
+//	public boolean isPAINTAnnotation(Association assoc) {
+//		String source = assoc.getSource_db().getName();
+//		return (source.equals(GOConstants.PAINT_AS_SOURCE) || source.equals(GOConstants.OLD_SOURCE));
+//	}
 
-	public boolean isPAINTAnnotation(Association assoc) {
-		String source = assoc.getSource_db().getName();
-		return (source.equals(GOConstants.PAINT_AS_SOURCE) || source.equals(GOConstants.OLD_SOURCE));
-	}
+//	public GeneProduct createGeneProduct(GeneNode node) {
+//		GeneProduct gene_product = new GeneProduct();
+//		if (mod_list.contains(node.getDatabase())) {
+//			//			if (!InternetChecker.getInstance().isConnectionPresent())
+//			//				log.info("Have lost internet connection for " + node);
+//			gene_product.setSymbol(node.getSeqName());
+//		} else {
+//			gene_product.setSymbol(node.getSeqName() != null ? node.getSeqName() : node.getDatabaseID());
+//		}
+//		gene_product.setDbxref(createNodeDBXref(node));
+//		// properly this should be "SO:0000358", but in the GO database it isn't :-(
+//		// Best to just leave SO type as null as this isn't working reliably
+//		//		gene_product.setSO_type(getTermByAcc("protein"));
+//		gene_product.setFull_name(node.getSeqName());
+//		Species species = getSpecies(node);
+//		gene_product.setSpecies(species);
+//		initGP2Node(gene_product, node);
+//		return gene_product;
+//	}
 
-	public GeneProduct createGeneProduct(GeneNode node) {
-		GeneProduct gene_product = new GeneProduct();
-		if (mod_list.contains(node.getDatabase())) {
-			//			if (!InternetChecker.getInstance().isConnectionPresent())
-			//				log.info("Have lost internet connection for " + node);
-			gene_product.setSymbol(node.getSeqName());
-		} else {
-			gene_product.setSymbol(node.getSeqName() != null ? node.getSeqName() : node.getDatabaseID());
-		}
-		gene_product.setDbxref(createNodeDBXref(node));
-		// properly this should be "SO:0000358", but in the GO database it isn't :-(
-		// Best to just leave SO type as null as this isn't working reliably
-		//		gene_product.setSO_type(getTermByAcc("protein"));
-		gene_product.setFull_name(node.getSeqName());
-		Species species = getSpecies(node);
-		gene_product.setSpecies(species);
-		initGP2Node(gene_product, node);
-		return gene_product;
-	}
+//	public synchronized Association createAssociation(Term term, Set<GeneNode> withs, Integer date, boolean MRC, Set<Term> quals) {
+//		Association assoc = new Association();
+//		/* 
+//		 * The association links a term to a gene product
+//		 * and is made on a specific date
+//		 */
+//		assoc.setTerm(term);
+//
+//		if (date == null)
+//			assoc.setDate();
+//		else
+//			assoc.setDate(date);
+//
+//		/*
+//		 * This is the group who makes this association
+//		 * Right now the only field being populated in the DB class is 
+//		 * the name "PANTHER", but the other fields (full name, description, 
+//		 * & URI information) is left blank
+//		 */
+//		assoc.setSource_db(getOriginbyName(GOConstants.PAINT_AS_SOURCE));
+//		String code = MRC ? GOConstants.DESCENDANT_SEQUENCES_EC : GOConstants.ANCESTRAL_EVIDENCE_CODE;
+//		assoc.addEvidence(createEvidence(term, withs, code));
+//		assoc.setDirectMRC(MRC);
+//		assoc.setDirectNot(false);
+//		assoc.setQualifiers(quals);
+//		return assoc;
+//	}
 
-	public synchronized Association createAssociation(Term term, Set<GeneNode> withs, Integer date, boolean MRC, Set<Term> quals) {
-		Association assoc = new Association();
-		/* 
-		 * The association links a term to a gene product
-		 * and is made on a specific date
-		 */
-		assoc.setTerm(term);
-
-		if (date == null)
-			assoc.setDate();
-		else
-			assoc.setDate(date);
-
-		/*
-		 * This is the group who makes this association
-		 * Right now the only field being populated in the DB class is 
-		 * the name "PANTHER", but the other fields (full name, description, 
-		 * & URI information) is left blank
-		 */
-		assoc.setSource_db(getOriginbyName(GOConstants.PAINT_AS_SOURCE));
-		String code = MRC ? GOConstants.DESCENDANT_SEQUENCES_EC : GOConstants.ANCESTRAL_EVIDENCE_CODE;
-		assoc.addEvidence(createEvidence(term, withs, code));
-		assoc.setDirectMRC(MRC);
-		assoc.setDirectNot(false);
-		assoc.setQualifiers(quals);
-		return assoc;
-	}
-
-	private Evidence createEvidence(Term term, Set<GeneNode> withs, String code) {
-		Evidence evidence = new Evidence();
-		/*
-		 * Using inferred by sequence similarity as the default evidence code
-		 */
-		evidence.setCode(code);
-		/* 
-		 * Basically, this references states who made and is responsible for this 
-		 * association of term to gene_product
-		 */
-		evidence.setDbxref(getPAINTEvidenceDBXref());
-		/*
-		 * Add cross-references to the experimental evidence that were the basis for
-		 * this annotation
-		 */
-		for (GeneNode node : withs) {
-			GeneProduct gene_product = node.getGeneProduct();
-			evidence.addWith(gene_product.getDbxref());
-		}
-		return evidence;
-	}
-
-	/* This will return a set of Associations, with all the experimental evidence terms if the flag is true */
-	public Set<Association> getAssociations(GeneNode node, String go_aspect, boolean exp_only) {
-		GeneProduct gene_product = node.getGeneProduct();
-		Set<Association> full_set = gene_product != null ? gene_product.getAssociations() : null;
-		Set<Association> aspect_set = null;
-		if (full_set != null) {
-			for (Iterator<Association> it = full_set.iterator(); it.hasNext();) {
-				Association assoc = it.next();
-				String cv = assoc.getTerm().getCv();
-				if (cv.equals(go_aspect)) {
-					/*
-					 * isExperimental runs through all of the association's evidence to look for experimental evidence codes
-					 */
-					boolean add_it = (!exp_only || (exp_only && isExperimental(assoc)));
-					if (add_it) {
-						if (aspect_set == null) {
-							aspect_set = new HashSet<Association> ();
-						}
-						aspect_set.add(assoc);
-					}
-				}
-			}
-		}
-		return aspect_set;
-	}
-
-	/* This will return a set of Associations, with all the experimental evidence terms if the flag is true */
-	public boolean hasExperimentalAssoc(GeneNode node) {
-		boolean exp_associations = false;
-		GeneProduct gene_product = node.getGeneProduct();
-		Set<Association> full_set = gene_product != null ? gene_product.getAssociations() : null;
-		if (full_set != null) {
-			for (Iterator<Association> it = full_set.iterator(); it.hasNext() && !exp_associations;) {
-				Association assoc = it.next();
-				/*
-				 * isExperimental runs through all of the association's evidence to look for experimental evidence codes
-				 */
-				exp_associations = isExperimental(assoc);
-			}
-		}
-		return exp_associations;
-	}
+//	private Evidence createEvidence(Term term, Set<GeneNode> withs, String code) {
+//		Evidence evidence = new Evidence();
+//		/*
+//		 * Using inferred by sequence similarity as the default evidence code
+//		 */
+//		evidence.setCode(code);
+//		/* 
+//		 * Basically, this references states who made and is responsible for this 
+//		 * association of term to gene_product
+//		 */
+//		evidence.setDbxref(getPAINTEvidenceDBXref());
+//		/*
+//		 * Add cross-references to the experimental evidence that were the basis for
+//		 * this annotation
+//		 */
+//		for (GeneNode node : withs) {
+//			GeneProduct gene_product = node.getGeneProduct();
+//			evidence.addWith(gene_product.getDbxref());
+//		}
+//		return evidence;
+//	}
+//
+//	/* This will return a set of Associations, with all the experimental evidence terms if the flag is true */
+//	public Set<Association> getAssociations(GeneNode node, String go_aspect, boolean exp_only) {
+//		GeneProduct gene_product = node.getGeneProduct();
+//		Set<Association> full_set = gene_product != null ? gene_product.getAssociations() : null;
+//		Set<Association> aspect_set = null;
+//		if (full_set != null) {
+//			for (Iterator<Association> it = full_set.iterator(); it.hasNext();) {
+//				Association assoc = it.next();
+//				String cv = assoc.getTerm().getCv();
+//				if (cv.equals(go_aspect)) {
+//					/*
+//					 * isExperimental runs through all of the association's evidence to look for experimental evidence codes
+//					 */
+//					boolean add_it = (!exp_only || (exp_only && isExperimental(assoc)));
+//					if (add_it) {
+//						if (aspect_set == null) {
+//							aspect_set = new HashSet<Association> ();
+//						}
+//						aspect_set.add(assoc);
+//					}
+//				}
+//			}
+//		}
+//		return aspect_set;
+//	}
+//
+//	/* This will return a set of Associations, with all the experimental evidence terms if the flag is true */
+//	public boolean hasExperimentalAssoc(GeneNode node) {
+//		boolean exp_associations = false;
+//		GeneProduct gene_product = node.getGeneProduct();
+//		Set<Association> full_set = gene_product != null ? gene_product.getAssociations() : null;
+//		if (full_set != null) {
+//			for (Iterator<Association> it = full_set.iterator(); it.hasNext() && !exp_associations;) {
+//				Association assoc = it.next();
+//				/*
+//				 * isExperimental runs through all of the association's evidence to look for experimental evidence codes
+//				 */
+//				exp_associations = isExperimental(assoc);
+//			}
+//		}
+//		return exp_associations;
+//	}
         
 //        public boolean isPainted(GeneNode node) {
 //            boolean annotated = false;
@@ -795,78 +788,78 @@ public class GO_Util {
 	 * or the existing association is to a more specific term
 	 * then return that association
 	 */
-	public Association isAnnotatedToTerm(GeneNode node, Term term) {
-		Association annotated_with_term = null;
-		GeneProduct gene_product = node.getGeneProduct();
-		if (gene_product != null && term != null) {
-			LinkDatabase go_root = PaintManager.inst().getGoRoot().getLinkDatabase();
-			String term_acc = term.getAcc();
-			LinkedObject possible_parental = (LinkedObject) GO_Util.inst().getObject(go_root, term_acc);
-			Set<Association> associations = node.getAssociations();
-			for (Iterator<Association> assoc_it = associations.iterator(); assoc_it.hasNext() && annotated_with_term == null;) {
-				Association assoc = assoc_it.next();
-				Term assoc_term = assoc.getTerm();
-				LinkedObject possible_child = (LinkedObject) GO_Util.inst().getObject(go_root, assoc_term.getAcc());
-				if (assoc_term.getAcc().equals(term_acc) 
-						|| (TermUtil.isAncestor(possible_child, possible_parental, go_root, null) && !assoc.isDirectNot())) {
-					annotated_with_term = assoc;
-				}
-			}
-		}
-		return annotated_with_term;
-	}
-
-	public void getRelatedAssociationsToTerm(GeneNode node, Term term, List<Association> self,
-			List<Association> broader_terms, List<Association> narrower_terms, boolean experimentalOnly) {
-		GeneProduct gene_product = node.getGeneProduct();
-		if (gene_product != null) {
-			LinkDatabase go_root = PaintManager.inst().getGoRoot().getLinkDatabase();
-			String term_acc = term.getAcc();
-			LinkedObject term4column = (LinkedObject) GO_Util.inst().getObject(go_root, term_acc);
-			Set<Association> associations = node.getAssociations();
-			for (Association assoc : associations) {
-				Term assoc_term = assoc.getTerm();
-				LinkedObject annotated2term = (LinkedObject) GO_Util.inst().getObject(go_root, assoc_term.getAcc());
-				if (term.equals(assoc_term)) {
-					self.add(assoc);
-				}
-				/*
-				 * Is term4column a parent term of annotated2term?
-				 */
-				else if (TermUtil.isAncestor(annotated2term, term4column)) {
-					if (experimentalOnly) {
-						if (isExperimental(assoc)) {
-							narrower_terms.add(assoc);
-						}
-					}
-					else {
-						narrower_terms.add(assoc);
-					}
-				}
-				/*
-				 * Conversely is term4column a child term of annotated2term
-				 */
-				else if (TermUtil.isAncestor(term4column, annotated2term)) {
-					if (experimentalOnly) {
-						if (isExperimental(assoc)) {
-							broader_terms.add(assoc);
-						}
-					}
-					else {
-						broader_terms.add(assoc);
-					}
-				}
-			}
-		}
-	}
-
-	public void initGP2Node(GeneProduct gp, GeneNode node) {
-		if (gp2node == null) {
-			gp2node = new HashMap<GeneProduct, GeneNode> ();
-		}
-		if (!gp2node.containsKey(gp))
-			gp2node.put(gp, node);
-	}
+//	public Association isAnnotatedToTerm(GeneNode node, Term term) {
+//		Association annotated_with_term = null;
+//		GeneProduct gene_product = node.getGeneProduct();
+//		if (gene_product != null && term != null) {
+//			LinkDatabase go_root = PaintManager.inst().getGoRoot().getLinkDatabase();
+//			String term_acc = term.getAcc();
+//			LinkedObject possible_parental = (LinkedObject) GO_Util.inst().getObject(go_root, term_acc);
+//			Set<Association> associations = node.getAssociations();
+//			for (Iterator<Association> assoc_it = associations.iterator(); assoc_it.hasNext() && annotated_with_term == null;) {
+//				Association assoc = assoc_it.next();
+//				Term assoc_term = assoc.getTerm();
+//				LinkedObject possible_child = (LinkedObject) GO_Util.inst().getObject(go_root, assoc_term.getAcc());
+//				if (assoc_term.getAcc().equals(term_acc) 
+//						|| (TermUtil.isAncestor(possible_child, possible_parental, go_root, null) && !assoc.isDirectNot())) {
+//					annotated_with_term = assoc;
+//				}
+//			}
+//		}
+//		return annotated_with_term;
+//	}
+//
+//	public void getRelatedAssociationsToTerm(GeneNode node, Term term, List<Association> self,
+//			List<Association> broader_terms, List<Association> narrower_terms, boolean experimentalOnly) {
+//		GeneProduct gene_product = node.getGeneProduct();
+//		if (gene_product != null) {
+//			LinkDatabase go_root = PaintManager.inst().getGoRoot().getLinkDatabase();
+//			String term_acc = term.getAcc();
+//			LinkedObject term4column = (LinkedObject) GO_Util.inst().getObject(go_root, term_acc);
+//			Set<Association> associations = node.getAssociations();
+//			for (Association assoc : associations) {
+//				Term assoc_term = assoc.getTerm();
+//				LinkedObject annotated2term = (LinkedObject) GO_Util.inst().getObject(go_root, assoc_term.getAcc());
+//				if (term.equals(assoc_term)) {
+//					self.add(assoc);
+//				}
+//				/*
+//				 * Is term4column a parent term of annotated2term?
+//				 */
+//				else if (TermUtil.isAncestor(annotated2term, term4column)) {
+//					if (experimentalOnly) {
+//						if (isExperimental(assoc)) {
+//							narrower_terms.add(assoc);
+//						}
+//					}
+//					else {
+//						narrower_terms.add(assoc);
+//					}
+//				}
+//				/*
+//				 * Conversely is term4column a child term of annotated2term
+//				 */
+//				else if (TermUtil.isAncestor(term4column, annotated2term)) {
+//					if (experimentalOnly) {
+//						if (isExperimental(assoc)) {
+//							broader_terms.add(assoc);
+//						}
+//					}
+//					else {
+//						broader_terms.add(assoc);
+//					}
+//				}
+//			}
+//		}
+//	}
+//
+//	public void initGP2Node(GeneProduct gp, GeneNode node) {
+//		if (gp2node == null) {
+//			gp2node = new HashMap<GeneProduct, GeneNode> ();
+//		}
+//		if (!gp2node.containsKey(gp))
+//			gp2node.put(gp, node);
+//	}
 
 	public IdentifiedObject getObject(LinkDatabase go_ont, String id) {
 		LinkedObject ont_term = (LinkedObject) go_ont.getObject(id);

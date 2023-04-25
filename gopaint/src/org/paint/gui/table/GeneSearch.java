@@ -1,14 +1,26 @@
+/**
+ * Copyright 2022 University Of Southern California
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not
+ * use this file except in compliance with the License. You may obtain a copy of
+ * the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations under
+ * the License.
+ */
 package org.paint.gui.table;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.apache.log4j.Logger;
-import org.geneontology.db.model.Association;
-import org.geneontology.db.model.Evidence;
 import org.paint.datamodel.GeneNode;
 
 
@@ -67,19 +79,19 @@ public class GeneSearch {
 				if (!matched) {
 					matched = check4match(node.getDescription(), p);
 				}
-				if (!matched && node.getGeneProduct() != null) {
-					Set<Association> associations = node.getGeneProduct().getAssociations();
-					if (associations != null) {
-						for (Association assoc : associations) {
-							Set<Evidence> evi_set = assoc.getEvidence();
-							if (evi_set != null) {
-								for (Evidence evi : evi_set) {
-									matched |= check4match(evi.getDbxref().getAccession(), p);
-								}
-							}
-						}
-					}
-				}
+//				if (!matched && node.getGeneProduct() != null) {
+//					Set<Association> associations = node.getGeneProduct().getAssociations();
+//					if (associations != null) {
+//						for (Association assoc : associations) {
+//							Set<Evidence> evi_set = assoc.getEvidence();
+//							if (evi_set != null) {
+//								for (Evidence evi : evi_set) {
+//									matched |= check4match(evi.getDbxref().getAccession(), p);
+//								}
+//							}
+//						}
+//					}
+//				}
 				if (matched) {
 					matches.add(node);
 				}

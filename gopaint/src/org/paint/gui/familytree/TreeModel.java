@@ -1,5 +1,5 @@
 /**
- *  Copyright 2019 University Of Southern California
+ *  Copyright 2022 University Of Southern California
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -36,7 +36,6 @@ import java.util.Vector;
 import org.apache.log4j.Logger;
 import org.paint.config.Preferences;
 import org.paint.datamodel.GeneNode;
-import org.paint.go.GO_Util;
 import org.paint.gui.event.EventManager;
 import org.paint.gui.event.NodeReorderEvent;
 import org.paint.main.PaintManager;
@@ -393,18 +392,18 @@ public class TreeModel implements Serializable {
 		boolean no_exp = true;
 		for (int i = 0; i < twigList.size() && no_exp; i++) {
 			GeneNode check = twigList.get(i);
-			no_exp &= !GO_Util.inst().hasExperimentalAssoc(check);
+//			no_exp &= !GO_Util.inst().hasExperimentalAssoc(check);
 		}
-		if (no_exp) {
-			mrc.setExpanded(false);
-		} else {			
+//		if (no_exp) {
+//			mrc.setExpanded(false);
+//		} else {			
 			List<GeneNode> children = mrc.getChildren();
 			if (children != null) {
 				for (GeneNode child : children) {
 					collapseMRC(child);
 				}
 			}
-		}
+//		}
 	}
 
 	// Method to set number of leaves in tree

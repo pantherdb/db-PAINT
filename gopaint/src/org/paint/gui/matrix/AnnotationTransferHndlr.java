@@ -15,19 +15,19 @@
  */
 package org.paint.gui.matrix;
 
-import com.sri.panther.paintCommon.util.StringUtils;
+import edu.usc.ksom.pm.panther.paint.annotation.QualifierAnnotRltn;
+import edu.usc.ksom.pm.panther.paint.matrix.TermAncestor;
+import edu.usc.ksom.pm.panther.paint.matrix.TermToAssociation;
+import edu.usc.ksom.pm.panther.paintCommon.AnnotQualifierGroup;
 import edu.usc.ksom.pm.panther.paintCommon.Annotation;
+import edu.usc.ksom.pm.panther.paintCommon.AnnotationHelper;
+import edu.usc.ksom.pm.panther.paintCommon.Evidence;
 import edu.usc.ksom.pm.panther.paintCommon.GOTerm;
 import edu.usc.ksom.pm.panther.paintCommon.GOTermHelper;
 import edu.usc.ksom.pm.panther.paintCommon.Node;
 import edu.usc.ksom.pm.panther.paintCommon.NodeVariableInfo;
 import edu.usc.ksom.pm.panther.paintCommon.Qualifier;
-import edu.usc.ksom.pm.panther.paint.matrix.TermAncestor;
-import edu.usc.ksom.pm.panther.paint.matrix.TermToAssociation;
-import edu.usc.ksom.pm.panther.paint.annotation.QualifierAnnotRltn;
-import edu.usc.ksom.pm.panther.paintCommon.AnnotQualifierGroup;
-import edu.usc.ksom.pm.panther.paintCommon.AnnotationHelper;
-import edu.usc.ksom.pm.panther.paintCommon.Evidence;
+import edu.usc.ksom.pm.panther.paintCommon.TaxonomyHelper;
 import java.awt.Color;
 import java.awt.FontMetrics;
 import java.awt.Graphics;
@@ -405,13 +405,33 @@ public class AnnotationTransferHndlr extends TransferHandler {
             System.out.println(errMsg);
             return false;
         }
-        boolean valid = pm.getTaxonHelper().termAndQualifierValidForSpeciesCheckTaxonomy(termAcc, gNode.getNode().getStaticInfo().getCalculatedSpecies(), applicableQset);
+        TaxonomyHelper th = pm.getTaxonHelper();
+        Node n = gNode.getNode();
+        boolean valid = th.termAndQualifierValidForSpeciesCheckTaxonomy(termAcc, gNode.getNode().getStaticInfo().getCalculatedSpecies(), applicableQset);
         if (false == valid) {            
             String bigStr = (gNode.getNode().getStaticInfo().getPublicId() + MSG_TAXON_CONSTRAINT_PART_1 + gNode.getNode().getStaticInfo().getCalculatedSpecies() + MSG_TAXON_CONSTRAINT_PART_2 + termAcc + MSG_TAXON_CONSTRAINT_PART_3);
             String formatted = WordUtils.wrap(bigStr, 80);
             JOptionPane.showMessageDialog(GUIManager.getManager().getFrame(), formatted);
         }
         PaintAction.inst().addIBDAnnotationAndPropagate(annotTerm, gNode, withSet, applicableQset);
+        
+        // Propagation of IBA may have cause taxonomy constraints checks to fail.  Check and output message, if necessary
+        if (false == th.isCheckingTaxonomy()) {
+            NodeVariableInfo nvi = n.getVariableInfo();
+            if (false == nvi.isPruned()) {
+                ArrayList<Node> children = n.getStaticInfo().getChildren();
+                if (null != children) {
+                    StringBuffer sb = new StringBuffer();
+                    for (Node child: children) {
+                        AnnotationHelper.checkTaxonomyViolationsForNodeAndDescendants(child, annotTerm.getAcc(), sb, th);
+                    }
+                    if (0 < sb.length()) {
+                        String formatted = WordUtils.wrap(sb.toString(), 80);
+                        JOptionPane.showMessageDialog(GUIManager.getManager().getFrame(), formatted);
+                    }
+                }
+            }
+        }       
         clearVisitedNodes(treePanel);
         DirtyIndicator.inst().setAnnotated(true);
         EventManager.inst().fireAnnotationChangeEvent(new AnnotationChangeEvent(gNode));        

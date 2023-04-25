@@ -1,5 +1,5 @@
 /**
- *  Copyright 2019 University Of Southern California
+ *  Copyright 2022 University Of Southern California
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -15,8 +15,10 @@
  */
 package org.paint.gui.msa;
 
+import com.sri.panther.paintCommon.Constant;
 import com.sri.panther.paintCommon.util.Utils;
 import edu.usc.ksom.pm.panther.paintCommon.Domain;
+import edu.usc.ksom.pm.panther.paintCommon.KeyResidue;
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Graphics;
@@ -26,17 +28,20 @@ import java.awt.event.InputEvent;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.awt.event.MouseMotionListener;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Vector;
 
 import javax.swing.JPanel;
+import javax.swing.JScrollBar;
 import javax.swing.JScrollPane;
 import javax.swing.Scrollable;
 import javax.swing.SwingConstants;
+import javax.swing.SwingUtilities;
 
 import org.apache.log4j.Logger;
 import org.paint.datamodel.GeneNode;
@@ -47,6 +52,7 @@ import org.paint.gui.event.GeneSelectListener;
 import org.paint.gui.event.NodeReorderEvent;
 import org.paint.gui.event.NodeReorderListener;
 import org.paint.main.PaintManager;
+import org.paint.util.HTMLUtil;
 
 public class MSAPanel extends JPanel
         implements
@@ -103,13 +109,37 @@ public class MSAPanel extends JPanel
         if (null == msa) {
             return;
         }
+        Graphics g = this.getGraphics();
+        Point p = e.getPoint();
+        // Left click on Domain to bring up pfam domain page
+        if (MSA.MSA_DISPLAY.DOMAIN == msa.getDisplayType() || MSA.MSA_DISPLAY.DOMAIN_TRIMMED == msa.getDisplayType()) {
+            int modifiers = e.getModifiers();
+            if ((modifiers & InputEvent.BUTTON1_MASK) != 0 && (modifiers & InputEvent.BUTTON3_MASK) == 0) {
+                ArrayList<Domain> domainList = msa.getDomains(p, g);
+                HashSet<String> processedSet = new HashSet<String>();
+                if (null != domainList) {
+                    for (Domain d : domainList) {
+                        String acc = d.getHmmAcc();
+                        if (false == processedSet.contains(acc)) {
+                            try {
+                                HTMLUtil.bringUpInBrowser(new URL(Domain.getPFAMDomainUrl(acc)));
+                            }
+                            catch(MalformedURLException mfe) {
+                                mfe.printStackTrace();
+                            }
+                        }
+                        processedSet.add(acc);
+                    }
+                }
+            }
+        }
+        
+        
         if (MSA.MSA_DISPLAY.DOMAIN_TRIMMED == msa.getDisplayType()) {
             return;
         }
 
         // Handle only right click
-        Graphics g = this.getGraphics();
-        Point p = e.getPoint();
         if (InputEvent.BUTTON3_MASK != (e.getModifiers() & InputEvent.BUTTON3_MASK)) {
             GeneNode node = msa.getSelectedGene(p, g);
             if (node != null) {
@@ -119,7 +149,20 @@ public class MSAPanel extends JPanel
                 EventManager.inst().fireGeneEvent(ge);
             }
         } else {
-            if (true == msa.setSelectedColInfo(p, g)) {
+//            JScrollPane scrollPane = (JScrollPane) (this.getParent().getParent());
+//            JScrollBar hScrollBar = scrollPane.getHorizontalScrollBar();
+            Rectangle rect = ((JScrollPane) (this.getParent().getParent())).getViewport().getViewRect();
+//            System.out.println("rect x =  " + rect.x + " y " + rect.y);
+//            System.out.println("mouse click point " + e.getX() + " value is " + hScrollBar.getValue() + " width " + hScrollBar.getWidth());
+//            System.out.println("x = " + p.x + "y = " + p.y + " x on xcreen " + e.getXOnScreen() + " y on screen " + e.getYOnScreen());
+//            SwingUtilities.convertPoint(this, p, scrollPane);
+//            System.out.println("Once converted to screen position x = " + p.x + "y = " + p.y);
+//            int verticalScrollValue = scrollPane.getVerticalScrollBar().getValue();
+
+
+//            int horizontalScrollValue = scrollPane.getHorizontalScrollBar().getValue();
+
+            if (true == msa.setSelectedColInfo(p, g, rect)) {
                 super.paintComponent(g);
                 msa.draw(g, ((JScrollPane) (this.getParent().getParent())).getViewport().getViewRect());
             }
@@ -245,13 +288,13 @@ public class MSAPanel extends JPanel
 		revalidate();
 	}
         
-        public void handleDomainData(HashMap<String, HashMap<String, ArrayList<Domain>>> domainLookup) {
-            if (null == msa) {
-                return;
-            }
-            msa.handleDomainData(domainLookup);
-            revalidate();
-        }
+//        public void handleDomainData(HashMap<String, HashMap<String, ArrayList<Domain>>> domainLookup) {
+//            if (null == msa) {
+//                return;
+//            }
+//            msa.handleDomainData(domainLookup);
+//            revalidate();
+//        }
 
 	public boolean isWeighted() {
 		if (msa != null)
@@ -357,26 +400,49 @@ public class MSAPanel extends JPanel
     @Override
     public void mouseMoved(MouseEvent e) {
         if (null != msa) {
-//            if (MSA.MSA_DISPLAY.DOMAIN != msa.getDisplayType()) {
-//                return;
-//            }
+
             Graphics g = this.getGraphics();
             Point p = e.getPoint();
-            ArrayList<Domain> domainList = msa.getDomains(p, g);
-            if (null == domainList) {
-                return;
-            }
-            HashSet<String> domainSet = new HashSet<String>();
-            for (Domain d : domainList) {
-                domainSet.add(d.getHmmName() + " (" + d.getHmmAcc() + " Range " + d.getStart() + " - " + d.getEnd() + " )");
+            if (MSA.MSA_DISPLAY.DOMAIN == msa.getDisplayType() || MSA.MSA_DISPLAY.DOMAIN_TRIMMED == msa.getDisplayType()) {
 
+                ArrayList<Domain> domainList = msa.getDomains(p, g);
+                if (null == domainList) {
+                    return;
+                }
+                HashSet<String> domainSet = new HashSet<String>();
+                for (Domain d : domainList) {
+                    domainSet.add(d.getHmmName() + " (" + d.getHmmAcc() + " Range " + d.getStart() + " - " + d.getEnd() + " )");
+
+                }
+                GeneNode node = msa.getSelectedGene(p, g);
+                String label = Constant.STR_EMPTY;
+                if (null != node && false == domainSet.isEmpty()) {
+                    label = node.getNodeLabel() + " " + node.getNode().getStaticInfo().getPublicId() + " - ";
+                    this.setToolTipText(label + Utils.listToString(new Vector(domainSet), "", ", "));
+                }
+                else {
+                    this.setToolTipText(label);
+                }
             }
-            GeneNode node = msa.getSelectedGene(p, g);
-            String label = "";
-            if (null != node && false == domainSet.isEmpty()) {
-                label = node.getNodeLabel() + " " + node.getNode().getStaticInfo().getPublicId() + " - ";
+            else if (MSA.MSA_DISPLAY.KEY_RESIDUE == msa.getDisplayType()) {
+                Rectangle viewRect = ((JScrollPane) (this.getParent().getParent())).getViewport().getViewRect();
+                ArrayList<KeyResidue> applicableList = msa.getKeyResidue(p, g, viewRect);
+                if (null != applicableList) {
+                    ArrayList<String> dispList = new ArrayList<String>();
+                    for (KeyResidue kr: applicableList) {
+                        dispList.add(kr.getResidueType().toString() + " " + kr.getDescription() + kr.getAlignPos());
+                    }
+                    GeneNode node = msa.getSelectedGene(p, g);
+                    String label = node.getNodeLabel() + " " + node.getNode().getStaticInfo().getPublicId() + " - " + String.join(Constant.STR_COMMA, dispList);
+                    this.setToolTipText(label);
+                }
+                else {
+                    this.setToolTipText(Constant.STR_EMPTY);
+                }
             }
-            this.setToolTipText(label + Utils.listToString(new Vector(domainSet), "", ", "));
+            else {
+                this.setToolTipText(Constant.STR_EMPTY);
+            }
         }
     }
 

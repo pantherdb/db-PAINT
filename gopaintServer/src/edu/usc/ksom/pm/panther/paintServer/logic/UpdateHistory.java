@@ -124,6 +124,7 @@ public class UpdateHistory {
     public static final String ELEMENT_STATUS = "status";  
     
     public static final String DB_STR_CURRENT = ConfigFile.getProperty(ConfigFile.KEY_DB_JDBC_DBSID);
+    public static DataIO dataIO = DataAccessManager.getInstance().getDataIO();
     public static ClassificationVersion currentVersion = null;    
     public static final HashMap<String, ClassificationVersion> CLS_VERSION_SID_LOOKUP = initClsVersions();
     private static UserManager USER_MANAGER = UserManager.getInstance();
@@ -132,7 +133,6 @@ public class UpdateHistory {
     public static final java.text.SimpleDateFormat DATE_FORMATTER = new java.text.SimpleDateFormat("yyyy-MM-dd");    
     
     public static HashMap<String, ClassificationVersion> initClsVersions() {
-        DataIO dataIO = new DataIO(DB_STR_CURRENT);
         ArrayList<ClassificationVersion> clsVersions = dataIO.getAllClsVersions();
         if (null == clsVersions) {
             System.out.println("Unable to retrieve classification version sid information");
@@ -308,7 +308,7 @@ public class UpdateHistory {
         Statement stmt = null;
         ResultSet rst = null;
         try {
-            con = DBConnectionPool.getConnection(DB_STR_CURRENT);
+            con = DBConnectionPool.getInstance().getConnection(DB_STR_CURRENT);
             if (null == con) {
                 return null;
             }
@@ -358,7 +358,7 @@ public class UpdateHistory {
         Statement stmt = null;
         ResultSet rst = null;
         try {
-            con = DBConnectionPool.getConnection(DB_STR_CURRENT);
+            con = DBConnectionPool.getInstance().getConnection(DB_STR_CURRENT);
             if (null == con) {
                 return null;
             }
@@ -407,7 +407,7 @@ public class UpdateHistory {
         Statement stmt = null;
         ResultSet rst = null;
         try {
-            con = DBConnectionPool.getConnection(DB_STR_CURRENT);
+            con = DBConnectionPool.getInstance().getConnection(DB_STR_CURRENT);
             if (null == con) {
                 return null;
             }
@@ -458,7 +458,7 @@ public class UpdateHistory {
         Statement stmt = null;
         ResultSet rst = null;
         try {
-            con = DBConnectionPool.getConnection(DB_STR_CURRENT);
+            con = DBConnectionPool.getInstance().getConnection(DB_STR_CURRENT);
             if (null == con) {
                 return null;
             }

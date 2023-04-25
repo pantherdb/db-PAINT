@@ -1,5 +1,5 @@
 /**
- * Copyright 2020 University Of Southern California
+ * Copyright 2021 University Of Southern California
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -80,7 +80,7 @@ public class CategoryHelper {
         //List<GOTerm> catList = null;
         HashMap<String, GOTerm> clsToTermLookup = new HashMap<String, GOTerm>();
         try {
-            con = DBConnectionPool.getConnection(DB_CONNECTION_STR);
+            con = DBConnectionPool.getInstance().getConnection(DB_CONNECTION_STR);
             stmt = con.createStatement();
             //catList = new ArrayList<GOTerm>();
             rst = stmt.executeQuery(query);            
@@ -148,7 +148,7 @@ public class CategoryHelper {
         ResultSet rst = null;
         GOTerm term = null;
         try {
-            con = DBConnectionPool.getConnection(DB_CONNECTION_STR);
+            con = DBConnectionPool.getInstance().getConnection(DB_CONNECTION_STR);
             stmt = con.createStatement();
             rst = stmt.executeQuery(query);
 
@@ -183,7 +183,7 @@ public class CategoryHelper {
         ResultSet rst = null;
         Hashtable rtnTbl = new Hashtable();
         try {
-            con = DBConnectionPool.getConnection(DB_CONNECTION_STR);
+            con = DBConnectionPool.getInstance().getConnection(DB_CONNECTION_STR);
             if (null == con) {
                 log.error("Error unable to get database connection");
                 return null;

@@ -395,7 +395,7 @@ public class DataServer{
   }
 
   protected Connection getConnection() throws SQLException {
-    return DBConnectionPool.getConnection(dbStr);
+    return DBConnectionPool.getInstance().getConnection(dbStr);
   }
   
     public static void releaseDBResources(ResultSet rst, Statement stmt, Connection con) {

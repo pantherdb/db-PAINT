@@ -1,5 +1,5 @@
 /**
- *  Copyright 2019 University Of Southern California
+ *  Copyright 2022 University Of Southern California
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -65,6 +65,7 @@ public class PantherServer {
     public static final String ACTION_GET_GO_HIERARCHY = "goHierarchy";
     public static final String ACTION_GET_VERSION_INFO = "versionInfo";
     public static final String ACTION_GET_MSA = "msa";
+    public static final String ACTION_GET_MSA_KEY_RESIDUE = "msaKeyResidue";
     public static final String ACTION_GET_TREE = "tree";
     public static final String ACTION_GET_NODES = "nodes";
     public static final String ACTION_GET_FAMILY_NAME = "familyName";
@@ -508,6 +509,12 @@ public class PantherServer {
 //            return (MSA)serverOutput;
         }
 
+        public DataTransferObj getMsaKeyResidue(String serverPath, DataTransferObj dto) {
+            server_status = "";
+            return (DataTransferObj)sendAndReceiveZip(serverPath, ACTION_GET_MSA_KEY_RESIDUE, dto, null, null);
+//            return (MSA)serverOutput;
+        }        
+        
         public DataTransferObj saveBook(String serverPath, DataTransferObj dto) {
             server_status = "";
             return (DataTransferObj)sendAndReceiveZip(serverPath, ACTION_SAVE_BOOK, dto, null, null);
@@ -798,7 +805,8 @@ public class PantherServer {
     	 public User getUserInfo(String serverPath, Vector userInfo){
             Vector userInfoList = (Vector)sendAndReceiveZip(serverPath, "userInfo", userInfo, null, null); 
             if (null == userInfoList || 0 == userInfoList.size()) {
-                            return null;
+                System.out.println("Server sent null or empty user information");
+                return null;
             }
             return (User)userInfoList.get(0);            
                 

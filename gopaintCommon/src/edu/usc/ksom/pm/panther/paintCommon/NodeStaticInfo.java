@@ -1,5 +1,5 @@
 /**
- * Copyright 2020 University Of Southern California
+ * Copyright 2022 University Of Southern California
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -34,6 +34,7 @@ public class NodeStaticInfo implements Serializable {
     private ArrayList<String> geneSymbol;
     private Node parent;
     private ArrayList<Node> children;
+    public static final String DELIM_BOOK_ACC = ":";    
 
     public String getNodeId() {
         return nodeId;

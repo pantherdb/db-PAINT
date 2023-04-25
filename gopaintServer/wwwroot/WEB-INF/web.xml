@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+
+<!DOCTYPE web-app
+    PUBLIC "-//Sun Microsystems, Inc.//DTD Web Application 2.3//EN"
+    "http://java.sun.com/dtd/web-app_2_3.dtd">
+<web-app>
+ <display-name>Paint Server Curation</display-name>
+ <description>Paint Server Curation</description>
+
+  <servlet>
+    <servlet-name>Client2Servlet</servlet-name>
+    <display-name/>
+    <description/>
+    <servlet-class>com.sri.panther.paintServer.servlet.Client2Servlet</servlet-class>
+  </servlet>
+  
+  
+   
+  <servlet-mapping>
+    <servlet-name>Client2Servlet</servlet-name>
+    <url-pattern>/servlet/com.sri.panther.paintServer.servlet.Client2Servlet</url-pattern>
+  </servlet-mapping>
+  
+  
+  <servlet>
+    <servlet-name>DataServlet</servlet-name>
+    <display-name/>
+    <description/>
+    <servlet-class>edu.usc.ksom.pm.panther.paintServer.servlet.DataServlet</servlet-class>
+  </servlet>
+  
+  <servlet-mapping>
+    <servlet-name>DataServlet</servlet-name>
+    <url-pattern>/servlet/edu.usc.ksom.pm.panther.paintServer.servlet.DataServlet</url-pattern>
+  </servlet-mapping>
+  
+  <servlet>
+    <servlet-name>NodeAnnotation</servlet-name>
+    <display-name/>
+    <description/>
+    <servlet-class>edu.usc.ksom.pm.panther.paintServer.services.servlet.NodeAnnotation</servlet-class>
+  </servlet>
+    
+  <servlet-mapping>
+    <servlet-name>NodeAnnotation</servlet-name>
+    <url-pattern>/services/tree/node/annotation/*</url-pattern>
+  </servlet-mapping>
+  
+  <servlet>
+    <servlet-name>FamilyHistory</servlet-name>
+    <display-name/>
+    <description/>
+    <servlet-class>edu.usc.ksom.pm.panther.paintServer.services.servlet.FamilyHistory</servlet-class>
+  </servlet>
+    
+  <servlet-mapping>
+    <servlet-name>FamilyHistory</servlet-name>
+    <url-pattern>/services/family/updateHistory/*</url-pattern>
+  </servlet-mapping>  
+      
+<session-config>
+	<session-timeout>30</session-timeout>
+</session-config>
+<mime-mapping>
+  <extension>txt</extension>
+  <mime-type>text/plain</mime-type>
+</mime-mapping>
+<mime-mapping>
+  <extension>html</extension>
+  <mime-type>text/html</mime-type>
+</mime-mapping>
+<welcome-file-list>
+  <welcome-file>index.jsp</welcome-file>
+</welcome-file-list>
+</web-app>

@@ -1,5 +1,5 @@
 /**
- *  Copyright 2019 University Of Southern California
+ *  Copyright 2022 University Of Southern California
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -39,7 +39,10 @@ public class MSAParser{
 	private final int    SUB_SEGMENTS = 5;
 
 	private char [] full_ruler;
-	private char [] condense_ruler;		
+	private char [] condense_ruler;	
+        
+        private String sampleSeq;
+        private String sampleHmmSeq;
 
 
 
@@ -113,6 +116,7 @@ public class MSAParser{
                     }
                 }
                 node.setHMMSeq(hmmBuf.toString());
+                this.sampleHmmSeq = node.getHMMSeq();
 
                 // Get the maximum sequence length
                 if (seq_length != 0 && seq_length != seq.length()) {
@@ -120,6 +124,7 @@ public class MSAParser{
                 }
                 if (seq_length < seq.length()) {
                     seq_length = seq.length();
+                    this.sampleSeq = seq;
                 }
             }
         }
@@ -370,5 +375,13 @@ public class MSAParser{
 
     public int getHmm_length() {
         return hmm_length;
+    }
+
+    public String getSampleSeq() {
+        return sampleSeq;
+    }
+
+    public String getSampleHmmSeq() {
+        return sampleHmmSeq;
     }
 }

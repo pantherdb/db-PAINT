@@ -1,5 +1,5 @@
 /**
- *  Copyright 2021 University Of Southern California
+ *  Copyright 2023 University Of Southern California
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -21,7 +21,9 @@ import com.sri.panther.paintCommon.User;
 import com.sri.panther.paintCommon.util.Utils;
 import com.sri.panther.paintServer.database.DataIO;
 import com.sri.panther.paintServer.logic.DataValidationManager;
-import com.sri.panther.paintServer.util.ConfigFile;
+import edu.usc.ksom.pm.panther.paintServer.logic.DataAccessManager;
+import edu.usc.ksom.pm.panther.paintServer.webservices.FamilyUtil;
+import edu.usc.ksom.pm.panther.paintServer.webservices.WSConstants;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
@@ -73,7 +75,8 @@ public class FixAnnotUtility {
     
     public static final String DIR_INFO = "/info";
     public static final String DIR_PRE_UPDATE_INFO = "/preUpdate";
-    public static final String DIR_LEAF_IBA_ANNOT = "/leafIBAInfo";    
+    public static final String DIR_LEAF_IBA_ANNOT = "/leafIBAInfo";
+    public static final String DIR_INTERNAL_IBA_ANNOT = "/internalIBAInfo";    
     public static final String FILE_STATUS = "status.txt"; 
     
     public static final String FILE_SEPARATOR = "/";
@@ -93,16 +96,19 @@ public class FixAnnotUtility {
     private String password;
     private List<String> books;
     private String saveDirPath;
+    private boolean outputGAF = false;
+    private DataIO dataIO = DataAccessManager.getInstance().getDataIO();
     
     public FixAnnotUtility() {
         
     }
     
-    public void fixBooksInFile(String serverUrl, String userName, String password, String saveDirPath, String bookListFile) {
+    public void fixBooksInFile(String serverUrl, String userName, String password, String saveDirPath, String outputGAF, String bookListFile) {
         this.serverUrl = serverUrl;
         this.bookListFile = bookListFile;
         this.userName = userName;
         this.password = password;
+        this.outputGAF = Boolean.parseBoolean(outputGAF);
         this.saveDirPath = saveDirPath;
         
         // Get the user information
@@ -130,11 +136,12 @@ public class FixAnnotUtility {
         
     }
     
-    public void fixBooksInSystem(String serverUrl, String userName, String password, String saveDirPath) {
+    public void fixBooksInSystem(String serverUrl, String userName, String password, String saveDirPath, String outputGAF) {
         this.serverUrl = serverUrl;
         this.userName = userName;
         this.password = password;
-        this.saveDirPath = saveDirPath;        
+        this.saveDirPath = saveDirPath;
+        this.outputGAF = Boolean.parseBoolean(outputGAF);        
         
         // Get the user information
         Vector userInfo = new Vector();
@@ -183,7 +190,6 @@ public class FixAnnotUtility {
     }    
     
     public List<String> getBooksWithPaintAnnotations() {
-        DataIO dataIO = new DataIO(ConfigFile.getProperty(ConfigFile.KEY_DB_JDBC_DBSID));
         List<Book> books = dataIO.getBooksWithPAINTAnnotations(DataIO.CUR_CLASSIFICATION_VERSION_SID);
 
         ArrayList<String> famList = new ArrayList<String>();
@@ -207,7 +213,6 @@ public class FixAnnotUtility {
         }
         
         // Process locked books first.  If a book gets locked after process starts, then it will not be validated.
-        DataIO dataIO = new DataIO(ConfigFile.getProperty(ConfigFile.KEY_DB_JDBC_DBSID));
         ArrayList<Book> allBooks = dataIO.getAllBooks(DataIO.CUR_CLASSIFICATION_VERSION_SID); 
         ArrayList<String> lockedBooks = new ArrayList<String>();
         ArrayList<String> unLockedBooks = new ArrayList<String>();        
@@ -290,8 +295,10 @@ public class FixAnnotUtility {
                     if (0 != errBuf.length() || 0 != paintErrBuf.length()) {
                         outputPreUpdateInfo(updateList.get(i), errBuf, paintErrBuf);
                     }
-                    // Output leaf GAF info
-                    outputLeafGAFInfo(updateList.get(i));
+                    // Output GAF info, if necessary
+                    if (true == this.outputGAF) {
+                        outputGAFInfo(updateList.get(i));
+                    }
                 }
                 catch(Exception e) {
                     msg = "Exception while processing book " + updateList.get(i) + "\n";
@@ -365,9 +372,65 @@ public class FixAnnotUtility {
         return outputFromServlet;
     }
     
-    public void outputLeafGAFInfo(String book) {
+//    public void outputLeafGAFInfo(String book) {
+//        try {
+//            Path curFilePath = Paths.get(this.saveDirPath + DIR_LEAF_IBA_ANNOT + FILE_SEPARATOR, book + ".xml");
+//            Path curFile = curFilePath;
+//            if (false == Files.exists(curFilePath)) {
+//                if (false == Files.exists(curFilePath.getParent())) {
+//                    Files.createDirectories(curFilePath.getParent());
+//                }
+//                curFile = Files.createFile(curFilePath);
+//            } else {
+//                ArrayList<String> fileInfo = new ArrayList<String>();
+//                Files.write(curFile, fileInfo, StandardCharsets.UTF_8);
+//            }
+//            
+//            String url = serverUrl + URL_GET_LEAF_IBA_INFO.replace(REPLACE_STR, book);
+//            String IBAInfo = Utils.readFromUrl(url, -1, -1);
+//            ArrayList<String> IBAInfoList = new ArrayList<String>();
+//            IBAInfoList.add(IBAInfo);
+//            Files.write(curFile, IBAInfoList, StandardCharsets.UTF_8);
+//        }
+//        catch(Exception e) {
+//            e.printStackTrace();
+//        }
+//    }
+    
+    public void outputGAFInfo(String book) {
+        StringBuffer leafNodeBuf = new StringBuffer();
+        StringBuffer internalNodeBuf = new StringBuffer();
+        FamilyUtil.getXMLForIBAAnnotationInfoDetails(book, WSConstants.PROPERTY_CLS_VERSION, leafNodeBuf, internalNodeBuf);
+        writeFile(book, DIR_LEAF_IBA_ANNOT, leafNodeBuf);
+        writeFile(book, DIR_INTERNAL_IBA_ANNOT, internalNodeBuf);
+//        try {
+//            Path curFilePath = Paths.get(this.saveDirPath + DIR_LEAF_IBA_ANNOT + FILE_SEPARATOR, book + ".xml");
+//            Path curFile = curFilePath;
+//            if (false == Files.exists(curFilePath)) {
+//                if (false == Files.exists(curFilePath.getParent())) {
+//                    Files.createDirectories(curFilePath.getParent());
+//                }
+//                curFile = Files.createFile(curFilePath);
+//            } else {
+//                ArrayList<String> fileInfo = new ArrayList<String>();
+//                Files.write(curFile, fileInfo, StandardCharsets.UTF_8);
+//            }
+//            
+//            String url = serverUrl + URL_GET_LEAF_IBA_INFO.replace(REPLACE_STR, book);
+//            String IBAInfo = Utils.readFromUrl(url, -1, -1);
+//            ArrayList<String> IBAInfoList = new ArrayList<String>();
+//            IBAInfoList.add(IBAInfo);
+//            Files.write(curFile, IBAInfoList, StandardCharsets.UTF_8);
+//        }
+//        catch(Exception e) {
+//            e.printStackTrace();
+//        }
+    }
+    
+    
+    public void writeFile(String book, String directory, StringBuffer contentBuf) {
         try {
-            Path curFilePath = Paths.get(this.saveDirPath + DIR_LEAF_IBA_ANNOT + FILE_SEPARATOR, book + ".xml");
+            Path curFilePath = Paths.get(this.saveDirPath + directory + FILE_SEPARATOR, book + ".xml");
             Path curFile = curFilePath;
             if (false == Files.exists(curFilePath)) {
                 if (false == Files.exists(curFilePath.getParent())) {
@@ -379,17 +442,15 @@ public class FixAnnotUtility {
                 Files.write(curFile, fileInfo, StandardCharsets.UTF_8);
             }
             
-            String url = serverUrl + URL_GET_LEAF_IBA_INFO.replace(REPLACE_STR, book);
-            String IBAInfo = Utils.readFromUrl(url, -1, -1);
             ArrayList<String> IBAInfoList = new ArrayList<String>();
-            IBAInfoList.add(IBAInfo);
+            IBAInfoList.add(contentBuf.toString());
             Files.write(curFile, IBAInfoList, StandardCharsets.UTF_8);
         }
         catch(Exception e) {
             e.printStackTrace();
-        }
+        }        
     }
-    
+
     
     public void outputPreUpdateInfo(String book, StringBuffer otherAnnotInfo, StringBuffer paintAnnotInfo) {
         try {
@@ -463,20 +524,20 @@ public class FixAnnotUtility {
 
     public static void main(String[] args) {
         System.out.println("This utility has 2 options - Fix annotations for all books with PAINT annotations in system or Fix annotations for specified books");
-        System.out.println("Specify server name, username, password, directory for storing output information and optionally absolute pathname for file containing list of books to be updated.");
-        System.out.println("For example http://paintcuration.usc.edu username password C:/note/unix/dir/style or http://paintcuration.usc.edu username password /home/mydir/save_info_dir /home/mydir/save_info_dir/book_list_file");
+        System.out.println("Specify server name, username, password, directory for storing output information, indicate if GAF file should be output (true or false) and optionally absolute pathname for file containing list of books to be updated.");
+        System.out.println("For example http://paintcuration.usc.edu username password C:/note/unix/dir/style false or http://paintcuration.usc.edu username password /home/mydir/save_info_dir true /home/mydir/save_info_dir/book_list_file");
 //        if (args.length < 4) {
 //            System.out.println("At least 4 parameters are required.  See description above");
 //            return;
 //        }
         FixAnnotUtility fau = new FixAnnotUtility();
-//        fau.fixBooksInFile("http://localhost:8080", "paint_user", "password", "C:/usc/svn/new_panther/curation/paint/gopaint/branches/TaxConstraint/update_books/update_status", "C:/usc/svn/new_panther/curation/paint/gopaint/branches/TaxConstraint/update_books/updateList.txt");
-//        fau.fixBooksInSystem("http://localhost:8080", "paint_user", "password", "C:/usc/svn/new_panther/curation/paint/gopaint/branches/TaxConstraint/update_books/update_status");
-        if (args.length == 4) {
-            fau.fixBooksInSystem(args[0], args[1], args[2], args[3]);
-        }
+//        fau.fixBooksInFile("http://localhost:8080", "paint_user", "password", "C:/usc/svn/new_panther/curation/paint/gopaint/branches/TaxConstraint/update_books/update_status", false, "C:/usc/svn/new_panther/curation/paint/gopaint/branches/TaxConstraint/update_books/updateList.txt");
+//        fau.fixBooksInSystem("http://localhost:8080", "paint_user", "password", "C:/usc/svn/new_panther/curation/paint/gopaint/branches/TaxConstraint/update_books/update_status", false);
         if (args.length == 5) {
-            fau.fixBooksInFile(args[0], args[1], args[2], args[3], args[4]);
+            fau.fixBooksInSystem(args[0], args[1], args[2], args[3], args[4]);
+        }
+        if (args.length == 6) {
+            fau.fixBooksInFile(args[0], args[1], args[2], args[3], args[4], args[5]);
         }
     }
 

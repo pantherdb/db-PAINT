@@ -1,5 +1,5 @@
 /**
- * Copyright 2019 University Of Southern California
+ * Copyright 2022 University Of Southern California
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -18,10 +18,10 @@ package com.sri.panther.paintServer.tools;
 import com.sri.panther.paintCommon.Book;
 import com.sri.panther.paintCommon.util.FileUtils;
 import com.sri.panther.paintServer.database.DataIO;
-import com.sri.panther.paintServer.util.ConfigFile;
 import edu.usc.ksom.pm.panther.paintCommon.Annotation;
 import edu.usc.ksom.pm.panther.paintCommon.IWith;
 import edu.usc.ksom.pm.panther.paintCommon.Node;
+import edu.usc.ksom.pm.panther.paintServer.logic.DataAccessManager;
 import edu.usc.ksom.pm.panther.paintServer.servlet.DataServlet;
 import java.io.File;
 import java.util.ArrayList;
@@ -38,11 +38,12 @@ public class AnnotUtil {
     private static final String ACTION_VERIFY_USER = "VerifyUserInfo";    
     
     public static final String SUFFIX_ERR_PAINT = "_paint_err.txt";
-    public static final String SUFFIX_ERR_OTHER = "_other_err.txt";    
+    public static final String SUFFIX_ERR_OTHER = "_other_err.txt";
+    private static DataIO dataIO = DataAccessManager.getInstance().getDataIO();
     
     public static void outputAnnotInfo(String directory, ArrayList<Book>books, int start, int end) {
         System.out.println("Going to write information into directory " + directory);
-        DataIO dataIO = new DataIO(ConfigFile.getProperty(ConfigFile.KEY_DB_JDBC_DBSID));
+
         for (int i = start; i < end; i++) {
             Book b = books.get(i);
             String id = b.getId();
@@ -63,6 +64,7 @@ public class AnnotUtil {
             HashSet<Annotation> removedFromGOAnnot = new HashSet<Annotation>();
             try {
                 HashSet<Annotation> addedAnnotSet = new HashSet<Annotation>();
+                dataIO.addPruned(id, DataServlet.CLASSIFICATION_VERSION_SID, treeNodeLookup);
                 dataIO.getFullGOAnnotations(id, DataServlet.CLASSIFICATION_VERSION_SID, treeNodeLookup, annotToPosWithLookup, errorBuf, paintErrBuf, removeSet, modifySet, addedAnnotSet, removedFromGOAnnot, false);
                 if (errorBuf.length() > 0) {
                     FileUtils.writeBufferToFile(otherErrName, errorBuf);
@@ -79,8 +81,8 @@ public class AnnotUtil {
     
     public static void main(String argx[]) throws Exception {
         String args[] = new String[] {"dsfds", "dsfsddfs", "C:\\library\\error_info", "1", "10" };        
-        DataIO dataIO = new DataIO(ConfigFile.getProperty(ConfigFile.KEY_DB_JDBC_DBSID));
-        ArrayList<Book> books = dataIO.getAllBooks(DataServlet.CLASSIFICATION_VERSION_SID);        
+//        DataIO dataIO = new DataIO(ConfigFile.getProperty(ConfigFile.KEY_DB_JDBC_DBSID));
+        ArrayList<Book> books = AnnotUtil.dataIO.getAllBooks(DataServlet.CLASSIFICATION_VERSION_SID);        
         System.out.println("Please specify parameters as follows");
         System.out.println("First parameter is the username");
         System.out.println("Second parameter is the password associated with the user name specified by the first parameter");        

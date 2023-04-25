@@ -1,5 +1,5 @@
 /**
- *  Copyright 2021 University Of Southern California
+ *  Copyright 2023 University Of Southern California
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -17,42 +17,39 @@ package org.paint.gui.menu;
 
 import com.sri.panther.paintCommon.Constant;
 import com.sri.panther.paintCommon.User;
+import com.sri.panther.paintCommon.familyLibrary.FileNameGenerator;
+import java.awt.Toolkit;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.KeyEvent;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-
+import java.util.Vector;
 import javax.swing.JMenu;
 import javax.swing.JMenuItem;
 import javax.swing.JOptionPane;
-
+import javax.swing.JScrollPane;
+import javax.swing.JTextArea;
+import javax.swing.KeyStroke;
 import org.apache.log4j.Logger;
 import org.bbop.framework.GUIManager;
+import org.paint.config.Preferences;
 import org.paint.dataadapter.FileAdapter;
+import org.paint.dataadapter.PantherServer;
 import org.paint.dialog.ActiveFamily;
+import org.paint.dialog.LoginDlg;
+import org.paint.dialog.ManageBooksDlg;
 import org.paint.dialog.NewFamily;
 import org.paint.gui.DirtyIndicator;
 import org.paint.gui.event.AnnotationChangeEvent;
 import org.paint.gui.event.AnnotationChangeListener;
-import org.paint.gui.event.EventManager;
-import org.paint.main.PaintManager;
-
-import com.sri.panther.paintCommon.familyLibrary.FileNameGenerator;
-import java.awt.Toolkit;
-import java.awt.event.KeyEvent;
-import java.util.Vector;
-import javax.swing.JScrollPane;
-import javax.swing.JTextArea;
-import javax.swing.KeyStroke;
-import org.paint.config.Preferences;
-import org.paint.dataadapter.PantherServer;
-import org.paint.dialog.LoginDlg;
-import org.paint.dialog.ManageBooksDlg;
 import org.paint.gui.event.CommentChangeEvent;
+import org.paint.gui.event.EventManager;
 import org.paint.gui.event.FamilyChangeEvent;
 import org.paint.gui.event.FamilyChangeListener;
+import org.paint.main.PaintManager;
 
 public class FileMenu extends JMenu implements AnnotationChangeListener, FamilyChangeListener { 
 
@@ -224,14 +221,26 @@ public class FileMenu extends JMenu implements AnnotationChangeListener, FamilyC
             LoginDlg dlg = new LoginDlg(GUIManager.getManager().getFrame());
 
             // First get user login information
-            Vector<String> results = dlg.display();
+            Vector results = dlg.display();
 
             if (null == results) {
+                System.out.println("No login information to verify, returning");
                 return;
             }
             if (true == results.isEmpty()) {
+                System.out.println("No login information to verify, returning");                
                 return;
             }
+            System.out.println("Sending user login information with " + results.size() + " elements ");
+//            for (int i = 0; i <  results.size(); i++) {
+//                Object cur = results.get(i);
+//                if (null == cur) {
+//                    System.out.println("login item " + i + " is null");
+//                }
+//                else {
+//                    System.out.println("login item " + i + " is not null");
+//                }
+//            }
 
             PantherServer pServer = PantherServer.inst();
             User user = pServer.getUserInfo(Preferences.inst().getPantherURL(), results);

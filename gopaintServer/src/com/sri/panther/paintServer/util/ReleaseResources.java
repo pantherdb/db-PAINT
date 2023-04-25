@@ -1,5 +1,5 @@
 /**
- * Copyright 2016 University Of Southern California
+ * Copyright 2023 University Of Southern California
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -22,9 +22,9 @@ import java.sql.SQLException;
 import java.sql.Statement;
 
 /**
- * Title:        public panther website
+ * Title: public panther website
  * <p/>
- * Description:  This class is used to release database resources.
+ * Description: This class is used to release database resources.
  * <p/>
  */
 public class ReleaseResources {
@@ -32,11 +32,12 @@ public class ReleaseResources {
     static Logger log = Logger.getLogger(ReleaseResources.class);
 
     /**
-     * release database resources: release the resultset, statement and connection at one shot.
+     * release database resources: release the resultset, statement and
+     * connection at one shot.
      *
-     * @param rst  resultset to be closed
+     * @param rst resultset to be closed
      * @param stmt statement to be closed
-     * @param con  connection to be closed
+     * @param con connection to be closed
      */
     public static void releaseDBResources(ResultSet rst, Statement stmt, Connection con) {
 
@@ -69,6 +70,7 @@ public class ReleaseResources {
         }
         rst = null;
         stmt = null;
-        con = null;        
+        con = null;
+        //DBConnectionPool.getInstance().printConnectionStatus();
     }
 }

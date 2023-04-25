@@ -21,11 +21,8 @@
 package org.paint.gui.association;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
 import java.util.Set;
 
 import javax.swing.table.AbstractTableModel;
@@ -36,15 +33,9 @@ import org.geneontology.db.model.Association;
 import org.geneontology.db.model.DBXref;
 import org.geneontology.db.model.Evidence;
 import org.geneontology.db.model.Term;
-import org.obo.datamodel.LinkDatabase;
-import org.obo.datamodel.LinkedObject;
 import org.paint.datamodel.GeneNode;
 import org.paint.go.GO_Util;
-import org.paint.go.TermUtil;
 import org.paint.gui.PaintTable;
-import org.paint.gui.event.TermHyperlinkListener;
-import org.paint.main.PaintManager;
-import org.paint.util.HTMLUtil;
 
 
 public class AssociationsTableModel extends AbstractTableModel 
@@ -87,66 +78,66 @@ implements PaintTable {
 		evidence.clear();
 		pub_labels.clear();
 		with_labels.clear();
-		if (node != null && node.getGeneProduct() != null) {
-			Collection<Association> associations = node.getAssociations();
-			if (associations != null) {
-				for (Iterator<Association> it = associations.iterator(); it.hasNext();) {
-					Association assoc = it.next();
-					Set<Evidence> evi_list = assoc.getEvidence();
-					for (Iterator<Evidence> evi_it = evi_list.iterator(); evi_it.hasNext();) {
-						Evidence evi = evi_it.next();
-						String code = evi.getCode();
-						if (code == null) {
-							log.debug("How did " + node + " association to " + assoc.getTerm().getName() + " lose its evidence code!!");
-						}
-						if (!node.isLeaf() || (node.isLeaf() && !code.equals("ND") && !code.equals("IEA"))) {
-							evidence.add(evi);
-						} else if (code.equals("ND")) {
-							log.info(node.getSeqName() + " has ND to term " + evi.getAssociation().getTerm().getName());
-						}
-					}
-				}
-			}
-
-			/*
-			 * Important not to create the table until the evidence is sorted
-			 */
-			sort();
-			for (Iterator<Evidence> it = evidence.iterator(); it.hasNext();) {
-				Evidence evi = it.next();
-				/*
-				 * This should be the link to the publication record
-				 */
-				DBXref xref = evi.getDbxref();
-				HyperlinkLabel field = new HyperlinkLabel();
-				field.setEnabled(true);
-				field.addHyperlinkListener(new TermHyperlinkListener());
-				String xref_text = HTMLUtil.getHTML(xref.getDb_name(), xref.getAccession(), false);
-				field.setText(xref_text);
-				pub_labels.put(evi, field);
-				
-				Set<DBXref> withs = evi.getWiths();
-				field = new HyperlinkLabel();
-				field.setEnabled(true);
-				field.addHyperlinkListener(new TermHyperlinkListener());
-				if (withs != null && !withs.isEmpty()) {
-					if (withs.size() == 1) {
-						DBXref with = withs.iterator().next();
-						xref_text = HTMLUtil.getHTML(with.getDb_name(), with.getAccession(), true);
-					} 
-					else {
-						xref_text = HTMLUtil.HTML_TEXT_BEGIN+GO_Util.inst().getWithText(withs)+HTMLUtil.HTML_TEXT_END;
-					}
-				}
-				else {
-					xref_text = HTMLUtil.HTML_TEXT_BEGIN+HTMLUtil.HTML_TEXT_END;
-				}
-				field.setText(xref_text);
-				Set<HyperlinkLabel> with_links = new HashSet<HyperlinkLabel>();
-				with_links.add(field);					
-				with_labels.put(evi, with_links);
-			}
-		}
+//		if (node != null && node.getGeneProduct() != null) {
+//			Collection<Association> associations = node.getAssociations();
+//			if (associations != null) {
+//				for (Iterator<Association> it = associations.iterator(); it.hasNext();) {
+//					Association assoc = it.next();
+//					Set<Evidence> evi_list = assoc.getEvidence();
+//					for (Iterator<Evidence> evi_it = evi_list.iterator(); evi_it.hasNext();) {
+//						Evidence evi = evi_it.next();
+//						String code = evi.getCode();
+//						if (code == null) {
+//							log.debug("How did " + node + " association to " + assoc.getTerm().getName() + " lose its evidence code!!");
+//						}
+//						if (!node.isLeaf() || (node.isLeaf() && !code.equals("ND") && !code.equals("IEA"))) {
+//							evidence.add(evi);
+//						} else if (code.equals("ND")) {
+//							log.info(node.getSeqName() + " has ND to term " + evi.getAssociation().getTerm().getName());
+//						}
+//					}
+//				}
+//			}
+//
+//			/*
+//			 * Important not to create the table until the evidence is sorted
+//			 */
+//			sort();
+//			for (Iterator<Evidence> it = evidence.iterator(); it.hasNext();) {
+//				Evidence evi = it.next();
+//				/*
+//				 * This should be the link to the publication record
+//				 */
+//				DBXref xref = evi.getDbxref();
+//				HyperlinkLabel field = new HyperlinkLabel();
+//				field.setEnabled(true);
+//				field.addHyperlinkListener(new TermHyperlinkListener());
+//				String xref_text = HTMLUtil.getHTML(xref.getDb_name(), xref.getAccession(), false);
+//				field.setText(xref_text);
+//				pub_labels.put(evi, field);
+//				
+//				Set<DBXref> withs = evi.getWiths();
+//				field = new HyperlinkLabel();
+//				field.setEnabled(true);
+//				field.addHyperlinkListener(new TermHyperlinkListener());
+//				if (withs != null && !withs.isEmpty()) {
+//					if (withs.size() == 1) {
+//						DBXref with = withs.iterator().next();
+//						xref_text = HTMLUtil.getHTML(with.getDb_name(), with.getAccession(), true);
+//					} 
+//					else {
+//						xref_text = HTMLUtil.HTML_TEXT_BEGIN+GO_Util.inst().getWithText(withs)+HTMLUtil.HTML_TEXT_END;
+//					}
+//				}
+//				else {
+//					xref_text = HTMLUtil.HTML_TEXT_BEGIN+HTMLUtil.HTML_TEXT_END;
+//				}
+//				field.setText(xref_text);
+//				Set<HyperlinkLabel> with_links = new HashSet<HyperlinkLabel>();
+//				with_links.add(field);					
+//				with_labels.put(evi, with_links);
+//			}
+//		}
 	}
 
 	public void removeAssociation(Association assoc) {
@@ -184,20 +175,20 @@ implements PaintTable {
 		}
 	}
 
-	protected int getRowForTerm(Term term) {
-		LinkDatabase linkDb = PaintManager.inst().getGoRoot().getLinkDatabase();
-		LinkedObject potentialAncestor = (LinkedObject)GO_Util.inst().getObject(linkDb, term.getAcc());
-		for (int row = 0; row < evidence.size(); row++) {
-			Evidence evi = evidence.get(row);
-			LinkedObject potentialDescendant =
-				(LinkedObject)GO_Util.inst().getObject(linkDb, evi.getAssociation().getTerm().getAcc());
-
-			if (evi.getAssociation().getTerm().equals(term) ||
-					TermUtil.isDescendant(potentialAncestor, potentialDescendant))
-				return row;
-		}
-		return -1;
-	}
+//	protected int getRowForTerm(Term term) {
+//		LinkDatabase linkDb = PaintManager.inst().getGoRoot().getLinkDatabase();
+//		LinkedObject potentialAncestor = (LinkedObject)GO_Util.inst().getObject(linkDb, term.getAcc());
+//		for (int row = 0; row < evidence.size(); row++) {
+//			Evidence evi = evidence.get(row);
+//			LinkedObject potentialDescendant =
+//				(LinkedObject)GO_Util.inst().getObject(linkDb, evi.getAssociation().getTerm().getAcc());
+//
+//			if (evi.getAssociation().getTerm().equals(term) ||
+//					TermUtil.isDescendant(potentialAncestor, potentialDescendant))
+//				return row;
+//		}
+//		return -1;
+//	}
 
 	public Term getTermForRow(int row) {
 		Evidence evi = evidence.get(row);
@@ -268,16 +259,16 @@ implements PaintTable {
 			return pub_labels.get(evi);
 		} else if (tag.equals(TRASH_COL_NAME)) {
 			// whether or not the annotation was done in PAINT
-			Association assoc = evi.getAssociation();
-			if (GO_Util.inst().isPAINTAnnotation(assoc)) {
-				if (assoc.isMRC() || assoc.isDirectNot()) {
-					return Boolean.TRUE;
-				} else {
-					return Boolean.FALSE;
-				}
-			} else {
-				return Boolean.FALSE;
-			}
+//			Association assoc = evi.getAssociation();
+//			if (GO_Util.inst().isPAINTAnnotation(assoc)) {
+//				if (assoc.isMRC() || assoc.isDirectNot()) {
+//					return Boolean.TRUE;
+//				} else {
+//					return Boolean.FALSE;
+//				}
+//			} else {
+                    return Boolean.FALSE;
+//			}
 		} else if (tag.equals(WITH_COL_NAME)) {
 			// and what (if appropriate) the inference was based on, e.g. another sequence or an interpro domain
 //			Set<DBXref> withs = evi.getWiths();

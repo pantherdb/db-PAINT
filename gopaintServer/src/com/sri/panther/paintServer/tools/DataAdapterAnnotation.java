@@ -1,5 +1,5 @@
 /**
- * Copyright 2020 University Of Southern California
+ * Copyright 2021 University Of Southern California
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -17,7 +17,6 @@ package com.sri.panther.paintServer.tools;
 
 import com.sri.panther.paintServer.database.DataIO;
 import com.sri.panther.paintServer.logic.CategoryLogic;
-import com.sri.panther.paintServer.util.ConfigFile;
 import edu.usc.ksom.pm.panther.paintCommon.Annotation;
 import edu.usc.ksom.pm.panther.paintCommon.AnnotationDetail;
 import edu.usc.ksom.pm.panther.paintCommon.DBReference;
@@ -26,6 +25,7 @@ import edu.usc.ksom.pm.panther.paintCommon.GOTermHelper;
 import edu.usc.ksom.pm.panther.paintCommon.IWith;
 import edu.usc.ksom.pm.panther.paintCommon.Qualifier;
 import edu.usc.ksom.pm.panther.paintCommon.WithEvidence;
+import edu.usc.ksom.pm.panther.paintServer.logic.DataAccessManager;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -34,8 +34,6 @@ import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
-import org.w3c.dom.ls.DOMImplementationLS;
-import org.w3c.dom.ls.LSSerializer;
 
 
 public class DataAdapterAnnotation {
@@ -67,9 +65,9 @@ public class DataAdapterAnnotation {
     public static final String UNDERSCORE = "_";
     public static final CategoryLogic cl = CategoryLogic.getInstance();     
     public static final GOTermHelper goTermHelper = cl.getGOTermHelper();
-   
+    private static DataIO dataIO = DataAccessManager.getInstance().getDataIO();
+        
     public static Document getGOAnnotationsForNode(HashMap<String, String> parameterLookup, String publicNodeIdParam) {
-        DataIO dataIO = new DataIO(ConfigFile.getProperty(ConfigFile.KEY_DB_JDBC_DBSID));
         ArrayList<Annotation> annotList = dataIO.getAllGOAnnotationsForNode(DataIO.CUR_CLASSIFICATION_VERSION_SID, parameterLookup.get(publicNodeIdParam));
         try {        
             DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();

@@ -1,5 +1,5 @@
 /**
- *  Copyright 2020 University Of Southern California
+ *  Copyright 2021 University Of Southern California
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -17,11 +17,11 @@ package com.sri.panther.paintServer.logic;
 
 import com.sri.panther.paintCommon.Book;
 import com.sri.panther.paintServer.database.DataIO;
-import com.sri.panther.paintServer.util.ConfigFile;
 import edu.usc.ksom.pm.panther.paintServer.webservices.WSConstants;
 import edu.usc.ksom.pm.panther.paintCommon.GOTerm;
 import edu.usc.ksom.pm.panther.paintCommon.GOTermHelper;
 import edu.usc.ksom.pm.panther.paintCommon.TaxonomyHelper;
+import edu.usc.ksom.pm.panther.paintServer.logic.DataAccessManager;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -34,7 +34,6 @@ public class DataValidationManager {
     private static List<Book> books = null;
     private static HashMap<String, HashSet<String>> booksWithIncompletTaxonLookup;   // Book with list of organisms that are not found in taxonomy lookup
     private static HashSet<String> termsNotSupportedByTaxonConstrains;
-    
     private DataValidationManager() {
         
     }
@@ -49,7 +48,7 @@ public class DataValidationManager {
     }
     
     private static void initLookup() {
-        DataIO dataIO = new DataIO(ConfigFile.getProperty(ConfigFile.KEY_DB_JDBC_DBSID));
+        DataIO dataIO = DataAccessManager.getInstance().getDataIO();
         books = dataIO.getBooksWithOrgs(WSConstants.PROPERTY_CLS_VERSION);
         if (null == books) {
             return;
@@ -137,7 +136,5 @@ public class DataValidationManager {
         }
         return (HashSet<String>)(termsNotSupportedByTaxonConstrains.clone());
     }
-    
-    
     
 }

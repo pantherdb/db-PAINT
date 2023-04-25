@@ -1,5 +1,5 @@
 /**
- * Copyright 2021 University Of Southern California
+ * Copyright 2022 University Of Southern California
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -15,6 +15,7 @@
  */
 package org.paint.main;
 
+import com.sri.panther.paintCommon.Constant;
 import edu.usc.ksom.pm.panther.paintCommon.TaxonomyHelper;
 import com.sri.panther.paintCommon.User;
 import edu.usc.ksom.pm.panther.paintCommon.VersionInfo;
@@ -25,7 +26,6 @@ import edu.usc.ksom.pm.panther.paint.matrix.TermAncestor;
 import edu.usc.ksom.pm.panther.paintCommon.Annotation;
 import edu.usc.ksom.pm.panther.paintCommon.AnnotationHelper;
 import edu.usc.ksom.pm.panther.paintCommon.Comment;
-import edu.usc.ksom.pm.panther.paintCommon.Domain;
 import edu.usc.ksom.pm.panther.paintCommon.Evidence;
 import edu.usc.ksom.pm.panther.paintCommon.GOTermHelper;
 import edu.usc.ksom.pm.panther.paintCommon.Node;
@@ -35,12 +35,16 @@ import edu.usc.ksom.pm.panther.paintCommon.VersionContainer;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.ObjectOutputStream;
+import java.nio.file.FileSystems;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.Vector;
+import java.util.regex.Pattern;
 import javax.swing.JFileChooser;
 import javax.swing.JOptionPane;
 import javax.swing.filechooser.FileFilter;
@@ -55,7 +59,6 @@ import org.paint.datamodel.Family;
 import org.paint.datamodel.GeneNode;
 import org.paint.go.GO_Util;
 import org.paint.gui.DirtyIndicator;
-import org.paint.gui.event.DomainChangeEvent;
 import org.paint.gui.event.EventManager;
 import org.paint.gui.event.ProgressEvent;
 import org.paint.gui.evidence.ActionLog;
@@ -252,13 +255,13 @@ public class PaintManager {
 //        }
 //    }
 
-    public void indexByGP(GeneNode node) {
-        String db = node.getGeneProduct().getDbxref().getDb_name();
-        String db_id = node.getGeneProduct().getDbxref().getAccession();
-        if (db_id != null && db_id.length() > 0) {
-            GPtoGene.put(db + ':' + db_id, node);
-        }
-    }
+//    public void indexByGP(GeneNode node) {
+//        String db = node.getGeneProduct().getDbxref().getDb_name();
+//        String db_id = node.getGeneProduct().getDbxref().getAccession();
+//        if (db_id != null && db_id.length() > 0) {
+//            GPtoGene.put(db + ':' + db_id, node);
+//        }
+//    }
 
     public void indexNodeByPTN(GeneNode node) {
         String ptn_id = node.getPersistantNodeID();
@@ -401,6 +404,26 @@ public class PaintManager {
             if (false == taxonHelper.termAndQualifierValidForSpeciesCheckTaxonomy(a.getGoTerm(), n.getStaticInfo().getCalculatedSpecies(), a.getAnnotationDetail().getQualifiers())) {
                 warnings.add(n.getStaticInfo().getPublicId() + AnnotationTransferHndlr.MSG_TAXON_CONSTRAINT_PART_1 + n.getStaticInfo().getCalculatedSpecies() + AnnotationTransferHndlr.MSG_TAXON_CONSTRAINT_PART_2 + a.getGoTerm() + AnnotationTransferHndlr.MSG_TAXON_CONSTRAINT_PART_3);
             }
+
+            // Output information about descendants as well
+            if (false == taxonHelper.isCheckingTaxonomy()) {
+                NodeVariableInfo nvi = n.getVariableInfo();
+                if (false == nvi.isPruned()) {
+                    ArrayList<Node> children = n.getStaticInfo().getChildren();
+                    if (null != children) {
+                        StringBuffer sb = new StringBuffer();
+                        for (Node child : children) {
+                            AnnotationHelper.checkTaxonomyViolationsForNodeAndDescendants(child, a.getGoTerm(), sb, taxonHelper);
+                        }
+                        if (0 < sb.length()) {
+                            String[] parts = sb.toString().split(Pattern.quote(Constant.STR_NEWLINE));
+                            for (String part: parts) {
+                                warnings.add(part);
+                            }
+                        }
+                    }
+                }
+            }           
         }
         return warnings;
     }
@@ -492,7 +515,19 @@ public class PaintManager {
 //                oos.flush();
 //            } catch (Exception ex) {
 //
-//            }        
+//            }
+        // Just in case save operation fails, save locally first
+        try {
+            Path path = FileSystems.getDefault().getPath(getFamily().getFamilyID() + "_to_save.ser");
+            FileOutputStream fout = new FileOutputStream(path.toAbsolutePath().normalize().toString());
+            ObjectOutputStream oos = new ObjectOutputStream(fout);
+            oos.writeObject(sbi);
+            oos.flush();
+            System.out.println("Saved family locally to " + path.toAbsolutePath().normalize().toString());
+
+        } catch (Exception ex) {
+            ex.printStackTrace();
+        }
         String saveStatus = getFamily().saveBookToDatabase(sbi);
         if (null == saveStatus || false == saveStatus.isEmpty()) {
             String errMsg = saveStatus;
@@ -533,19 +568,19 @@ public class PaintManager {
         return true;
     }
     
-    public void handleDomainInfo(String famId, HashMap<String, HashMap<String, ArrayList<Domain>>> nodeToDomainLookup) {
-        if (null == family) {
-            return;
-        }
-        String curId = family.getFamilyID();
-        if (null != curId && true == curId.equals(famId)) {
-            if (null == msa_pane) {
-                return;
-            }
-            msa_pane.handleDomainData(nodeToDomainLookup);
-            EventManager.inst().fireDomainChangeEvent(new DomainChangeEvent(this));
-        }
-    }
+//    public void handleDomainInfo(String famId, HashMap<String, HashMap<String, ArrayList<Domain>>> nodeToDomainLookup) {
+//        if (null == family) {
+//            return;
+//        }
+//        String curId = family.getFamilyID();
+//        if (null != curId && true == curId.equals(famId)) {
+//            if (null == msa_pane) {
+//                return;
+//            }
+//            msa_pane.handleDomainData(nodeToDomainLookup);
+//            EventManager.inst().fireDomainChangeEvent(new DomainChangeEvent(this));
+//        }
+//    }
 
     /**
      * Method declaration
@@ -590,7 +625,7 @@ public class PaintManager {
             if (family.getMSAcontent() != null) {
                 progressMessage = "Initializing multiple sequence alignment";
                 fireProgressChange(progressMessage, 50, ProgressEvent.Status.START);
-                MSA msa = new MSA(family.getMSAcontent(), family.getWtsContent(), family.getNodeToDomainLookup(familyID));
+                MSA msa = new MSA(family.getMSAcontent(), family.getWtsContent(), family.getNodeToDomainLookup(), family.getKeyResidueList());
                 msa_pane.setModel(msa);
             }
 

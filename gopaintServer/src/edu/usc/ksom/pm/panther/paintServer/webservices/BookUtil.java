@@ -1,5 +1,5 @@
 /**
- * Copyright 2021 University Of Southern California
+ * Copyright 2022 University Of Southern California
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -23,7 +23,6 @@ import com.sri.panther.paintCommon.util.Utils;
 import com.sri.panther.paintServer.database.DataServer;
 import com.sri.panther.paintServer.database.DataServerManager;
 import com.sri.panther.paintServer.datamodel.PANTHERTreeNode;
-import com.sri.panther.paintServer.servlet.Client2Servlet;
 import com.sri.panther.paintServer.util.ConfigFile;
 import edu.usc.ksom.pm.panther.paintCommon.Annotation;
 import edu.usc.ksom.pm.panther.paintCommon.AnnotationDetail;
@@ -32,6 +31,7 @@ import edu.usc.ksom.pm.panther.paintCommon.Node;
 import edu.usc.ksom.pm.panther.paintCommon.NodeStaticInfo;
 import edu.usc.ksom.pm.panther.paintCommon.NodeVariableInfo;
 import edu.usc.ksom.pm.panther.paintCommon.Qualifier;
+import edu.usc.ksom.pm.panther.paintServer.servlet.DataServlet;
 import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.HashMap;
@@ -153,7 +153,7 @@ public class BookUtil {
         }
         
         if (true == searchType.equals(WSConstants.SEARCH_TYPE_TREE)) {
-            String treeStr[] = Client2Servlet.getTree(ds, book, uplVersion);
+            String treeStr[] = DataServlet.getTree(ds, book, uplVersion);
             if (null == treeStr) {
                 return outputInvalidSearchInfo(book, database, uplVersion, searchType);
             }
@@ -161,12 +161,12 @@ public class BookUtil {
             return outputTreeXMLInfo(oneString, book, database, uplVersion, searchType);
         }
         if (true == searchType.equals(WSConstants.SEARCH_TYPE_MSA_INFO)) {
-            Object o = Client2Servlet.getMSA(book, uplVersion);
-            if (null == o) {
+            Vector vect = DataServlet.getMSAStrs(book, uplVersion);
+            if (null == vect) {
                 return outputInvalidSearchInfo(book, database, uplVersion, searchType);
             }
             
-            return outputMSAXMLInfo(o, book, database, uplVersion, searchType);
+            return outputMSAXMLInfo(vect, book, database, uplVersion, searchType);
         }
         return null;
     }
@@ -559,7 +559,7 @@ public class BookUtil {
 
 
     
-    private static String outputMSAXMLInfo (Object msaInfo, String book, String database, String uplVersion, String searchType) {
+    private static String outputMSAXMLInfo (Vector msaInfo, String book, String database, String uplVersion, String searchType) {
         try {
             DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
             DocumentBuilder builder = factory.newDocumentBuilder();

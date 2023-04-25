@@ -1,5 +1,5 @@
 /**
- *  Copyright 2019 University Of Southern California
+ *  Copyright 2022 University Of Southern California
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -23,8 +23,6 @@ import javax.swing.JMenuItem;
 import org.apache.log4j.Logger;
 import org.bbop.framework.GUIManager;
 import org.paint.dialog.MSAColorDialog;
-import org.paint.gui.event.DomainChangeEvent;
-import org.paint.gui.event.DomainChangeListener;
 import org.paint.gui.event.EventManager;
 import org.paint.gui.event.FamilyChangeEvent;
 import org.paint.gui.event.FamilyChangeListener;
@@ -33,7 +31,7 @@ import org.paint.gui.msa.MSAPanel;
 import org.paint.main.PaintManager;
 
 public class MSAMenu extends JMenu
-implements FamilyChangeListener, DomainChangeListener {
+implements FamilyChangeListener {
 	/**
 	 * 
 	 */
@@ -43,7 +41,8 @@ implements FamilyChangeListener, DomainChangeListener {
 	private static final String LABEL_FULL_ALIGN = "Entire Alignment";
 	private static final String LABEL_TRIMMED_ALIGN = "Trimmed Alignment";
 	private static final String LABEL_DOMAIN = "Domain";
-	private static final String LABEL_DOMAIN_TRIMMED = "Condensed Domain";        
+	private static final String LABEL_DOMAIN_TRIMMED = "Condensed Domain";
+        private static final String LABEL_KEY_RESIDUE = "Key Residue";
 	//	private static final String match_align = "Condensed Alignment";
 	//	private static final String conserved = "Subfamily conserved";
 	private static final String weight = "Use weights";
@@ -55,6 +54,7 @@ implements FamilyChangeListener, DomainChangeListener {
         private JMenuItem matchStatesItem;
         private JMenuItem domainItem;
         private JMenuItem domainTrimmedItem;
+        private JMenuItem keyResidueItem;
 
 	public MSAMenu() {
 		super("MSA and Domain");
@@ -85,8 +85,12 @@ implements FamilyChangeListener, DomainChangeListener {
 //                    group.add(domainTrimmedItem);
                     add(domainTrimmedItem);
                     domainTrimmedItem.setEnabled(false);
-                    domainTrimmedItem.addActionListener(new MSAActionListener());                   
+                    domainTrimmedItem.addActionListener(new MSAActionListener());      
                     
+                    keyResidueItem = new JMenuItem(LABEL_KEY_RESIDUE);
+                    add(keyResidueItem);
+                    keyResidueItem.setEnabled(false);
+                    keyResidueItem.addActionListener(new MSAActionListener());                   
 
 //                }
 //            }
@@ -134,7 +138,7 @@ implements FamilyChangeListener, DomainChangeListener {
 		/* So we can hide and show this menu based on what data is available */
                 EventManager ev = EventManager.inst();
 		ev.registerFamilyListener(this);
-                ev.registerDomainChangeListener(this);
+//                ev.registerDomainChangeListener(this);
 	}
 
 	public void updateMenu(MSAPanel msaPanel) {
@@ -154,11 +158,17 @@ implements FamilyChangeListener, DomainChangeListener {
                     domainTrimmedItem.setEnabled(true);
                     domainTrimmedItem.setSelected(false);                    
                 }
+                if (true == msa.haveHaveKeyResidueInfo()) {
+                    keyResidueItem.setEnabled(true);
+                    keyResidueItem.setSelected(false);
+                }
             }
             else {
                 fullItem.setEnabled(false);
                 matchStatesItem.setEnabled(false);
                 domainItem.setEnabled(false);
+                domainTrimmedItem.setEnabled(false);
+                keyResidueItem.setEnabled(false);
             }
 //		if (msaPanel != null) {
 //			boolean full_length = msaPanel.isFullLength();
@@ -172,15 +182,15 @@ implements FamilyChangeListener, DomainChangeListener {
 	}
 
 
-    public void handleDomainChangeEvent(DomainChangeEvent event) {
-        MSAPanel msa = PaintManager.inst().getMSAPanel();
-        if (msa != null) {
-            setVisible(true);
-            updateMenu(msa);
-        } else {
-            setVisible(false);
-        }
-    }
+//    public void handleDomainChangeEvent(DomainChangeEvent event) {
+//        MSAPanel msa = PaintManager.inst().getMSAPanel();
+//        if (msa != null) {
+//            setVisible(true);
+//            updateMenu(msa);
+//        } else {
+//            setVisible(false);
+//        }
+//    }
 
 	/**
 	 * Class declaration
@@ -226,6 +236,11 @@ implements FamilyChangeListener, DomainChangeListener {
                             }
                             else if (e.getSource().equals(domainTrimmedItem) && true == domainTrimmedItem.isEnabled()) {
                                 msa.setDisplayType(MSA.MSA_DISPLAY.DOMAIN_TRIMMED);
+                                msaPanel.setFullLength(true);                                
+//                                System.out.println("msa - switching to trimmed domain display");                                 
+                            }
+                            else if (e.getSource().equals(keyResidueItem) && true == keyResidueItem.isEnabled()) {
+                                msa.setDisplayType(MSA.MSA_DISPLAY.KEY_RESIDUE);
                                 msaPanel.setFullLength(true);                                
 //                                System.out.println("msa - switching to trimmed domain display");                                 
                             }                            
