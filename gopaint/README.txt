@@ -1,7 +1,7 @@
 This project is dependent on classes from bbop and ghoul from the geneontology project.  The following was done to build bbop.jar and ghoul.jar.
 Retrieved code from svn branch 4886 from geneontology project.
 
-Used JAVA 1.8 for building.
+Used JAVA 1.11 for building.
 
 cd into directory geneontology-svn-4886\GHOUL and executed command ant.  This built ghoul.jar in directory geneontology-svn-4886\GHOUL\lib\runlibs.  This jar file was copied into gopaint's lib directory.  Also jar files from directories geneontology-svn-4886\GHOUL\hibernateLib, geneontology-svn-4886\GHOUL\jars and geneontology-svn-4886\GHOUL\jars\mysql-connector-java-5.1.6 were copied over into gopaint's lib directory
 
