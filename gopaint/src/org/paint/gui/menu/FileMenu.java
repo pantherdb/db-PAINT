@@ -42,9 +42,11 @@ import org.paint.dialog.ActiveFamily;
 import org.paint.dialog.LoginDlg;
 import org.paint.dialog.ManageBooksDlg;
 import org.paint.dialog.NewFamily;
+import org.paint.dialog.OrgEvidenceDlg;
 import org.paint.gui.DirtyIndicator;
 import org.paint.gui.event.AnnotationChangeEvent;
 import org.paint.gui.event.AnnotationChangeListener;
+import org.paint.gui.event.AnnotationDisplayEvent;
 import org.paint.gui.event.CommentChangeEvent;
 import org.paint.gui.event.EventManager;
 import org.paint.gui.event.FamilyChangeEvent;
@@ -69,6 +71,7 @@ public class FileMenu extends JMenu implements AnnotationChangeListener, FamilyC
     protected JMenuItem viewOmittedAnnotInfoItem;
     protected JMenuItem viewTaxonomyViolatoinInfoItem;
     protected JMenuItem viewUpdateHistoryItem;
+    protected JMenuItem setOrgEvidenceItem;
 
     private static final String MENU_ITEM_LOGIN = "Login";
     private static final String MENU_ITEM_LOGOFF = "Logoff";
@@ -80,6 +83,7 @@ public class FileMenu extends JMenu implements AnnotationChangeListener, FamilyC
     private static final String MENU_ITEM_VIEW_ANNOT_INFO = "View annotation information";
     private static final String MENU_ITEM_VIEW_ANNOT_HISTORY_INFO = "View annotation history";
     private static final String MENU_ITEM_VIEW_TAXONOMY_VIOLATION_INFO = "View taxonomy violation information";
+    private static final String MENU_ITEM_SET_NON_DISPLAY_ORG_EVIDENCE = "Select evidence codes to filter in Annotation matrix";
 
     private static List<FileMenu> instances = new ArrayList<FileMenu>();
 
@@ -144,6 +148,11 @@ public class FileMenu extends JMenu implements AnnotationChangeListener, FamilyC
         viewUpdateHistoryItem.addActionListener(new ViewAnnotHistoryActionListener());
         add(viewUpdateHistoryItem);
         viewUpdateHistoryItem.setEnabled(false);
+        
+        setOrgEvidenceItem = new JMenuItem(MENU_ITEM_SET_NON_DISPLAY_ORG_EVIDENCE);
+        setOrgEvidenceItem.addActionListener(new SetOrgEvidenceActionListener());
+        add(setOrgEvidenceItem);
+        setOrgEvidenceItem.setEnabled(true);
 
                 // Add save functon later on if required
 //		saveFileLocalItem = new JMenuItem(save_annots);
@@ -242,8 +251,7 @@ public class FileMenu extends JMenu implements AnnotationChangeListener, FamilyC
 //                }
 //            }
 
-            PantherServer pServer = PantherServer.inst();
-            User user = pServer.getUserInfo(Preferences.inst().getPantherURL(), results);
+            User user = PantherServer.inst().getUserInfo(Preferences.inst().getPantherURL(), results);
             if (null == user) {
                 JOptionPane.showMessageDialog(GUIManager.getManager().getFrame(), "Unable to verify user information", "User Information", JOptionPane.ERROR_MESSAGE);
                 
@@ -404,7 +412,17 @@ public class FileMenu extends JMenu implements AnnotationChangeListener, FamilyC
             ta.setCaretPosition(0);
             JOptionPane.showMessageDialog(GUIManager.getManager().getFrame(), new JScrollPane(ta), "Curation history information", JOptionPane.INFORMATION_MESSAGE);
         }
-    }    
+    }
+
+    private class SetOrgEvidenceActionListener implements ActionListener {
+        public void actionPerformed(ActionEvent e) {
+            OrgEvidenceDlg dlg = new OrgEvidenceDlg(GUIManager.getManager().getFrame(), Preferences.inst().getPantherURL(), PaintManager.inst().getUserInfo());
+            boolean changes = dlg.display();
+            if (true == changes) {
+                EventManager.inst().fireAnnotationDisplayEvent(new AnnotationDisplayEvent(this));        
+            }
+        }
+    }
     
     
     

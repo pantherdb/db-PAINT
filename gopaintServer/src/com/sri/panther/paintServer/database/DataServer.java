@@ -1,5 +1,5 @@
 /**
- * Copyright 2021 University Of Southern California
+ * Copyright 2023 University Of Southern California
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -24,19 +24,16 @@ import com.sri.panther.paintCommon.User;
 import com.sri.panther.paintCommon.util.StringUtils;
 import com.sri.panther.paintCommon.util.Utils;
 import com.sri.panther.paintServer.datamodel.Annotation;
-import com.sri.panther.paintServer.datamodel.Organism;
+import edu.usc.ksom.pm.panther.paintCommon.Organism;
 import com.sri.panther.paintServer.datamodel.PANTHERTree;
 import com.sri.panther.paintServer.datamodel.PANTHERTreeNode;
 import com.sri.panther.paintServer.util.ConfigFile;
 import edu.usc.ksom.pm.panther.paintCommon.AnnotationNode;
-import java.sql.CallableStatement;
-import java.sql.Clob;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.sql.Types;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
@@ -225,6 +222,7 @@ public class DataServer{
   protected static final String QUERY_SUBFAMILY_MIDDLE_WILDCARD = ":%";
   protected static final String QUERY_ANNOTATION_NODE_MIDDLE_WILDCARD = ":%";
   protected static final String QUERY_WILDCARD = "%";
+  private static final String QUERY_VALIDATION = "select 1 from dual";  
   
   protected static final String COLUMN_NAME_BRANCH_LENGTH = "BRANCH_LENGTH";
   protected static final String COLUMN_NAME_PROTEIN_ID = "PROTEIN_ID";
@@ -431,6 +429,32 @@ public class DataServer{
         stmt = null;
         con = null;        
     }
+    
+    public boolean executeQueryToVerifyConnection() {
+        boolean connectionActive = false;
+
+
+        Connection con = null;
+        PreparedStatement stmt = null;
+        ResultSet rst = null;
+        try {
+            con = getConnection();
+            if (null == con) {
+                return connectionActive;
+            }
+            stmt = con.prepareStatement(QUERY_VALIDATION);
+            rst = stmt.executeQuery();
+            if (rst.next()) {
+                connectionActive = true;
+            }
+        } catch (SQLException se) {
+            log.error("Unable to retrieve information from database, exception " + se.getMessage() + " has been returned.");
+            se.printStackTrace();
+        } finally {
+            releaseDBResources(rst, stmt, con);
+        }
+        return connectionActive;        
+    }    
 
   /**
    * Method declaration

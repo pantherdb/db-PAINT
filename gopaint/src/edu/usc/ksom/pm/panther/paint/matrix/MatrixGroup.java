@@ -1,5 +1,5 @@
 /**
- *  Copyright 2018 University Of Southern California
+ *  Copyright 2023 University Of Southern California
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -181,7 +181,7 @@ public class MatrixGroup implements Comparable<MatrixGroup> {
         TermAncestor ta = items.get(index);
         TermToAssociation toa = ta.getTermToAssociation();
         GOTerm term = toa.getTerm();
-        return new NodeInfoForMatrix(pm.getGeneByPTNId(n.getStaticInfo().getPublicId()), term, gth);
+        return new NodeInfoForMatrix(pm.getGeneByPTNId(n.getStaticInfo().getPublicId()), term, gth, true);
     }
     
 //    public NodeInfoForGroup getAnnotInfoForNodeOld(Node n, int index) {

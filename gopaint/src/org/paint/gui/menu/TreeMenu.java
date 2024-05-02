@@ -1,5 +1,5 @@
 /**
- * Copyright 2019 University Of Southern California
+ * Copyright 2024 University Of Southern California
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -58,6 +58,7 @@ public class TreeMenu extends JMenu implements FamilyChangeListener {
         private static final String COLOR = "Color tree";
         private static final String COLOR_DUPLICATION = "Color based on duplication";
         private static final String COLOR_SPECIES_CLS = "Color based on species classification";
+        private static final String COLOR_HORIZONTAL_TRANSFER = "Color based on horizontal transfer";        
 	private JRadioButtonMenuItem species_order;
 
 	public TreeMenu() {
@@ -121,23 +122,34 @@ public class TreeMenu extends JMenu implements FamilyChangeListener {
                 JMenu coloring = new JMenu(COLOR);
                 JRadioButtonMenuItem colorDuplication = new JRadioButtonMenuItem(COLOR_DUPLICATION);
                 JRadioButtonMenuItem colorSpecies = new JRadioButtonMenuItem(COLOR_SPECIES_CLS);
+                JRadioButtonMenuItem colorHorizontalTransfer = new JRadioButtonMenuItem(COLOR_HORIZONTAL_TRANSFER);                
 
                 TreeColorSchema tcs = Preferences.inst().getColorSchema();
                 if (TreeModel.TreeColorSchema.DUPLICATION == tcs) {
                     colorDuplication.setSelected(true);
+                    colorSpecies.setSelected(false);
+                    colorHorizontalTransfer.setSelected(false);
                 }
-                else {
+                else if (TreeModel.TreeColorSchema.SPECIES_CLS == tcs) {
+                    colorDuplication.setSelected(false);
                     colorSpecies.setSelected(true);
-                }
+                    colorHorizontalTransfer.setSelected(false);
+            } else {
+                colorDuplication.setSelected(false);
+                colorSpecies.setSelected(false);
+                colorHorizontalTransfer.setSelected(true);
+            }
 
                 ButtonGroup cGroup = new ButtonGroup();
                 cGroup.add(colorDuplication);
                 cGroup.add(colorSpecies);
+                cGroup.add(colorHorizontalTransfer);                
                 colorDuplication.addItemListener(new TreeColorListener(TreeModel.TreeColorSchema.DUPLICATION));
                 colorSpecies.addItemListener(new TreeColorListener(TreeModel.TreeColorSchema.SPECIES_CLS));
+                colorHorizontalTransfer.addItemListener(new TreeColorListener(TreeModel.TreeColorSchema.HORIZONTAL_TRANSFER));
                 coloring.add(colorDuplication);
                 coloring.add(colorSpecies);
-                
+                coloring.add(colorHorizontalTransfer);                
                 this.add(coloring);
                 
                 

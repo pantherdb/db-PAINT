@@ -6,6 +6,10 @@
 <web-app>
  <display-name>Paint Server Curation</display-name>
  <description>Paint Server Curation</description>
+ 
+    <listener>
+        <listener-class>edu.usc.ksom.pm.panther.paintServer.listener.ServerStartupShutdownListener</listener-class>
+    </listener>
 
   <servlet>
     <servlet-name>Client2Servlet</servlet-name>

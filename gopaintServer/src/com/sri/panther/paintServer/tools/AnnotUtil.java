@@ -1,5 +1,5 @@
 /**
- * Copyright 2022 University Of Southern California
+ * Copyright 2023 University Of Southern California
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -55,7 +55,7 @@ public class AnnotUtil {
             
             HashMap<String, Node> treeNodeLookup = new HashMap<String, Node>();
             dataIO.getAnnotationNodeLookup(id, DataServlet.CLASSIFICATION_VERSION_SID, treeNodeLookup);
-            HashMap<edu.usc.ksom.pm.panther.paintCommon.Annotation, ArrayList<IWith>> annotToPosWithLookup = new HashMap<edu.usc.ksom.pm.panther.paintCommon.Annotation, ArrayList<IWith>>();
+            //HashMap<edu.usc.ksom.pm.panther.paintCommon.Annotation, ArrayList<IWith>> annotToPosWithLookup = new HashMap<edu.usc.ksom.pm.panther.paintCommon.Annotation, ArrayList<IWith>>();
 
             StringBuffer errorBuf = new StringBuffer();
             StringBuffer paintErrBuf = new StringBuffer();
@@ -65,7 +65,7 @@ public class AnnotUtil {
             try {
                 HashSet<Annotation> addedAnnotSet = new HashSet<Annotation>();
                 dataIO.addPruned(id, DataServlet.CLASSIFICATION_VERSION_SID, treeNodeLookup);
-                dataIO.getFullGOAnnotations(id, DataServlet.CLASSIFICATION_VERSION_SID, treeNodeLookup, annotToPosWithLookup, errorBuf, paintErrBuf, removeSet, modifySet, addedAnnotSet, removedFromGOAnnot, false);
+                dataIO.getFullGOAnnotations(id, DataServlet.CLASSIFICATION_VERSION_SID, treeNodeLookup, errorBuf, paintErrBuf, removeSet, modifySet, addedAnnotSet, removedFromGOAnnot, DataIO.DATA_SOURCE.STANDARD_PAINT_ANNOT, null);
                 if (errorBuf.length() > 0) {
                     FileUtils.writeBufferToFile(otherErrName, errorBuf);
                 }

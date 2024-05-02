@@ -1,5 +1,5 @@
 /**
- * Copyright 2020 University Of Southern California
+ * Copyright 2023 University Of Southern California
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -16,19 +16,18 @@
 package org.paint.util;
 
 import com.sri.panther.paintCommon.Constant;
+import com.sri.panther.paintCommon.util.Utils;
 import edu.usc.ksom.pm.panther.paintCommon.Node;
 import edu.usc.ksom.pm.panther.paintCommon.NodeVariableInfo;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.StringTokenizer;
-
+import java.util.regex.Pattern;
 import org.apache.log4j.Logger;
 import org.paint.datamodel.GeneNode;
-import org.paint.main.PaintManager;
-
-import com.sri.panther.paintCommon.util.Utils;
-import java.util.HashMap;
 import org.paint.go.GOConstants;
+import org.paint.main.PaintManager;
 
 
 public class GeneNodeUtil {
@@ -269,7 +268,7 @@ public class GeneNodeUtil {
                 String longGeneName = n.getStaticInfo().getLongGeneName();
                 if (null != longGeneName) {
                     
-                    String parts[] = longGeneName.split(Constant.STR_PIPE);
+                    String parts[] = longGeneName.split(Pattern.quote(Constant.STR_PIPE));
                     int length = parts.length;
                     if (length < 2) {
                         return;

@@ -1,5 +1,5 @@
 /**
- *  Copyright 2022 University Of Southern California
+ *  Copyright 2024 University Of Southern California
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -69,7 +69,8 @@ public class TreeModel implements Serializable {
         
         public  enum TreeColorSchema  {
             DUPLICATION,
-            SPECIES_CLS;
+            SPECIES_CLS,
+            HORIZONTAL_TRANSFER;
         }
 
 	/**
@@ -415,6 +416,7 @@ public class TreeModel implements Serializable {
 		DuplicationColor.inst().initColorIndex();
                 setSpeciesClassification();
 		setDupColorIndex(currentRoot, 0);
+                setHorizontalColorIndex(currentRoot, 1);
 		if (notify) {
 			NodeReorderEvent event = new NodeReorderEvent(this);
 			event.setNodes(getTerminusNodes());
@@ -441,48 +443,70 @@ public class TreeModel implements Serializable {
         }
     }
 
-	private void setDupColorIndex(GeneNode node, int color_index) {
-		node.setDupColorIndex(color_index);
-		if (!node.isLeaf()) {
-			List<GeneNode> children = node.getChildren();
-			if (node.isDuplication()) {
-				boolean only_leaves = true;
-				for (GeneNode child : children) {
-					only_leaves &= child.isLeaf();;
-				}
-				if (!only_leaves) {
-					List<GeneNode> ordered_by_distance = new ArrayList<GeneNode>();
-					ordered_by_distance.addAll(children);
-					Collections.sort(ordered_by_distance, new DistanceSort());				
-					for (GeneNode child : ordered_by_distance) {
-						int index = ordered_by_distance.indexOf(child);
-						if (index < ordered_by_distance.size() - 2) {
-							GeneNode sib = ordered_by_distance.get(index+1);
-							if (sib.getDistanceFromParent() == child.getDistanceFromParent()) {
-								color_index = DuplicationColor.inst().getNextIndex();
-								log.info(child + " and " + sib + " are equally distance from parent");
-							}
-						}
-						setDupColorIndex(child, color_index);
-						if (ordered_by_distance.indexOf(child) < ordered_by_distance.size() - 1)
-							color_index = DuplicationColor.inst().getNextIndex();
-					}
-				}
-				else {
-					for (GeneNode child : children) {
-						setDupColorIndex(child, color_index);
-					}
-				}
-			}
-			else {
-				for (GeneNode child : children) {
-					setDupColorIndex(child, color_index);
-				}
-			}
-		}
-	}
+    private void setDupColorIndex(GeneNode node, int color_index) {
+        node.setDupColorIndex(color_index);
+        if (!node.isLeaf()) {
+            List<GeneNode> children = node.getChildren();
+            if (node.isDuplication()) {
+                boolean only_leaves = true;
+                for (GeneNode child : children) {
+                    only_leaves &= child.isLeaf();;
+                }
+                if (!only_leaves) {
+                    List<GeneNode> ordered_by_distance = new ArrayList<GeneNode>();
+                    ordered_by_distance.addAll(children);
+                    Collections.sort(ordered_by_distance, new DistanceSort());
+                    for (GeneNode child : ordered_by_distance) {
+                        int index = ordered_by_distance.indexOf(child);
+                        if (index < ordered_by_distance.size() - 2) {
+                            GeneNode sib = ordered_by_distance.get(index + 1);
+                            if (sib.getDistanceFromParent() == child.getDistanceFromParent()) {
+                                color_index = DuplicationColor.inst().getNextIndex();
+                                log.info(child + " and " + sib + " are equally distance from parent");
+                            }
+                        }
+                        setDupColorIndex(child, color_index);
+                        if (ordered_by_distance.indexOf(child) < ordered_by_distance.size() - 1) {
+                            color_index = DuplicationColor.inst().getNextIndex();
+                        }
+                    }
+                } else {
+                    for (GeneNode child : children) {
+                        setDupColorIndex(child, color_index);
+                    }
+                }
+            } else {
+                for (GeneNode child : children) {
+                    setDupColorIndex(child, color_index);
+                }
+            }
+        }
+    }
 
-	/**
+    private void setHorizontalColorIndex(GeneNode node, int colorIndex) {
+        boolean isHorizontalTransfer = false;
+        if (node.isHorizontalTransfer()) {
+//            colorIndex++;
+            node.setHorizontalColorIndex(colorIndex);
+            isHorizontalTransfer = true;
+        }
+        List<GeneNode> children = node.getChildren();
+        if (null == children) {
+            return;
+        }
+        for (GeneNode child: children) {
+            child.setHorizontalColorIndex(node.getHorizontalColorIndex());
+            if (true == isHorizontalTransfer) {
+                setHorizontalColorIndex(child, colorIndex++);
+            }
+            else {
+                setHorizontalColorIndex(child, colorIndex);
+            }
+        }
+        
+    }
+        
+        /**
 	 * Method declaration
 	 *
 	 * 

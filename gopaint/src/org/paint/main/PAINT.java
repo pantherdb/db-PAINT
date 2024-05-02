@@ -1,5 +1,5 @@
 /**
- * Copyright 2019 University Of Southern California
+ * Copyright 2023 University Of Southern California
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -18,10 +18,13 @@ package org.paint.main;
 
 import edu.usc.ksom.pm.panther.paintCommon.DataTransferObj;
 import edu.usc.ksom.pm.panther.paintCommon.GOTermHelper;
+import edu.usc.ksom.pm.panther.paintCommon.Organism;
 import edu.usc.ksom.pm.panther.paintCommon.PAINTVersion;
 import edu.usc.ksom.pm.panther.paintCommon.TaxonomyHelper;
 import edu.usc.ksom.pm.panther.paintCommon.VersionContainer;
 import edu.usc.ksom.pm.panther.paintCommon.VersionInfo;
+import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashSet;
 import javax.swing.JOptionPane;
 import javax.swing.SwingUtilities;
@@ -68,9 +71,10 @@ public class PAINT {
         // this thread runs in the AWT event queue
         public void run() {
             try {
+                
+                // Initialize GUI manager
                 GUIManager.getManager().addStartupTask(new PaintStartupTask(args));
                 GUIManager.getManager().start();
-
                 // While the GUI manager is initializing, get fixed information from the server.  If we cannot connect or get information exit.
                 Preferences preference = Preferences.inst();
                 PantherServer pServer = PantherServer.inst();
@@ -102,7 +106,9 @@ public class PAINT {
                 DataTransferObj dto = new DataTransferObj();
                 dto.setVc(vc);
 
+                System.out.println(new Date() + " Going to retrieve curatable book information from server");
                 DataTransferObj serverObj = pServer.getCuratableBooks(pantherURL, dto);
+                System.out.println(new Date() + " Retrieved curatable book information from server");                
                 if (null == serverObj) {
                     JOptionPane.showMessageDialog(GUIManager.getManager().getFrame(), "Unable to retrieve list of curatable books from server", "Error", JOptionPane.ERROR_MESSAGE);
                     System.exit(-1);
@@ -114,6 +120,22 @@ public class PAINT {
                 }
                 
                 HashSet<String> bookSet = (HashSet<String>)serverObj.getObj();
+                
+                dto = new DataTransferObj();
+                dto.setVc(vc);
+                serverObj = pServer.getAllOrganisms(pantherURL, dto);
+                ArrayList<Organism> orgList = (ArrayList<Organism>)serverObj.getObj();
+                System.out.println(new Date() + " Retrieved organism list from server");                
+                if (null == serverObj) {
+                    JOptionPane.showMessageDialog(GUIManager.getManager().getFrame(), "Unable to retrieve list of organisms from server", "Error", JOptionPane.ERROR_MESSAGE);
+                    System.exit(-1);
+                }
+                sb = serverObj.getMsg();
+                if (null != sb && 0 != sb.length()) {
+                    JOptionPane.showMessageDialog(GUIManager.getManager().getFrame(), "Error retrieving list of supported organisms \n" + sb.toString(), "Error", JOptionPane.ERROR_MESSAGE);
+                    System.exit(-1);
+                }
+            
                 if (null == vc.get(VersionContainer.VersionedObj.CLS_VERSION) || null == gth) {
                     JOptionPane.showMessageDialog(GUIManager.getManager().getFrame(), "Unable to get static information from server", "Error", JOptionPane.ERROR_MESSAGE);
                     System.exit(-1);
@@ -122,8 +144,11 @@ public class PAINT {
                     JOptionPane.showMessageDialog(GUIManager.getManager().getFrame(), "Unable to retrieve taxonomy constraints information, annotate without taxonomy constraints?", "Error", JOptionPane.ERROR_MESSAGE);
                     System.exit(-1);
                 }
+                
+                
                 PaintManager pm = PaintManager.inst();
-                pm.setupFixedInfo(gth, th, vc, bookSet);
+                pm.setupFixedInfo(gth, th, vc, bookSet, orgList);
+                System.out.println(new Date() + " Done with initialization");
 
                 GUIManager.addVetoableShutdownListener(new VetoableShutdownListener() {
                     public boolean willShutdown() {

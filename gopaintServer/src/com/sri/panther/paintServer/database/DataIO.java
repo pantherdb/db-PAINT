@@ -1,5 +1,5 @@
 /**
- * Copyright 2023 University Of Southern California
+ * Copyright 2024 University Of Southern California
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -23,7 +23,7 @@ import com.sri.panther.paintCommon.util.Utils;
 import com.sri.panther.paintServer.datamodel.ClassificationVersion;
 import com.sri.panther.paintServer.datamodel.FullGOAnnotVersion;
 import com.sri.panther.paintServer.datamodel.NodeAnnotation;
-import com.sri.panther.paintServer.datamodel.Organism;
+import edu.usc.ksom.pm.panther.paintCommon.Organism;
 import com.sri.panther.paintServer.datamodel.PANTHERTree;
 import com.sri.panther.paintServer.datamodel.PANTHERTreeNode;
 import com.sri.panther.paintServer.datamodel.PantherVersion;
@@ -67,6 +67,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.text.SimpleDateFormat;
+import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -78,6 +79,7 @@ import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.Vector;
@@ -253,8 +255,10 @@ public class DataIO {
     
     public static final String IDENTIFIER_AN = "select n.accession, it.IDENTIFIER_TYPE_SID, i.NAME, it.name as identifier_type from node n, protein_node pn, protein p, identifier i, identifier_type it where n.classification_version_sid = %1 and n.accession like '%2' and n.node_id = pn.node_id and pn.protein_id = p.protein_id and p.PROTEIN_ID = i.primary_object_id and i.IDENTIFIER_TYPE_SID = it.IDENTIFIER_TYPE_SID and it.IDENTIFIER_TYPE_SID in (%3)";
     
-    public static final String FULL_GO_ANNOTATIONS_PART_1 = "select pa.annotation_id, n.accession, clf.accession term, et.type, pe.evidence_id, pe.evidence, cc.confidence_code, q.qualifier, pa.creation_date, NULL  as contrib_group, 'true' as paint_annot\n" +
-                                                                "from paint_evidence pe\n" +
+    public static final String FULL_GO_ANNOTATIONS_SELECT = "select pa.annotation_id, n.accession, clf.accession term, et.type, pe.evidence_id, pe.evidence, cc.confidence_code, q.qualifier, pa.creation_date, NULL  as contrib_group, 'true' as paint_annot\n" ;
+    //public static final String FULL_GO_ANNOTATIONS_REPLACE = "select pa.annotation_id, n.accession, clf.replaced_by_acc term, et.type, pe.evidence_id, pe.evidence, cc.confidence_code, q.qualifier, pa.creation_date, NULL  as contrib_group, 'true' as paint_annot\n" ;
+
+    public static final String FULL_GO_ANNOTATIONS_FROM_WHERE = "from paint_evidence pe\n" +
                                                                 "join paint_annotation pa\n" +
                                                                 "on pe.annotation_id = pa.annotation_id\n" +
                                                                 "join confidence_code cc\n" +
@@ -273,6 +277,8 @@ public class DataIO {
                                                                 "on pq.qualifier_id = q.qualifier_id\n" +
                                                                 "where pe.obsolescence_date is null and pa.obsolescence_date is null and n.accession like '%1'and n.classification_version_sid = %2 "  ;
 
+    public static final String FULL_GO_ANNOTATIONS_PART_1 = FULL_GO_ANNOTATIONS_SELECT + FULL_GO_ANNOTATIONS_FROM_WHERE;
+    
 //    public static final String FULL_GO_ANNOTATIONS_PART_1_TEST = "select pa.annotation_id, n.accession, clf.accession term, et.type, pe.evidence_id, pe.evidence, cc.confidence_code, q.qualifier, pa.creation_date, 'true' as paint_annot\n" +
 //                                                                "from paint_evidence pe\n" +
 //                                                                "join paint_annotation pa\n" +
@@ -313,7 +319,8 @@ public class DataIO {
 //                                                                "left join qualifier q\n" +
 //                                                                "on pq.qualifier_id = q.qualifier_id\n" +
 //                                                                "where pa.obsolescence_date is null and n.accession like '%1'and n.classification_version_sid = %2 "  ;
-    
+    // Replaced by annotations have the obsolescence_date of the classification record set to none null value and replaced_by_acc set to the replacement classification accession 
+    public static final String FULL_GO_ANNOTATIONS_OBSOLETED_AND_REPLACED = " union\n" + FULL_GO_ANNOTATIONS_SELECT +  FULL_GO_ANNOTATIONS_FROM_WHERE + " and clf.obsolescence_date is not null and clf.replaced_by_acc is not null";
     
     public static final String FULL_GO_ANNOTATIONS_PART_2 = " union\n" +
                                                                 "select *, 'false' as paint_annot from go_aggregate\n" +
@@ -541,7 +548,9 @@ public class DataIO {
    
     public static final String GET_LEAF_COUNTS_FOR_FAMILY = "select substr(n.accession, 0, 10) as accession, count(substr(n.accession, 0, 10)) from node n, node_type nt where nt.node_type = 'LEAF' and nt.node_type_id = n.node_type_id and n.classification_version_sid = %1 and n.obsolescence_date is null group by substr(n.accession, 0, 10) ";
     public static final String GET_LEAF_SPECIES_FOR_FAMILY = "select distinct substr(n.accession, 0, 10) as accession, substr(g.primary_ext_acc, 0 , position('|'in  g.primary_ext_acc)) as species from node n, GENE g, GENE_NODE gn where n.classification_version_sid = %1 and n.node_id = gn.node_id and gn.gene_id = g.gene_id ";
-       
+    
+    public static final String QUERY_ANNOTS_WITH_OBSOLETE_REPLACE_TERMS = "select n.accession, n.node_id , gc.accession term, gc.replaced_by_acc, pa.annotation_id from paint_annotation pa, node n, go_classification gc where pa.obsolescence_date is null and pa.classification_id = gc.classification_id and gc.classification_version_sid = %1 and gc.obsolescence_date is not null and gc.replaced_by_acc is not NULL and pa.node_id = n.node_id and n.accession like '%2' and n.classification_version_sid = %3 and n.obsolescence_date is null";
+  
     protected static final String QUERY_STR_RELEASE_CLAUSE_TBL = "tblName";
     protected static final String QUERY_STR_RELEASE_CLAUSE_VAR_G = "g";
     protected static final String QUERY_PARAMETER_1 = "%1";
@@ -1784,21 +1793,80 @@ public class DataIO {
       return new PANTHERTree(root, nodeTbl);
     }
     
+    public HashMap<String, Map.Entry<String, String>> getRepairAnnotLookupForBook(String book, String uplVersion) {
+      Connection  con = null;
+      Statement stmt = null;
+      ResultSet rst = null;
+      HashMap<String, Map.Entry<String, String>> annotToNodeAccToReplaceLookup = new HashMap<String, Map.Entry<String, String>>();
+
+      try{
+        con = getConnection();
+        if (null == con){
+          return null;
+        }
+        
+
+        String query = Utils.replace(QUERY_ANNOTS_WITH_OBSOLETE_REPLACE_TERMS, REPLACE_STR_PERCENT_1, CategoryHelper.GO_CLS_VERSION_SID);
+        query = Utils.replace(query, REPLACE_STR_PERCENT_2, book + QUERY_WILDCARD);
+        query = Utils.replace(query, REPLACE_STR_PERCENT_3, uplVersion);
+
+        stmt = con.createStatement();
+        rst = stmt.executeQuery(query);
+
+        
+        while (rst.next()){
+          String obsAccession = rst.getString(COLUMN_NAME_TERM);
+          GOTerm replaceTerm = ObsoleteToReplaceTermHelper.getReplaceForObs(obsAccession);
+          if (null == replaceTerm) {
+              System.out.println(book + " no replacement term found for " + obsAccession);
+              continue;
+          }
+          String annotationId = Long.toString(rst.getLong(COLUMN_NAME_ANNOTATION_ID));
+          String nodeAcc = rst.getString(COLUMN_NAME_ACCESSION);
+          Entry<String, String> nodeToReplace = new AbstractMap.SimpleEntry<>(nodeAcc, replaceTerm.getAcc());
+          annotToNodeAccToReplaceLookup.put(annotationId, nodeToReplace);
+        }
+        
+        if (annotToNodeAccToReplaceLookup.isEmpty()) {
+            annotToNodeAccToReplaceLookup = null;
+        }
+      }
+      catch (SQLException se){
+        log.error("Unable to retrieve annotations with obsoleted terms for " + book + " " + se.getMessage());
+        se.printStackTrace();
+
+      }
+      finally{
+          ReleaseResources.releaseDBResources(rst, stmt, con);
+      }
+      return annotToNodeAccToReplaceLookup;    
+    }    
+    
     /**
      * 
      * @param book
      * @param uplVersion
      * @param nodeLookup
-     * @param annotToPosWithLookup
      * @param errorBuf
      * @param paintErrBuf
      * @param removedAnnotSet - Need this information for comparison during save operation
      * @param modifiedAnnotSet - Need this information for comparison during save operation
-     * @param checkAggOnly - true to get annotation information from aggregation table
+     * @param dataSource - AGG for aggregate table,
+     *                      STANDARD_PAINT_ANNOT for standard paint annotations,
+     *                      STANDARD_PAINT_ANNOT_PLUS_OBSOLETE_REPLACE for standard paint annotations and also obsoleted annotations that have been replaced
+     * @param annotToNodeToReplaceLookup - HashMap of annotationid to Map.Entry<String, String>> of node Acc to replacement accession - valid only with STANDARD_PAINT_ANNOT_PLUS_OBSOLETE_REPLACE option
+     * true to get annotation information from aggregation table
      * @return
      * @throws Exception 
      */
-    public boolean getFullGOAnnotations(String book, String uplVersion, HashMap<String, Node> nodeLookup, HashMap<Annotation, ArrayList<IWith>> annotToPosWithLookup, StringBuffer errorBuf, StringBuffer paintErrBuf, HashSet<Annotation> removedAnnotSet, HashSet<String> modifiedAnnotSet, HashSet<Annotation> addedAnnotSet, HashSet<Annotation> removedFromGOAnnot, boolean checkAggOnly) throws Exception {
+    
+    public enum DATA_SOURCE {
+        AGG,
+        STANDARD_PAINT_ANNOT,
+        STANDARD_PAINT_ANNOT_AND_OBSOLETE_REPLACE
+    } 
+    
+    public boolean getFullGOAnnotations(String book, String uplVersion, HashMap<String, Node> nodeLookup, StringBuffer errorBuf, StringBuffer paintErrBuf, HashSet<Annotation> removedAnnotSet, HashSet<String> modifiedAnnotSet, HashSet<Annotation> addedAnnotSet, HashSet<Annotation> removedFromGOAnnot, DATA_SOURCE dataSource, HashMap<String, Map.Entry<String, String>> annotToNodeToReplaceLookup) throws Exception {
         if (null == book || null == uplVersion || null == nodeLookup) {
             errorBuf.insert(0, "book id, uplVersion or nodeLookup information is not specified.\n");
             return false;
@@ -1851,16 +1919,40 @@ public class DataIO {
                 return false;
             }
             String query = null;
-            if (false == checkAggOnly) {
-                query = addVersionReleaseClause(uplVersion, Constant.STR_EMPTY, TABLE_NAME_n);
-                query = addVersionReleaseClause(uplVersion, query, TABLE_NAME_clf);
-                query = FULL_GO_ANNOTATIONS_PART_1 + query + FULL_GO_ANNOTATIONS_PART_2;
+            switch(dataSource) {
+                case STANDARD_PAINT_ANNOT: {
+                    query = addVersionReleaseClause(uplVersion, Constant.STR_EMPTY, TABLE_NAME_n);
+                    query = addVersionReleaseClause(uplVersion, query, TABLE_NAME_clf);
+                    query = FULL_GO_ANNOTATIONS_PART_1 + query + FULL_GO_ANNOTATIONS_PART_2;
 
-                query = Utils.replace(query, QUERY_PARAMETER_1, book + QUERY_ANNOTATION_NODE_MIDDLE_WILDCARD);
-                query = Utils.replace(query, QUERY_PARAMETER_2, uplVersion);
-            }
-            else {
-                query = Utils.replace(FULL_GO_ANNOTATIONS_AGGREGATE, QUERY_PARAMETER_1, book + QUERY_ANNOTATION_NODE_MIDDLE_WILDCARD);
+                    query = Utils.replace(query, QUERY_PARAMETER_1, book + QUERY_ANNOTATION_NODE_MIDDLE_WILDCARD);
+                    query = Utils.replace(query, QUERY_PARAMETER_2, uplVersion);
+                    break;
+                }
+                case AGG: { 
+                    query = Utils.replace(FULL_GO_ANNOTATIONS_AGGREGATE, QUERY_PARAMETER_1, book + QUERY_ANNOTATION_NODE_MIDDLE_WILDCARD);
+                    break;
+                }
+                case STANDARD_PAINT_ANNOT_AND_OBSOLETE_REPLACE: {
+                    String part_1_query = addVersionReleaseClause(uplVersion, Constant.STR_EMPTY, TABLE_NAME_n);
+                    part_1_query = addVersionReleaseClause(uplVersion, part_1_query, TABLE_NAME_clf);
+                    part_1_query = FULL_GO_ANNOTATIONS_PART_1 + part_1_query;
+
+                    // Combine standard annotation query with replacement query followed by experimental evidence part
+                    query = part_1_query + 
+                            // Note clf not null should not be part of the clause.  Only node table
+                            FULL_GO_ANNOTATIONS_OBSOLETED_AND_REPLACED + addVersionReleaseClause(uplVersion, Constant.STR_EMPTY, TABLE_NAME_n) +
+                            FULL_GO_ANNOTATIONS_PART_2;
+                    query = Utils.replace(query, QUERY_PARAMETER_1, book + QUERY_ANNOTATION_NODE_MIDDLE_WILDCARD);
+                    query = Utils.replace(query, QUERY_PARAMETER_2, uplVersion);
+                    break;                    
+
+                }
+                default:
+                    System.out.println("Data source not specified");
+                    Exception e = new Exception("Data source not specified");
+                    e.printStackTrace();
+                    return false;   
             }
             System.out.println(query);
 
@@ -1886,7 +1978,7 @@ public class DataIO {
                 BigDecimal evidenceId = grslt.getBigDecimal(COLUMN_NAME_EVIDENCE_ID);
                 Date date = grslt.getDate(COLUMN_CREATION_DATE);
                 String dateStr = ANNOTATION_DATE_FORMATTER.format(date);
-              
+                              
 //                if ("IKR".equals(cc)) {
 //                    System.out.println("Here");
 //                }
@@ -1896,6 +1988,16 @@ public class DataIO {
                 
                 if (null == cc) {
                     cc = Constant.STR_EMPTY;
+                }
+                
+                // Replace the term, if the annotation id and node accession match
+                if (dataSource == DATA_SOURCE.STANDARD_PAINT_ANNOT_AND_OBSOLETE_REPLACE && null != annotToNodeToReplaceLookup && null != annotationId && annotToNodeToReplaceLookup.containsKey(annotationId)) {
+                    Map.Entry<String, String> replaceLookup = annotToNodeToReplaceLookup.get(annotationId);
+                    if (null != accession && accession.equals(replaceLookup.getKey()) && null != replaceLookup.getValue()) {
+                        System.out.println("Updating obsoleted node " + accession + " annotated with obsoleted term " + term + " to replacement term " + replaceLookup.getValue());
+                        errorBuf.insert(0, accToPTNLookup.get(accession) + " annotated with annotation id " + annotationId + " to obsoleted term " + term + " - system will use non-obsoleted replacement term  " + replaceLookup.getValue() + " for evidence " + evidence + ".\n");
+                        term = replaceLookup.getValue();
+                    }
                 }
                 
                 // Only consider experimental annotations from go aggregate table. No longer need to tag problems with this data
@@ -3604,19 +3706,47 @@ public class DataIO {
                 continue;
             }
             
+            String annotId = annotInfo.get(0);
+            
             if (WithEvidence.EVIDENCE_TYPE_ANNOT_PAINT_ANCESTOR.equals(paintAnnotType)) {
                 // Referring to an ancestor annotation. It should have already been created.  Find it
-                 propagator = paintAnnotLookup.get(annotInfo.get(7));
+                propagator = paintAnnotLookup.get(annotInfo.get(7));
                 if (null == propagator) {
+                    // Check removed annotations since propagator may have been removed
+                    Annotation removed = removedLookup.get(annotInfo.get(7));
+                    if (null != removed) {
+                        Annotation dependant = removedLookup.get(annotId);
+                        if (null == dependant) {
+                            dependant = new Annotation();
+                            dependant.setGoTerm(annotInfo.get(2));
+                            dependant.setAnnotationId(annotId);
+                            AnnotationDetail ad = new AnnotationDetail();
+                            dependant.setAnnotationDetail(ad);
+                            ad.setAnnotatedNode(node);
+                            removedLookup.put(annotId, dependant);
+                        }
+                        paintErrBuf.insert(0, code + " not allowed for node " + node.getStaticInfo().getPublicId() +  " with term " + annotInfo.get(2) + " since propagator annotation with annotation id " + annotInfo.get(7) + " has been removed.\n");
+                    }
+                    else {
+                        Annotation dependant = new Annotation();
+                        dependant.setAnnotationId(annotId);
+                        dependant.setGoTerm(annotInfo.get(2));
+                        AnnotationDetail ad = new AnnotationDetail();
+                        dependant.setAnnotationDetail(ad);
+                        ad.setAnnotatedNode(node);
+                        removedLookup.put(annotId, dependant);
+                        paintErrBuf.insert(0, code + " not allowed for node " + node.getStaticInfo().getPublicId() +  " with term " + annotInfo.get(2) + " since propagator annotation with annotation id " + annotInfo.get(7) + " cannot be found.\n");
+                    }
+                    toRemove.add(annotInfo);
                     continue;
                 }                
             }
-
+            // Not IBA
             else {
                 continue;
             }             
             
-            String annotId = annotInfo.get(0);
+            
             Annotation a = null;
             a = ibaLookup.get(annotId);
             if (null == a) {
@@ -4401,8 +4531,11 @@ public class DataIO {
             
             AnnotationDetail ad = ibd.getAnnotationDetail();
             // If previous withs were different from current withs, then this annotation has to be added into the list of modified annotation set.
+//            if ("PTN000000299".equals(node.getStaticInfo().getPublicId()) && "GO:0005634".equals(ibd.getGoTerm())) {
+//                System.out.println("Here");
+//            }
             HashSet<Annotation> previousWithSet = ibd.getAnnotationDetail().getWithAnnotSet();
-            if (null == previousWithSet || false == withSet.equals(previousWithSet)) {
+            if (null == previousWithSet || false == compareAnnotSets(ibd, (HashSet<Annotation>)withSet.clone(), (HashSet<Annotation>)previousWithSet.clone())) {
                 paintErrBuf.insert(0, "Modified list of annotations providing experimental evidence for " + Evidence.CODE_IBD + " with term " + ibd.getGoTerm() + " for node " + node.getStaticInfo().getPublicId() + ".\n");                       
                 modifiedAnnotSet.add(annotId);
                 
@@ -5224,9 +5357,173 @@ public class DataIO {
     public static final int CODE_FIX_BOOK_UPDATE_UNNECESSARY = 0;
     public static final int CODE_FIX_BOOK_UPDATE_SUCCESSFUL = 1;    
     public static final int CODE_FIX_BOOK_UPDATE_UNSUCCESSFUL = 2;
-    public static final int CODE_FIX_BOOK_UPDATE_UNSUCCESSFUL_BOOK_LOCKED = 3;    
+    public static final int CODE_FIX_BOOK_UPDATE_UNSUCCESSFUL_BOOK_LOCKED = 3;
+
+    public int fixAnnotationsAndReplaceObsoleted(String book, User user, String uplVersion, String comment, boolean updateLockedBook, StringBuffer errBuf, StringBuffer paintErrBuf) throws Exception{
+        Connection updateCon = null;
+        try {
+            String bookId = getBookId(book, uplVersion);
+
+            HashSet<Annotation> removedAnnotSet = new HashSet<Annotation>();
+            HashSet<String> modifiedAnnotSet = new HashSet<String>();
+            HashSet<Annotation> addedAnnotSet = new HashSet<Annotation>();      // Annotations with evidence codes such as TCV
+            HashSet<Annotation> removedFromGOAnnotSet = new HashSet<Annotation>();
+
+            HashMap<String, Node> treeNodeLookup = new HashMap<String, Node>();
+            getAnnotationNodeLookup(book, uplVersion, treeNodeLookup);
+            HashMap<String, Node> prunedLookup = new HashMap<String, Node>();
+            addPruned(book, uplVersion, prunedLookup);
+            ArrayList<Node> prunedList = new ArrayList<Node>(prunedLookup.values());
+            boolean isObsoleteTermReplace = false;
+            HashMap<String, Map.Entry<String, String>> annotToNodeRepTermLookup = getRepairAnnotLookupForBook(book, uplVersion);    
+            if (annotToNodeRepTermLookup != null && 0 < annotToNodeRepTermLookup.size()) {
+                isObsoleteTermReplace = true;
+            }
+            ArrayList<Annotation> curAnnotList = null;
+            if (false == isObsoleteTermReplace) {
+                curAnnotList = getSavedAnnotations(uplVersion, book, treeNodeLookup, removedAnnotSet, modifiedAnnotSet, addedAnnotSet, removedFromGOAnnotSet, errBuf, paintErrBuf, DATA_SOURCE.STANDARD_PAINT_ANNOT, null);
+            }
+            else {
+                System.out.println(book + " has annotations to obsoleted terms that have replacement");
+                curAnnotList = getSavedAnnotations(uplVersion, book, treeNodeLookup, removedAnnotSet, modifiedAnnotSet, addedAnnotSet, removedFromGOAnnotSet, errBuf, paintErrBuf, DATA_SOURCE.STANDARD_PAINT_ANNOT_AND_OBSOLETE_REPLACE, annotToNodeRepTermLookup);
+
+                // Ensure that annotations that are getting carried over do not have the old annotation id
+                for (Annotation a: curAnnotList) {
+                    if (a.getAnnotationId() != null && annotToNodeRepTermLookup.containsKey(a.getAnnotationId())) {
+                        a.setAnnotationId(null);
+                    }
+                }
+            }
+
+            // Testing
+//            if (0 == 0) {
+//                return CODE_FIX_BOOK_UPDATE_UNNECESSARY;
+//            }
+            
+            if (isObsoleteTermReplace == false && removedAnnotSet.isEmpty() && modifiedAnnotSet.isEmpty() && addedAnnotSet.isEmpty()) {
+                return CODE_FIX_BOOK_UPDATE_UNNECESSARY;
+            }
+            
+            // Determine if someone is already locking the book
+            String lockingUser = getUserIdLockingBook(book, uplVersion);
+            
+            // If book is locked and we are not supposed to update locked books, return
+            if (null != lockingUser && false == updateLockedBook) {
+                return CODE_FIX_BOOK_UPDATE_UNSUCCESSFUL_BOOK_LOCKED;
+            }            
+            
+            // Get connection that is going to be used for all the updates.  If any update is unsuccessful, then whole transaction is aborted.
+            updateCon = getConnection();            
+            updateCon.setAutoCommit(false);
+            updateCon.rollback();
+            
+            
+            if (true == updateLockedBook && null != lockingUser) {
+                String success = this.unlockBook(lockingUser, bookId, updateCon);
+                if (false == Constant.STR_EMPTY.equals(success)) {
+                    return CODE_FIX_BOOK_UPDATE_UNSUCCESSFUL;
+                }
+            }
+            
+
+
+            
+            // Lock book
+            String success = this.lockBook(bookId, user.getUserId(), updateCon);
+            if (false == MSG_SUCCESS.equals(success)) {
+                return CODE_FIX_BOOK_UPDATE_UNSUCCESSFUL;
+            }
+            
+            // Obsolete annotations that are referring to obsoleted terms
+            if (true == isObsoleteTermReplace) {
+                System.out.println(book + " - obsoleting annotations to replacement terms");
+                String bookClsId = getBookId(bookId, uplVersion);
+                String userIdStr = user.getUserId();
+                
+                ArrayList<Annotation> obsoleteAnnotList = new ArrayList<Annotation>();
+                for (String annotStr: annotToNodeRepTermLookup.keySet()) {
+                    Annotation a = new Annotation();
+                    a.setAnnotationId(annotStr);
+                    obsoleteAnnotList.add(a);
+                }
+                obsoleteInsertAnnotation(updateCon, bookClsId, obsoleteAnnotList, new ArrayList<Annotation>(), userIdStr);
+            }            
+
+            String curComment = getFamilyComment(book, uplVersion, new ArrayList<Integer>());
+            if (null == curComment) {
+                curComment = new String();
+            }
+            Comment c = new Comment(null, null, curComment);
+            if (null != comment) {
+                c.appendCommentUserNotes(comment);
+            }
+
+            SaveBookInfo sbi = new SaveBookInfo();
+            sbi.setUser(user);
+            sbi.setBookId(book);
+            sbi.setPrunedList(prunedList);
+            sbi.setComment(c);
+            sbi.setFamilyName(getFamilyName(book, uplVersion));
+            sbi.setAnnotationList(curAnnotList);
+            success = this.saveBook(sbi, uplVersion, false, updateCon);
+            if (false == Constant.STR_EMPTY.equals(success)) {
+                return CODE_FIX_BOOK_UPDATE_UNSUCCESSFUL;
+            }
+            
+            
+            // Unlock book
+            success = this.unlockBook(user.getUserId(), bookId, updateCon);
+            if (false == Constant.STR_EMPTY.equals(success)) {
+                return CODE_FIX_BOOK_UPDATE_UNSUCCESSFUL;
+            }
+            
+            // Lock book for original user, if necessary
+            if (null != lockingUser) {
+                success = this.lockBook(bookId, lockingUser, updateCon);
+                if (false == MSG_SUCCESS.equals(success)) {
+                    return CODE_FIX_BOOK_UPDATE_UNSUCCESSFUL;
+                }
+            }
+            
+            // Rollback for testing purposes
+//            if (0 == 0) {
+//                updateCon.rollback();
+//                updateCon.setAutoCommit(true);
+//                return CODE_FIX_BOOK_UPDATE_UNSUCCESSFUL;
+//            }
+            //return CODE_FIX_BOOK_UPDATE_UNSUCCESSFUL;       
+                        
+            // commit update
+            updateCon.commit();
+            updateCon.setAutoCommit(true);
+            System.out.println(DATE_FORMATTER.format(new java.util.Date(System.currentTimeMillis())) + "***** Committed save information for book id " + book);
+            return CODE_FIX_BOOK_UPDATE_SUCCESSFUL;     
+        }
+        catch(Exception e) {
+            e.printStackTrace();
+            try {
+                if (null != updateCon) {
+                    updateCon.rollback();
+                    updateCon.setAutoCommit(true);
+                }
+            }
+            catch(Exception ex) {
+                System.out.println(ex);
+            }
+            System.out.println(DATE_FORMATTER.format(new java.util.Date(System.currentTimeMillis())) + " Save failed for book id " + book);
+            return CODE_FIX_BOOK_UPDATE_UNSUCCESSFUL;
+        }
+        finally {
+            if (null != updateCon) {             
+                ReleaseResources.releaseDBResources(null, null, updateCon);
+            }
+        }
+    }
     
-    public int fixBook(String book, User user, String uplVersion, String comment, boolean updateLockedBook, StringBuffer errBuf, StringBuffer paintErrBuf) throws Exception{
+
+    
+    
+    public int fixBookOldNotUsedAnyLonger(String book, User user, String uplVersion, String comment, boolean updateLockedBook, StringBuffer errBuf, StringBuffer paintErrBuf) throws Exception{
         Connection updateCon = null;
         try {
             String bookId = getBookId(book, uplVersion);
@@ -6313,12 +6610,28 @@ public class DataIO {
         HashMap<String, Node> treeNodeLookup = new HashMap<String, Node>();
         getAnnotationNodeLookup(book, uplVersion, treeNodeLookup);
         addPruned(book, uplVersion, treeNodeLookup);
-        HashMap<Annotation, ArrayList<IWith>> annotToPosWithLookup = new HashMap<Annotation, ArrayList<IWith>>();
-//        HashSet<Annotation> addedAnnotSet = new HashSet<Annotation>();
-        getFullGOAnnotations(book, uplVersion, treeNodeLookup, annotToPosWithLookup, errBuf, paintErrBuf, removedAnnotSet, modifiedAnnotSet, addedAnnotSet, removedFromGOAnnot, false);
+        return getSavedAnnotations(uplVersion, book, treeNodeLookup, removedAnnotSet, modifiedAnnotSet, addedAnnotSet, removedFromGOAnnot, errBuf, paintErrBuf, DATA_SOURCE.STANDARD_PAINT_ANNOT, null);
+    }
+    
+    /**
+     * Uses treeNodeLookupWithAnnotNodeAndPruned that has already been initialized
+     * @param uplVersion
+     * @param book
+     * @param treeNodeLookupWithAnnotNodeAndPruned - Already initialized with tree node and pruned information
+     * @param removedAnnotSet
+     * @param modifiedAnnotSet
+     * @param addedAnnotSet
+     * @param removedFromGOAnnot
+     * @param errBuf
+     * @param paintErrBuf
+     * @return
+     * @throws Exception 
+     */
+    private ArrayList<Annotation> getSavedAnnotations(String uplVersion, String book, HashMap<String, Node> treeNodeLookupWithAnnotNodeAndPruned, HashSet<Annotation> removedAnnotSet, HashSet<String> modifiedAnnotSet, HashSet<Annotation> addedAnnotSet, HashSet<Annotation> removedFromGOAnnot, StringBuffer errBuf, StringBuffer paintErrBuf, DATA_SOURCE dataSource, HashMap<String, Map.Entry<String, String>> annotToNodeToReplaceLookup) throws Exception {
+        getFullGOAnnotations(book, uplVersion, treeNodeLookupWithAnnotNodeAndPruned, errBuf, paintErrBuf, removedAnnotSet, modifiedAnnotSet, addedAnnotSet, removedFromGOAnnot, dataSource, annotToNodeToReplaceLookup);
         
         ArrayList<Annotation> rtnList = new ArrayList<Annotation>();
-        for (Node n: treeNodeLookup.values()) {
+        for (Node n: treeNodeLookupWithAnnotNodeAndPruned.values()) {
             NodeVariableInfo nvi = n.getVariableInfo();
             if (null == nvi) {
                 continue;
@@ -6333,7 +6646,7 @@ public class DataIO {
                 }
             }
         } 
-        return rtnList;
+        return rtnList;        
     }
     
     public static Annotation getAssociatedIKRorIRDforIBA(Node node, Annotation ibaAnnotation) {
@@ -6527,12 +6840,12 @@ public class DataIO {
             addPruned(book, uplVersion, treeNodeLookup);
             System.out.println("It took " + (System.currentTimeMillis() - startTime) / 1000 + " secs to retrieve pruned information for book " + book);
             //getEvidence(book, uplVersion, treeNodeLookup);
-            HashMap<Annotation, ArrayList<IWith>> annotToPosWithLookup = new HashMap<Annotation, ArrayList<IWith>>();
+            ///HashMap<Annotation, ArrayList<IWith>> annotToPosWithLookup = new HashMap<Annotation, ArrayList<IWith>>();
             HashSet<Annotation> removedAnnotSet = new HashSet<Annotation>();
             HashSet<String> modifiedAnnotSet = new HashSet<String>();
             HashSet<Annotation> removedFromGOAnnot = new HashSet<Annotation>();
             HashSet<Annotation> addedAnnotSet = new HashSet<Annotation>();
-            if (false == getFullGOAnnotations(book, uplVersion, treeNodeLookup, annotToPosWithLookup, errorBuf, paintErrBuf, removedAnnotSet, modifiedAnnotSet, addedAnnotSet, removedFromGOAnnot, false)) {
+            if (false == getFullGOAnnotations(book, uplVersion, treeNodeLookup, errorBuf, paintErrBuf, removedAnnotSet, modifiedAnnotSet, addedAnnotSet, removedFromGOAnnot, DATA_SOURCE.STANDARD_PAINT_ANNOT, null)) {
                 System.gc();
                 throw new Exception("Error retrieving annotation information");
             }
@@ -7114,6 +7427,7 @@ public class DataIO {
         User user = null;
         
         if (null == userName || null == password || 0 == userName.length() || 0 == password.length()) {
+            System.out.println("Returning null for getUser");
             return user;
         }
         Connection con = null;
@@ -7139,6 +7453,10 @@ public class DataIO {
                 String id = Integer.toString(rst.getInt(COLUMN_USER_ID));
                 user = new User(name, null, email, userName, rank, groupName);
                 user.setUserId(id);
+                System.out.println("Got user information from database");
+            }
+            else {
+                System.out.println("Database did not return any records for user name");                
             }
             
         } catch (SQLException se) {
@@ -8345,6 +8663,12 @@ public class DataIO {
             ReleaseResources.releaseDBResources(rst, stmt, con);
         }
         return bookRslt;
+    }
+    
+    private boolean compareAnnotSets(Annotation a, HashSet<Annotation> copyWithSet1, HashSet<Annotation> copyWithSet2) {
+        copyWithSet1.remove(a);
+        copyWithSet2.remove(a);
+        return annotSetSame(copyWithSet1, copyWithSet2);
     }
     
     

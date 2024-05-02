@@ -1,0 +1,18 @@
+Install 1.11
+
+
+sudo keytool -import -alias gopaintuscedu -file ~/Downloads/go-paint-usc-edu.pem -keystore /Library/Java/JavaVirtualMachines/jdk-11.jdk/Contents/Home/lib/security/cacerts
+
+
+sudo 
+mac password
+
+
+password
+
+keystore
+
+changeit
+
+
+yes to add certificate

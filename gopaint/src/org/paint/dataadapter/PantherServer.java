@@ -1,5 +1,5 @@
 /**
- *  Copyright 2022 University Of Southern California
+ *  Copyright 2023 University Of Southern California
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -16,13 +16,9 @@
 
 package org.paint.dataadapter;
 
-import com.sri.panther.paintCommon.Book;
 import com.sri.panther.paintCommon.FixedInfo;
 import edu.usc.ksom.pm.panther.paintCommon.DataTransferObj;
 import edu.usc.ksom.pm.panther.paintCommon.GOTermHelper;
-import edu.usc.ksom.pm.panther.paintCommon.MSA;
-import com.sri.panther.paintCommon.RawComponentContainer;
-import edu.usc.ksom.pm.panther.paintCommon.SaveBookInfo;
 import edu.usc.ksom.pm.panther.paintCommon.TaxonomyHelper;
 import com.sri.panther.paintCommon.TransferInfo;
 import com.sri.panther.paintCommon.User;
@@ -34,18 +30,11 @@ import java.io.ObjectOutputStream;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLConnection;
-import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.Vector;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
-import javax.swing.JOptionPane;
-import org.bbop.framework.GUIManager;
-import org.paint.config.PantherDbInfo;
-import org.paint.config.Preferences;
 import org.paint.gui.event.EventManager;
 import org.paint.gui.event.ProgressEvent;
-import org.paint.main.PaintManager;
 
 public class PantherServer {
 
@@ -86,6 +75,8 @@ public class PantherServer {
     public static final String REQUEST_MY_BOOKS = "MyBooks";
     public static final String REQUEST_SEARCH_UNCURATED_BOOKS = "uncuratedBooks";
     public static final String REQUEST_SEARCH_REQUIRE_PAINT_REVIEW_UNLOCKED = "requirePaintReviewUnlocked";
+    
+    public static final String REQUEST_ALL_ORGANISMS = "allOrganisms";    
 
     public static final String REQUEST_OPEN_BOOK = "OpenBook";
 //	public static final String REQUEST_OPEN_BOOK_FOR_GO_USER = "openBookForGOUsr";
@@ -482,6 +473,11 @@ public class PantherServer {
         public DataTransferObj getFamilyName(String serverPath, DataTransferObj dto) {
             server_status = "";
             return (DataTransferObj)sendAndReceiveZip(serverPath, ACTION_GET_FAMILY_NAME, dto, null, null);
+        }
+        
+        public DataTransferObj getAllOrganisms(String serverPath, DataTransferObj dto) {
+            server_status = "";
+            return (DataTransferObj)sendAndReceiveZip(serverPath, REQUEST_ALL_ORGANISMS, dto, null, null);            
         }
         
         public DataTransferObj getFamilyDomain(String serverPath, DataTransferObj dto) {

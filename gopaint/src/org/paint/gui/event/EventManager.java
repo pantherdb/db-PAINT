@@ -1,5 +1,5 @@
 /**
- *  Copyright 2022 University Of Southern California
+ *  Copyright 2023 University Of Southern California
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -56,6 +56,7 @@ public class EventManager {
 	private HashSet<CurationColorListener> colorChangeListeners;
 	private HashSet<AnnotationDragListener> annotationDragListeners;
         private HashSet<CommentChangeListener> commentChangeListeners;
+        private HashSet<AnnotationDisplayListener> annotationDisplayListeners;
 
 
 	protected List<GeneNode> selectedNodes;
@@ -221,6 +222,13 @@ public class EventManager {
                 commentChangeListeners = new HashSet<CommentChangeListener>();
             }
             commentChangeListeners.add(listener);
+        }
+        
+        public void registerAnnotationDisplayListener(AnnotationDisplayListener listener) {
+            if (null == annotationDisplayListeners) {
+                annotationDisplayListeners = new HashSet<AnnotationDisplayListener>();
+            }
+            annotationDisplayListeners.add(listener);
         }
         
 
@@ -494,6 +502,15 @@ public class EventManager {
             }
             for (CommentChangeListener listener: commentChangeListeners) {
                 listener.handleCommentChangeEvent(event);
+            }
+        }
+        
+        public void fireAnnotationDisplayEvent(AnnotationDisplayEvent event) {
+            if (null == annotationDisplayListeners) {
+                return;
+            }
+            for (AnnotationDisplayListener listener: annotationDisplayListeners) {
+                listener.handleAnnotationDisplayEvent(event);
             }
         }
 

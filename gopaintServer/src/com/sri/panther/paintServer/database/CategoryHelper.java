@@ -1,5 +1,5 @@
 /**
- * Copyright 2021 University Of Southern California
+ * Copyright 2023 University Of Southern California
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -25,9 +25,11 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.text.SimpleDateFormat;
+import java.util.AbstractMap.SimpleEntry;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Hashtable;
+import java.util.Map.Entry;
 import org.apache.log4j.Logger;
 
 public class CategoryHelper {
@@ -39,7 +41,7 @@ public class CategoryHelper {
 
     public static final String QUERY_CATEGORY_ACC_GO = "select accession, name, depth, definition, term_type_sid, classification_id from go_classification where accession = '%1' and obsolescence_date is null and CLASSIFICATION_VERSION_SID = %2";
     
-    
+    public static final String QUERY_GET_REPLACEMENT_CLS = "SELECT c1.classification_id, c1.accession, c2.classification_id replace_id, c2.accession replace_acc FROM go_classification c1, go_classification c2 WHERE c1.classification_version_sid = %1 AND c1.obsolescence_date IS not NULL AND c1.replaced_by_acc IS NOT NULL AND c1.replaced_by_acc = c2.accession and c2.classification_version_sid = c1.classification_version_sid";
     
     protected static final String QUERY_VERSION_INFO = "select * from FULLGO_VERSION";
     protected static final SimpleDateFormat DATE_FORMATTER = new SimpleDateFormat("yyyy-MM-dd");
@@ -58,8 +60,8 @@ public class CategoryHelper {
     public static final String COLUMN_ASPECT_PARENT = "pAspect";
     public static final String COLUMN_CHILD_ID = "child_id";
     public static final String COLUMN_PARENT_ID = "parent_id";    
-
-
+    public static final String COLUMN_REPLACE_ID = "replace_id";
+    public static final String COLUMN_REPLACE_ACC = "replace_acc";
 
     public static final String COLUMN_GO_ANNOTATION_FORMAT_VERSION = "GO_ANNOTATION_FORMAT_VERSION";
     public static final String COLUMN_GO_ANNOTATION_RELEASE_DATE = "GO_ANNOTATION_RELEASE_DATE";
@@ -226,5 +228,37 @@ public class CategoryHelper {
 
         return rtnTbl;        
     }    
+
+    public static HashMap<Entry<String ,String>, Entry<String,String>> getGoTermCarryOverLookup() {    
+        String query = Utils.replace(QUERY_GET_REPLACEMENT_CLS, PARAM_1, GO_CLS_VERSION_SID);
+        Connection con = null;
+        Statement stmt = null;
+        ResultSet rst = null;
+
+        HashMap<Entry<String ,String>, Entry<String,String>> obsolete_to_replacement = new  HashMap<Entry<String ,String>, Entry<String,String>>();
+        try {
+            con = DBConnectionPool.getInstance().getConnection(DB_CONNECTION_STR);
+            stmt = con.createStatement();
+            rst = stmt.executeQuery(query);            
+            while (rst.next()) {
+                String obsolete_id = rst.getString(COLUMN_ID);
+                String obsolete_acc = rst.getString(COLUMN_ACCESSION);
+                String replace_id = rst.getString(COLUMN_REPLACE_ID);
+                String replace_acc = rst.getString(COLUMN_REPLACE_ACC);
+                Entry<String, String> key = new SimpleEntry<>(obsolete_id, obsolete_acc);
+                Entry<String, String> value = new SimpleEntry<>(replace_id, replace_acc);
+                obsolete_to_replacement.put(key, value);
+            }
+            rst.close();
+        }
+        catch(SQLException se) {
+            se.printStackTrace();
+        }
+        finally {
+            ReleaseResources.releaseDBResources(rst, stmt, con);
+        }
+        return obsolete_to_replacement;
+
+    }        
     
 }

@@ -1,5 +1,5 @@
 /**
- *  Copyright 2019 University Of Southern California
+ *  Copyright 2023 University Of Southern California
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -16,6 +16,7 @@
 package edu.usc.ksom.pm.panther.paint.matrix;
 
 import edu.usc.ksom.pm.panther.paintCommon.Annotation;
+import edu.usc.ksom.pm.panther.paintCommon.AnnotationHelper;
 import edu.usc.ksom.pm.panther.paintCommon.GOTerm;
 import edu.usc.ksom.pm.panther.paintCommon.GOTermHelper;
 import edu.usc.ksom.pm.panther.paintCommon.Node;
@@ -27,6 +28,7 @@ import org.paint.datamodel.GeneNode;
 import org.paint.util.GeneNodeUtil;
 import edu.usc.ksom.pm.panther.paintCommon.QualifierDif;
 import java.util.HashMap;
+import org.paint.main.PaintManager;
 
 
 public class NodeInfoForMatrix {
@@ -46,9 +48,14 @@ public class NodeInfoForMatrix {
     private static String BLANK_QUALIFIER = "-";;
     private static String BLANK_LABEL = "-";
     private static final String STR_BRACKET_START = "(";
-    private static final String STR_BRACKET_END = ")";    
-    
+    private static final String STR_BRACKET_END = ")";
+
     public NodeInfoForMatrix(GeneNode gNode, GOTerm gTerm, GOTermHelper gth) {
+        new NodeInfoForMatrix(gNode, gTerm, gth, false);
+    }
+    
+    
+    public NodeInfoForMatrix(GeneNode gNode, GOTerm gTerm, GOTermHelper gth, boolean checkNonDisplayedAnnotMatrixOrg) {
         this.gNode = gNode;
         this.gTerm = gTerm;
         if (true == GeneNodeUtil.inPrunedBranch(gNode)) {
@@ -63,11 +70,18 @@ public class NodeInfoForMatrix {
         if (null == annotList) {
             return;
         }
+        
+        PaintManager pm = PaintManager.inst();
 
         // Handle the NOTS first
         HashSet<Annotation> handledSet = new HashSet<Annotation>();
+        HashSet<Annotation> skippedAnnots = new HashSet<Annotation>();
         ArrayList<GOTerm> notAncestors = gth.getAncestors(gTerm);
         for (Annotation a : annotList) {
+            if (true == checkNonDisplayedAnnotMatrixOrg && true == AnnotationHelper.ignoreAnnot(a, n, pm.getnonDisplayedAnnotMatrixOrgToEvdnceLookup())) {
+                skippedAnnots.add(a);
+                continue;
+            }
             HashSet<Qualifier> qualifiers = a.getQualifierSet();
             boolean not = QualifierDif.containsNegative(qualifiers);
             if (false == not) {
@@ -164,9 +178,14 @@ public class NodeInfoForMatrix {
 
         // Then the others
         for (Annotation a : annotList) {
-            if (handledSet.contains(a)) {
+            if (handledSet.contains(a) || skippedAnnots.contains(a)) {
                 continue;
             }
+            
+            if (true == checkNonDisplayedAnnotMatrixOrg && true == AnnotationHelper.ignoreAnnot(a, n, pm.getnonDisplayedAnnotMatrixOrgToEvdnceLookup())) {
+                continue;
+            }
+            
             boolean experimental = a.isExperimental();
             String curTerm = a.getGoTerm();
             GOTerm cGOTerm = gth.getTerm(curTerm);

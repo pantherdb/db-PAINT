@@ -1,5 +1,5 @@
 /**
- * Copyright 2021 University Of Southern California
+ * Copyright 2023 University Of Southern California
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -127,7 +127,9 @@ public class AnnotationTransferHndlr extends TransferHandler {
 
         Point p = support.getDropLocation().getDropPoint();
         if (!treePanel.pointInNode(p)) {
+            clearVisitedNodes(treePanel);
             canImport = false;
+            return false;
         }
         node = treePanel.getClickedInNodeArea(p);
         if (node != null) {
@@ -137,19 +139,14 @@ public class AnnotationTransferHndlr extends TransferHandler {
                 TermAncestor termAncestor = matrixTransferInfo.getTermAncestor();
                 TermToAssociation toa = termAncestor.getTermToAssociation();
                 PaintManager pm = PaintManager.inst();
-                AnnotQualifierGroup group = AnnotationHelper.possibleToAnnotateWithIBD(toa.getTerm().getAcc(), node.getNode(), becauseBuf, pm.getTaxonHelper(), pm.goTermHelper());
-                if (null == group || null == group.getQualifierAnnotLookup() || true == group.getQualifierAnnotLookup().isEmpty()) {
-                    canImport = false;
-                    because = becauseBuf.toString();
-                    if (false == because.isEmpty()) {
-                        System.out.println(because);
-                    }
-                    else {
-                        System.out.println("No term to annotate");
-                    }
+                
+                boolean possible = AnnotationHelper.IBDPossibleForNode(toa.getTerm().getAcc(), node.getNode(), pm.getTaxonHelper(), pm.goTermHelper());
+                if (true == possible) {
+                    System.out.println("Possible to annotate node " + node.getNode().getStaticInfo().getPublicId() + " with IBD annotation to term " + toa.getTerm().getAcc());
+                    canImport = true;
                 }
                 else {
-                    canImport = true;
+                    canImport = false;
                 }
             } catch (UnsupportedFlavorException e) {
                 canImport = false;
@@ -405,8 +402,10 @@ public class AnnotationTransferHndlr extends TransferHandler {
             System.out.println(errMsg);
             return false;
         }
-        TaxonomyHelper th = pm.getTaxonHelper();
         Node n = gNode.getNode();
+        System.out.println("Going to annotate node " + n.getStaticInfo().getPublicId() + " with IBD annotation to term " + termAcc);
+        TaxonomyHelper th = pm.getTaxonHelper();
+
         boolean valid = th.termAndQualifierValidForSpeciesCheckTaxonomy(termAcc, gNode.getNode().getStaticInfo().getCalculatedSpecies(), applicableQset);
         if (false == valid) {            
             String bigStr = (gNode.getNode().getStaticInfo().getPublicId() + MSG_TAXON_CONSTRAINT_PART_1 + gNode.getNode().getStaticInfo().getCalculatedSpecies() + MSG_TAXON_CONSTRAINT_PART_2 + termAcc + MSG_TAXON_CONSTRAINT_PART_3);
@@ -947,6 +946,7 @@ public class AnnotationTransferHndlr extends TransferHandler {
 
 		public void dropActionChanged(DragSourceDragEvent dsde)
 		{
+                    System.out.println("Drag action changed");
 		}
 	}
         

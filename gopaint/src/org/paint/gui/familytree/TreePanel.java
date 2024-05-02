@@ -1,5 +1,5 @@
 /**
- *  Copyright 2019 University Of Southern California
+ *  Copyright 2023 University Of Southern California
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -83,6 +83,8 @@ import com.sri.panther.paintCommon.Constant;
 import edu.usc.ksom.pm.panther.paintCommon.Node;
 import edu.usc.ksom.pm.panther.paintCommon.NodeVariableInfo;
 import org.paint.gui.DirtyIndicator;
+import org.paint.gui.event.AnnotationDisplayEvent;
+import org.paint.gui.event.AnnotationDisplayListener;
 import org.paint.gui.event.TermAncestorSelectionEvent;
 import org.paint.gui.event.TermAncestorSelectionListener;
 import org.paint.util.AnnotationUtil;
@@ -97,7 +99,8 @@ TermSelectionListener,
 TermAncestorSelectionListener,
 AnnotationChangeListener, 
 AspectChangeListener, 
-AnnotationDragListener{
+AnnotationDragListener,
+AnnotationDisplayListener{
 	/**
 	 * 
 	 */
@@ -153,6 +156,7 @@ AnnotationDragListener{
 		manager.registerTermListener(this);
                 manager.registerTermAncestorListener(this);
 		manager.registerCurationColorListener(this);
+                manager.registerAnnotationDisplayListener(this);
 
 
 		ToolTipManager.sharedInstance().registerComponent(this);
@@ -754,6 +758,10 @@ AnnotationDragListener{
 			}
 		}
 	}
+
+    public void handleAnnotationDisplayEvent(AnnotationDisplayEvent event) {
+        repaint();
+    }
 
 	/**
 	 * Class declaration

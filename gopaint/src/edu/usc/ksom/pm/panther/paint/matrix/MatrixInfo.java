@@ -1,5 +1,5 @@
 /**
- *  Copyright 2019 University Of Southern California
+ *  Copyright 2023 University Of Southern California
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -16,26 +16,27 @@
 package edu.usc.ksom.pm.panther.paint.matrix;
 
 import edu.usc.ksom.pm.panther.paintCommon.Annotation;
+import edu.usc.ksom.pm.panther.paintCommon.AnnotationHelper;
 import edu.usc.ksom.pm.panther.paintCommon.GOTerm;
 import edu.usc.ksom.pm.panther.paintCommon.GOTermHelper;
 import edu.usc.ksom.pm.panther.paintCommon.Node;
 import edu.usc.ksom.pm.panther.paintCommon.NodeVariableInfo;
+import edu.usc.ksom.pm.panther.paintCommon.Organism;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 import org.paint.datamodel.Association;
 import org.paint.datamodel.GeneNode;
+import org.paint.main.PaintManager;
 import org.paint.util.GeneNodeUtil;
 
-/**
- *
- * @author muruganu
- */
+
 public class MatrixInfo {
     private GOTermHelper gth;
     private ArrayList<TermAncestor> termAncestorList;
@@ -43,6 +44,7 @@ public class MatrixInfo {
     private List<GeneNode> nodes;
     private ArrayList<GOTerm> handledTerms = new ArrayList<GOTerm>();
     private String familyId;
+    private  Hashtable<Organism, HashSet<String>>  nonDisplayOrgToEvdneceLookup;
     
     // Use class MatrixBuilder to create instance of this class.  This is why this class is protected.  MatrixBuilder ensures groups are ordered according
     // to previous ordering
@@ -55,6 +57,7 @@ public class MatrixInfo {
         if (null == nodes) {
             return;
         }
+        this.nonDisplayOrgToEvdneceLookup = PaintManager.inst().getnonDisplayedAnnotMatrixOrgToEvdnceLookup();
         
         // First add items user wants added.  (This way we see it in front of list - not really we are sorting now)
         for (TermAncestor ta : termAncestorList) {
@@ -83,12 +86,16 @@ public class MatrixInfo {
                 continue;
             }
             for (Annotation a: annotList) {
+                if (true == AnnotationHelper.ignoreAnnot(a, n, nonDisplayOrgToEvdneceLookup)) {
+//                    System.out.println("Ignoring annotation to node " + n.getStaticInfo().getLongGeneName() + " with annotation to term " + a.getGoTerm() + " with evidence " + String.join(",", a.getEvidenceCodeSet()));
+                    continue;
+                }
                 Association asn = new Association();
 //                asn.setNodeAssociatedToAnnotation(true);
                 asn.setAnnotation(a);
                 asn.setNode(n);
 //                asnLst.add(asn);
-                GOTerm term = gth.getTerm(a.getGoTerm());
+                //GOTerm term = gth.getTerm(a.getGoTerm());
 //                if ((a.getGoTerm().equals("GO:0006508") || a.getGoTerm().equals("GO:0008237")) && "PTN000054044".equals(n.getStaticInfo().getPublicId())) {
 //                    System.out.println("Here");
 //                }
@@ -318,6 +325,10 @@ public class MatrixInfo {
             return null;
         }
         for (Annotation a: annotList) {
+            if (true == AnnotationHelper.ignoreAnnot(a, a.getAnnotationDetail().getAnnotatedNode(), nonDisplayOrgToEvdneceLookup)) {
+//                System.out.println("Ignoring annotation to node " + a.getAnnotationDetail().getAnnotatedNode().getStaticInfo().getLongGeneName() + " with annotation to term " + a.getGoTerm() + " with evidence " + String.join(",", a.getEvidenceCodeSet()));
+                continue;
+            }
             GOTerm curTerm = gth.getTerm(a.getGoTerm());
             if (gth.getAncestors(curTerm).contains(term)) {
                 if (a.isExperimental()) {

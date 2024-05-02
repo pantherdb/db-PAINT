@@ -1,5 +1,5 @@
 /**
- * Copyright 2022 University Of Southern California
+ * Copyright 2023 University Of Southern California
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -29,9 +29,11 @@ import com.sri.panther.paintServer.database.DataServer;
 import com.sri.panther.paintServer.datamodel.ClassificationVersion;
 import com.sri.panther.paintServer.datamodel.FamilyDomain;
 import com.sri.panther.paintServer.datamodel.FullGOAnnotVersion;
+import edu.usc.ksom.pm.panther.paintCommon.Organism;
 import com.sri.panther.paintServer.datamodel.PantherVersion;
 import com.sri.panther.paintServer.logic.CategoryLogic;
 import com.sri.panther.paintServer.logic.KeyResiduesManager;
+import com.sri.panther.paintServer.logic.OrganismManager;
 import com.sri.panther.paintServer.logic.TaxonomyConstraints;
 import com.sri.panther.paintServer.logic.VersionManager;
 import com.sri.panther.paintServer.util.ConfigFile;
@@ -55,6 +57,7 @@ import java.io.ObjectOutputStream;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Vector;
@@ -67,8 +70,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 
-public class DataServlet extends HttpServlet {
-    
+public class DataServlet extends HttpServlet {   
     public static final String CLASSIFICATION_VERSION_SID = ConfigFile.getProperty(ConfigFile.PROPERTY_CLASSIFICATION_VERSION_SID);
     public static final Boolean UPDATE_ALLOWED = new Boolean(ConfigFile.getProperty("updates_allowed"));
     public static final VersionContainer versionContainer = getVersionContainer();
@@ -88,6 +90,8 @@ public class DataServlet extends HttpServlet {
     private static final String ACTION_VERIFY_USER = "VerifyUserInfo";
     public static final String ACTION_SAVE_BOOK = "saveBook";
     public static final String ACTION_GET_VERSIONS = "versions";
+    
+    public static final String REQUEST_ALL_ORGANISMS = "allOrganisms";
     
     public static final String REQUEST_LOCK_BOOKS = "LockBooks";
     public static final String REQUEST_UNLOCK_BOOKS = "UnlockBooks";
@@ -252,6 +256,11 @@ public class DataServlet extends HttpServlet {
         }
         if (actionParam.compareTo(REQUEST_UNLOCK_BOOKS) == 0) {
             unlockBooks(request, response);
+            return;
+        }
+        
+        if (actionParam.compareTo(REQUEST_ALL_ORGANISMS) == 0) {
+            allOrganisms(request, response);
             return;
         }
     }
@@ -958,8 +967,14 @@ public class DataServlet extends HttpServlet {
             String password = String.copyValueOf((char[]) clientRequest.elementAt(1));
             password = convertPassword(userName, password);
 //            DataIO dataIO = new DataIO(ConfigFile.getProperty(ConfigFile.KEY_DB_JDBC_DBSID));
+            System.out.println(new Date() + " Attampt to verify user name and password");
             User user = dataIO.getUser(userName, password);
-
+            if (null == user) {
+                System.out.println("User object is null");
+            }
+            else {
+                System.out.println("User object is not null");                
+            }
             objs.addElement(user);
             System.out.println("Added objects for transferring");
 
@@ -982,16 +997,21 @@ public class DataServlet extends HttpServlet {
         objs.add(userName);
         objs.add(password);
         Object o = sendAndReceiveZip(ConfigFile.getProperty(PROPERTY_USER_SERVER), ConfigFile.getProperty(PROPERTY_SERVLET_USER_INFO), ACTION_VERIFY_USER, objs, null, null);
+        System.out.println("Converted password");
         if (null == o) {
+            System.out.println("Converted password is null");
             return null;
         }
         if (false == o instanceof Vector) {
+            System.out.println("Converted password is not instance of vector");
             return null;
         }
         Vector output = (Vector)o;
         if (false == output.isEmpty()) {
+            System.out.println("Converted password is not empty");
             return (String)output.get(0);
         }
+        System.out.println("Returning null, converted password is null");
         return null;
     }
     
@@ -1593,9 +1613,42 @@ public class DataServlet extends HttpServlet {
         System.out.println("Exitting servlet now");
     }
   
-  
-  
-  
+    private void allOrganisms(HttpServletRequest request, HttpServletResponse response) {
+        System.out.println("Going to get all organisms");
+        response.setContentType("java/object");
+        ObjectInputStream in = null;
+
+        try {
+            System.out.println("Before opening stream");
+            // in = new ObjectInputStream(request.getInputStream());
+            in = new ObjectInputStream(new GZIPInputStream(request.getInputStream()));
+            DataTransferObj clientRequest = (DataTransferObj) in.readObject();
+            DataTransferObj serverOut = new DataTransferObj();
+            VersionContainer vc = clientRequest.getVc();
+            if (null == vc) {
+                serverOut.setMsg(new StringBuffer(MSG_ERROR_CANNOT_VERIFY_VERSION_INFO));
+                sendGZIP(response, serverOut);
+                return;
+            }
+
+            String versionComp = versionContainer.compareForServerOps(vc);
+            if (null != versionComp) {
+                serverOut.setMsg(new StringBuffer(versionComp));
+                sendGZIP(response, serverOut);
+                return;
+            }            
+
+            in.close();
+            System.out.println("Finished with stream and closed");
+
+            ArrayList<Organism> orgList = OrganismManager.getInstance().getOrgList();
+            serverOut.setObj(orgList);
+            sendGZIP(response, serverOut);
+        }
+        catch(Exception e) {
+            
+        }    
+    }
   
     private void sendGZIP(HttpServletResponse response, Object sendObject) {
         try{

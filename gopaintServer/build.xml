@@ -40,10 +40,11 @@
                         ${lib.dir}/thirdparty/apache/server/servlet-api.jar:                        
                         ${lib.dir}/thirdparty/apache/server/servlet.jar:
                         ${lib.dir}/thirdparty/forester/forester_1030.jar:
-                        ${lib.dir}/thirdParty/apache/commons/commons-dbcp.jar:
-                        ${lib.dir}/thirdParty/apache/commons/commons-logging.jar:
-                        ${lib.dir}/thirdParty/apache/commons/commons-pool.jar:
-                        ${lib.dir}/thirdParty/apache/commons/commons-io-2.11.0.jar:
+                        ${lib.dir}/thirdParty/apache/apache_commons_logging/commons-logging-1.2.jar:
+                        ${lib.dir}/thirdParty/apache/apache-dbcp2-2.9.0/commons-dbcp2-2.9.0.jar:
+                        ${lib.dir}/thirdParty/apache/apache_commons_IO/commons-io-2.6.jar:
+                        ${lib.dir}/thirdParty/apache/apache-commons-pool/commons-pool2-2.11.1.jar:
+                        ${lib.dir}/thirdParty/apache/commons/commons-collections.jar
                         ${lib.dir}/thirdparty/postgreSQL/postgresql-9.1-902.jdbc4.jar:
                         ${lib.dir}/thirdParty/jackson/jackson-annotations-2.10.2.jar:
                         ${lib.dir}/thirdParty/jackson/jackson-core-2.10.2.jar:
@@ -108,11 +109,11 @@
         <copy file="${lib.output.dir}/gopaintCommon.jar" todir="${webroot.lib.dir}" overwrite="true"/>
         <copy file="${lib.output.dir}/gopaintServer.jar" todir="${webroot.lib.dir}" overwrite="true"/>
         <copy file="${lib.dir}/thirdparty/apache/log4j/log4j-1.2.15.jar" todir="${webroot.lib.dir}" overwrite="true"/>
-        <copy file="${lib.dir}/thirdParty/apache/commons/commons-dbcp.jar" todir="${webroot.lib.dir}" overwrite="true"/>
-        <copy file="${lib.dir}/thirdParty/apache/commons/commons-logging.jar" todir="${webroot.lib.dir}" overwrite="true"/>
+        <copy file="${lib.dir}/thirdParty/apache/apache-dbcp2-2.9.0/commons-dbcp2-2.9.0.jar" todir="${webroot.lib.dir}" overwrite="true"/>
+        <copy file="${lib.dir}/thirdParty/apache/apache_commons_logging/commons-logging-1.2.jar" todir="${webroot.lib.dir}" overwrite="true"/>
+        <copy file="${lib.dir}/thirdParty/apache/apache_commons_IO/commons-io-2.6.jar" todir="${webroot.lib.dir}" overwrite="true"/>
+        <copy file="${lib.dir}/thirdParty/apache/apache-commons-pool/commons-pool2-2.11.1.jar" todir="${webroot.lib.dir}" overwrite="true"/>         
         <copy file="${lib.dir}/thirdParty/apache/commons/commons-collections.jar" todir="${webroot.lib.dir}" overwrite="true"/>
-        <copy file="${lib.dir}/thirdParty/apache/commons/commons-pool.jar" todir="${webroot.lib.dir}" overwrite="true"/>
-        <copy file="${lib.dir}/thirdParty/apache/commons/commons-io-2.11.0.jar" todir="${webroot.lib.dir}" overwrite="true"/>
         <copy file="${lib.dir}/thirdparty/postgreSQL/postgresql-9.1-902.jdbc4.jar" todir="${webroot.lib.dir}" overwrite="true"/>
         <copy file="${lib.dir}/thirdparty/jackson/jackson-annotations-2.10.2.jar" todir="${webroot.lib.dir}" overwrite="true"/>
         <copy file="${lib.dir}/thirdparty/jackson/jackson-core-2.10.2.jar" todir="${webroot.lib.dir}" overwrite="true"/>

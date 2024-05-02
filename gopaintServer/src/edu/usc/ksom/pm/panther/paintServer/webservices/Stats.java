@@ -1,5 +1,5 @@
 /**
- * Copyright 2021 University Of Southern California
+ * Copyright 2023 University Of Southern California
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -18,7 +18,7 @@ package edu.usc.ksom.pm.panther.paintServer.webservices;
 import com.sri.panther.paintCommon.Book;
 import com.sri.panther.paintServer.database.DataIO;
 import com.sri.panther.paintServer.datamodel.NodeAnnotation;
-import com.sri.panther.paintServer.datamodel.Organism;
+import edu.usc.ksom.pm.panther.paintCommon.Organism;
 import com.sri.panther.paintServer.logic.OrganismManager;
 import com.sri.panther.paintServer.util.ConfigFile;
 import java.util.ArrayList;

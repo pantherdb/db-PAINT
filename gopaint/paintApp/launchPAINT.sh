@@ -1,1 +1,0 @@
-java -cp ".:*" -Dfile.encoding=UTF-8 -ms1028m  -mx2048m -Xss32m org.paint.main.PAINT

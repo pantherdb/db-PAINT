@@ -1,5 +1,5 @@
 /**
- *  Copyright 2022 University Of Southern California
+ *  Copyright 2023 University Of Southern California
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -23,7 +23,7 @@ import com.sri.panther.paintCommon.util.Utils;
 import com.sri.panther.paintServer.database.DataIO;
 import com.sri.panther.paintServer.database.DataServer;
 import com.sri.panther.paintServer.database.DataServerManager;
-import com.sri.panther.paintServer.datamodel.Organism;
+import edu.usc.ksom.pm.panther.paintCommon.Organism;
 import com.sri.panther.paintServer.logic.CategoryLogic;
 import com.sri.panther.paintServer.logic.OrganismManager;
 import edu.usc.ksom.pm.panther.paintCommon.Annotation;
@@ -351,13 +351,13 @@ public class FamilyUtil {
 
         try {
             dataIO.addPruned(familyId, uplVersion, nodeLookup);
-            HashMap<edu.usc.ksom.pm.panther.paintCommon.Annotation, ArrayList<IWith>> annotToPosWithLookup = new HashMap<edu.usc.ksom.pm.panther.paintCommon.Annotation, ArrayList<IWith>>();
+            //HashMap<edu.usc.ksom.pm.panther.paintCommon.Annotation, ArrayList<IWith>> annotToPosWithLookup = new HashMap<edu.usc.ksom.pm.panther.paintCommon.Annotation, ArrayList<IWith>>();
             StringBuffer errorBuf = new StringBuffer();
             StringBuffer paintErrBuf = new StringBuffer();
             HashSet<edu.usc.ksom.pm.panther.paintCommon.Annotation> removeSet = new HashSet<edu.usc.ksom.pm.panther.paintCommon.Annotation>();
             HashSet<String> modifySet = new HashSet<String>();
             HashSet<edu.usc.ksom.pm.panther.paintCommon.Annotation> removedFromGOAnnot = new HashSet<edu.usc.ksom.pm.panther.paintCommon.Annotation>();
-            dataIO.getFullGOAnnotations(familyId, uplVersion, nodeLookup, annotToPosWithLookup, errorBuf, paintErrBuf, removeSet, modifySet, new HashSet<Annotation>(), removedFromGOAnnot, false);
+            dataIO.getFullGOAnnotations(familyId, uplVersion, nodeLookup, errorBuf, paintErrBuf, removeSet, modifySet, new HashSet<Annotation>(), removedFromGOAnnot, DataIO.DATA_SOURCE.STANDARD_PAINT_ANNOT, null);
         }
         catch(Exception e) {
             
@@ -1214,24 +1214,35 @@ public class FamilyUtil {
         Text publicId_text = doc.createTextNode(publicIdStr);
         publicId.appendChild(publicId_text);
         
-        
-        Element parentId = doc.createElement(ELEMENT_ANNOTATION_PARENT);
-        Text parentId_text = doc.createTextNode(parentPublicId);
-        parentId.appendChild(parentId_text);
-        
+       
+        if (null != parentPublicId && 0 != parentPublicId.trim().length()) {
+            Element parentId = doc.createElement(ELEMENT_ANNOTATION_PARENT);
+            Text parentId_text = doc.createTextNode(parentPublicId);
+            parentId.appendChild(parentId_text);
+            annotationNodeElement.appendChild(parentId);
+        }
      
+        if (null != an.getNodeName() && 0 != an.getNodeName().trim().length()) {
+            Element nodeName = doc.createElement(ELEMENT_NODE_NAME);
+            Text nodeName_text = doc.createTextNode(an.getNodeName());
+            nodeName.appendChild(nodeName_text);
+            annotationNodeElement.appendChild(nodeName);            
+        }
         
-        Element nodeName = doc.createElement(ELEMENT_NODE_NAME);
-        Text nodeName_text = doc.createTextNode(an.getNodeName());
-        nodeName.appendChild(nodeName_text);
+        if (null != an.getSpecies() && 0 != an.getSpecies().trim().length()) {
+            Element species = doc.createElement(ELEMENT_NODE_SPECIES);
+            Text species_text = doc.createTextNode(an.getSpecies());
+            species.appendChild(species_text);
+            annotationNodeElement.appendChild(species);            
+        }
         
-        Element species = doc.createElement(ELEMENT_NODE_SPECIES);
-        Text species_text = doc.createTextNode(an.getSpecies());
-        species.appendChild(species_text);
-        
-        Element referenceSpeciation = doc.createElement(ELEMENT_REFERENCE_SPECIATION_EVENT);
-        Text speciationText = doc.createTextNode(getReferenceSpeciationEvent(an));
-        referenceSpeciation.appendChild(speciationText);
+        String refSpeciationEvent = getReferenceSpeciationEvent(an);
+        if (null != refSpeciationEvent && 0 != refSpeciationEvent.trim().length()) {
+            Element referenceSpeciation = doc.createElement(ELEMENT_REFERENCE_SPECIATION_EVENT);
+            Text speciationText = doc.createTextNode(refSpeciationEvent);
+            referenceSpeciation.appendChild(speciationText);
+            annotationNodeElement.appendChild(referenceSpeciation);            
+        }
         
         Element nodeType = doc.createElement(ELEMENT_ANNOTATION_NODE_TYPE);
         Vector children = an.getChildren();
@@ -1261,10 +1272,12 @@ public class FamilyUtil {
         eventType.appendChild(eventType_text);
         
 
-         
-        Element branchLength = doc.createElement(ELEMENT_ANNOTATION_BRANCH_LENGTH);
-        Text branchLength_text = doc.createTextNode(an.getBranchLength());
-        branchLength.appendChild(branchLength_text);
+        if (null != an.getBranchLength() && 0 != an.getBranchLength().trim().length()) { 
+            Element branchLength = doc.createElement(ELEMENT_ANNOTATION_BRANCH_LENGTH);
+            Text branchLength_text = doc.createTextNode(an.getBranchLength());
+            branchLength.appendChild(branchLength_text);
+            annotationNodeElement.appendChild(branchLength);            
+        }
         
 
         String sequence = an.getSequence();
@@ -1284,14 +1297,9 @@ public class FamilyUtil {
         
         annotationNodeElement.appendChild(annotationId);
         annotationNodeElement.appendChild(publicId);
-        annotationNodeElement.appendChild(parentId);
-        annotationNodeElement.appendChild(nodeName);
-        annotationNodeElement.appendChild(species);
-        annotationNodeElement.appendChild(referenceSpeciation);
         annotationNodeElement.appendChild(nodeType);
         annotationNodeElement.appendChild(eventType);
-        annotationNodeElement.appendChild(branchLength);
-        
+      
         String nodeAcc = an.getAccession();
         Node n = nodeLookup.get(nodeAcc);
         NodeStaticInfo nsi = n.getStaticInfo();
@@ -1495,28 +1503,43 @@ public class FamilyUtil {
         Element annotationId = doc.createElement(ELEMENT_ANNOTATION_ACCESSION);
         Text accession_text = doc.createTextNode(an.getAccession());
         annotationId.appendChild(accession_text);
+
+        String publicIdStr = an.getPublicId();        
+        if (null != publicIdStr && 0 != publicIdStr.trim().length()) {
+            Element publicId = doc.createElement(ELEMENT_ANNOTATION_PUBLIC_ID);
+            Text publicId_text = doc.createTextNode(publicIdStr);
+            publicId.appendChild(publicId_text);
+            annotationNodeElement.appendChild(publicId);            
+        }
         
-        Element publicId = doc.createElement(ELEMENT_ANNOTATION_PUBLIC_ID);
-        String publicIdStr = an.getPublicId();
-        Text publicId_text = doc.createTextNode(publicIdStr);
-        publicId.appendChild(publicId_text);
+        if (null != parentPublicId && 0 != parentPublicId.trim().length()) {
+            Element parentId = doc.createElement(ELEMENT_ANNOTATION_PARENT);
+            Text parentId_text = doc.createTextNode(parentPublicId);
+            parentId.appendChild(parentId_text);
+            annotationNodeElement.appendChild(parentId);
+        }
         
+        if (null != an.getNodeName() && 0 != an.getNodeName().trim().length()) {
+            Element nodeName = doc.createElement(ELEMENT_NODE_NAME);
+            Text nodeName_text = doc.createTextNode(an.getNodeName());
+            nodeName.appendChild(nodeName_text);
+            annotationNodeElement.appendChild(nodeName);            
+        }
         
-        Element parentId = doc.createElement(ELEMENT_ANNOTATION_PARENT);
-        Text parentId_text = doc.createTextNode(parentPublicId);
-        parentId.appendChild(parentId_text);
+        if (null != an.getSpecies() && 0 != an.getSpecies().trim().length()) {
+            Element species = doc.createElement(ELEMENT_NODE_SPECIES);
+            Text species_text = doc.createTextNode(an.getSpecies());
+            species.appendChild(species_text);
+            annotationNodeElement.appendChild(species);            
+        }
         
-        Element nodeName = doc.createElement(ELEMENT_NODE_NAME);
-        Text nodeName_text = doc.createTextNode(an.getNodeName());
-        nodeName.appendChild(nodeName_text);
-        
-        Element species = doc.createElement(ELEMENT_NODE_SPECIES);
-        Text species_text = doc.createTextNode(an.getSpecies());
-        species.appendChild(species_text);
-        
-        Element referenceSpeciation = doc.createElement(ELEMENT_REFERENCE_SPECIATION_EVENT);
-        Text speciationText = doc.createTextNode(getReferenceSpeciationEvent(an));
-        referenceSpeciation.appendChild(speciationText);
+        String refSpeciationEvent = getReferenceSpeciationEvent(an);
+            if (null != refSpeciationEvent && 0 != refSpeciationEvent.trim().length()) {
+            Element referenceSpeciation = doc.createElement(ELEMENT_REFERENCE_SPECIATION_EVENT);
+            Text speciationText = doc.createTextNode(getReferenceSpeciationEvent(an));
+            referenceSpeciation.appendChild(speciationText);
+            annotationNodeElement.appendChild(referenceSpeciation);
+        }
         
         Element nodeType = doc.createElement(ELEMENT_ANNOTATION_NODE_TYPE);
         Vector children = an.getChildren();
@@ -1545,39 +1568,46 @@ public class FamilyUtil {
         }
         eventType.appendChild(eventType_text);
         
-        Element geneSymbol = doc.createElement(ELEMENT_GENE_SYMBOL);
-        Text geneSymbolText = doc.createTextNode(an.getGeneSymbol());
-        geneSymbol.appendChild(geneSymbolText);
+        if (null != an.getGeneSymbol() && 0 != an.getGeneSymbol().trim().length()) {
+            Element geneSymbol = doc.createElement(ELEMENT_GENE_SYMBOL);
+            Text geneSymbolText = doc.createTextNode(an.getGeneSymbol());
+            geneSymbol.appendChild(geneSymbolText);
+            annotationNodeElement.appendChild(geneSymbol);
+        }
+
+        if (null != an.getSfId() && 0 != an.getSfId().trim().length()) {        
+            Element subfamilyId = doc.createElement(ELEMENT_SUBFAMILY_ID);
+            Text subfamilyIdText = doc.createTextNode(an.getSfId());
+            subfamilyId.appendChild(subfamilyIdText);
+            annotationNodeElement.appendChild(subfamilyId);
+        }
+
+        if (null != an.getSfName() && 0 != an.getSfName().trim().length()) {         
+            Element subfamilyName = doc.createElement(ELEMENT_SUBFAMILY_NAME);
+            Text subfamilyNameText = doc.createTextNode(an.getSfName());
+            subfamilyName.appendChild(subfamilyNameText);
+            annotationNodeElement.appendChild(subfamilyName);            
+        }
+
+        if (null != an.getBranchLength() && 0 != an.getBranchLength().trim().length()) {         
+            Element branchLength = doc.createElement(ELEMENT_ANNOTATION_BRANCH_LENGTH);
+            Text branchLength_text = doc.createTextNode(an.getBranchLength());
+            branchLength.appendChild(branchLength_text);
+            annotationNodeElement.appendChild(branchLength);
+        }
         
-        Element subfamilyId = doc.createElement(ELEMENT_SUBFAMILY_ID);
-        Text subfamilyIdText = doc.createTextNode(an.getSfId());
-        subfamilyId.appendChild(subfamilyIdText);
-        
-        Element subfamilyName = doc.createElement(ELEMENT_SUBFAMILY_NAME);
-        Text subfamilyNameText = doc.createTextNode(an.getSfName());
-        subfamilyName.appendChild(subfamilyNameText);
-         
-        Element branchLength = doc.createElement(ELEMENT_ANNOTATION_BRANCH_LENGTH);
-        Text branchLength_text = doc.createTextNode(an.getBranchLength());
-        branchLength.appendChild(branchLength_text);
-        
-        Element sequenceInfo = doc.createElement(ELEMENT_ANNOTATION_SEQUENCE);
-        Text sequenceInfo_text = doc.createTextNode(an.getSequence());
-        sequenceInfo.appendChild(sequenceInfo_text);
+        if (null != an.getSequence() && 0 != an.getSequence().trim().length()) {          
+            Element sequenceInfo = doc.createElement(ELEMENT_ANNOTATION_SEQUENCE);
+            Text sequenceInfo_text = doc.createTextNode(an.getSequence());
+            sequenceInfo.appendChild(sequenceInfo_text);
+            annotationNodeElement.appendChild(sequenceInfo);            
+        }
         
         annotationNodeElement.appendChild(annotationId);
-        annotationNodeElement.appendChild(publicId);
-        annotationNodeElement.appendChild(parentId);
-        annotationNodeElement.appendChild(nodeName);
-        annotationNodeElement.appendChild(geneSymbol);
-        annotationNodeElement.appendChild(subfamilyId);
-        annotationNodeElement.appendChild(subfamilyName);
-        annotationNodeElement.appendChild(species);
-        annotationNodeElement.appendChild(referenceSpeciation);
         annotationNodeElement.appendChild(nodeType);
         annotationNodeElement.appendChild(eventType);
-        annotationNodeElement.appendChild(branchLength);
-        annotationNodeElement.appendChild(sequenceInfo);
+
+
         
         
         if (null != children) {
@@ -1627,7 +1657,7 @@ public class FamilyUtil {
         HashMap<String, Node> treeNodeLookup = new HashMap<String, Node>();
         long start = System.currentTimeMillis();
         dataIO.getAnnotationNodeLookup(familyId, uplVersion, treeNodeLookup);
-        HashMap<edu.usc.ksom.pm.panther.paintCommon.Annotation, ArrayList<IWith>> annotToPosWithLookup = new HashMap<edu.usc.ksom.pm.panther.paintCommon.Annotation, ArrayList<IWith>>();
+        //HashMap<edu.usc.ksom.pm.panther.paintCommon.Annotation, ArrayList<IWith>> annotToPosWithLookup = new HashMap<edu.usc.ksom.pm.panther.paintCommon.Annotation, ArrayList<IWith>>();
         StringBuffer errorBuf = new StringBuffer();
         StringBuffer paintErrBuf = new StringBuffer();
         HashSet<edu.usc.ksom.pm.panther.paintCommon.Annotation> removeSet = new HashSet<edu.usc.ksom.pm.panther.paintCommon.Annotation>();
@@ -1635,7 +1665,7 @@ public class FamilyUtil {
         HashSet<edu.usc.ksom.pm.panther.paintCommon.Annotation> removedFromGOAnnot = new HashSet<edu.usc.ksom.pm.panther.paintCommon.Annotation>();
         try {
             dataIO.addPruned(familyId, uplVersion, treeNodeLookup);
-            dataIO.getFullGOAnnotations(familyId, uplVersion, treeNodeLookup, annotToPosWithLookup, errorBuf, paintErrBuf, removeSet, modifySet, new HashSet<Annotation>(), removedFromGOAnnot, false);
+            dataIO.getFullGOAnnotations(familyId, uplVersion, treeNodeLookup, errorBuf, paintErrBuf, removeSet, modifySet, new HashSet<Annotation>(), removedFromGOAnnot, DataIO.DATA_SOURCE.STANDARD_PAINT_ANNOT, null);
             return outputFamilyAnnotationInfoStr(errorBuf, paintErrBuf, familyId, System.currentTimeMillis() - start, WSConstants.SEARCH_TYPE_FAMILY_ANNOTATION_INFO);
         } catch (Exception e) {
             e.printStackTrace();
@@ -1647,7 +1677,7 @@ public class FamilyUtil {
         HashMap<String, Node> treeNodeLookup = new HashMap<String, Node>();
         long start = System.currentTimeMillis();
         dataIO.getAnnotationNodeLookup(familyId, uplVersion, treeNodeLookup);
-        HashMap<edu.usc.ksom.pm.panther.paintCommon.Annotation, ArrayList<IWith>> annotToPosWithLookup = new HashMap<edu.usc.ksom.pm.panther.paintCommon.Annotation, ArrayList<IWith>>();
+        //HashMap<edu.usc.ksom.pm.panther.paintCommon.Annotation, ArrayList<IWith>> annotToPosWithLookup = new HashMap<edu.usc.ksom.pm.panther.paintCommon.Annotation, ArrayList<IWith>>();
         StringBuffer errorBuf = new StringBuffer();
         StringBuffer paintErrBuf = new StringBuffer();
         HashSet<edu.usc.ksom.pm.panther.paintCommon.Annotation> removeSet = new HashSet<edu.usc.ksom.pm.panther.paintCommon.Annotation>();
@@ -1655,7 +1685,7 @@ public class FamilyUtil {
         HashSet<edu.usc.ksom.pm.panther.paintCommon.Annotation> removedFromGOAnnot = new HashSet<edu.usc.ksom.pm.panther.paintCommon.Annotation>();
         try {
             dataIO.addPruned(familyId, uplVersion, treeNodeLookup);
-            dataIO.getFullGOAnnotations(familyId, uplVersion, treeNodeLookup, annotToPosWithLookup, errorBuf, paintErrBuf, removeSet, modifySet, new HashSet<Annotation>(), removedFromGOAnnot, false);
+            dataIO.getFullGOAnnotations(familyId, uplVersion, treeNodeLookup, errorBuf, paintErrBuf, removeSet, modifySet, new HashSet<Annotation>(), removedFromGOAnnot, DataIO.DATA_SOURCE.STANDARD_PAINT_ANNOT, null);
             return outputFamilyAnnotationInfoDetailsStr(treeNodeLookup, errorBuf, paintErrBuf, familyId, System.currentTimeMillis() - start, WSConstants.SEARCH_TYPE_FAMILY_ANNOTATION_INFO);
         } catch (Exception e) {
             e.printStackTrace();
@@ -1670,14 +1700,14 @@ public class FamilyUtil {
             dataIO.getAnnotationNodeLookup(familyId, uplVersion, treeNodeLookup);
             dataIO.getGeneInfo(familyId, uplVersion, treeNodeLookup);
             dataIO.addPruned(familyId, uplVersion, treeNodeLookup);
-            HashMap<edu.usc.ksom.pm.panther.paintCommon.Annotation, ArrayList<IWith>> annotToPosWithLookup = new HashMap<edu.usc.ksom.pm.panther.paintCommon.Annotation, ArrayList<IWith>>();
+            //HashMap<edu.usc.ksom.pm.panther.paintCommon.Annotation, ArrayList<IWith>> annotToPosWithLookup = new HashMap<edu.usc.ksom.pm.panther.paintCommon.Annotation, ArrayList<IWith>>();
             StringBuffer errorBuf = new StringBuffer();
             StringBuffer paintErrBuf = new StringBuffer();
             HashSet<edu.usc.ksom.pm.panther.paintCommon.Annotation> removeSet = new HashSet<edu.usc.ksom.pm.panther.paintCommon.Annotation>();
             HashSet<String> modifySet = new HashSet<String>();
             HashSet<edu.usc.ksom.pm.panther.paintCommon.Annotation> removedFromGOAnnot = new HashSet<edu.usc.ksom.pm.panther.paintCommon.Annotation>();
 
-            dataIO.getFullGOAnnotations(familyId, uplVersion, treeNodeLookup, annotToPosWithLookup, errorBuf, paintErrBuf, removeSet, modifySet, new HashSet<Annotation>(), removedFromGOAnnot, false);
+            dataIO.getFullGOAnnotations(familyId, uplVersion, treeNodeLookup, errorBuf, paintErrBuf, removeSet, modifySet, new HashSet<Annotation>(), removedFromGOAnnot, DataIO.DATA_SOURCE.STANDARD_PAINT_ANNOT, null);
             getXMLForIBAAnnotationInfoDetails(treeNodeLookup, errorBuf, paintErrBuf, familyId, System.currentTimeMillis() - start, WSConstants.SEARCH_TYPE_FAMILY_ANNOTATION_INFO, leafNodeIBABuf, internlNodeIBABuf);
         } catch (Exception e) {
             e.printStackTrace();
@@ -1688,7 +1718,7 @@ public class FamilyUtil {
         HashMap<String, Node> treeNodeLookup = new HashMap<String, Node>();
         long start = System.currentTimeMillis();
         dataIO.getAnnotationNodeLookup(familyId, uplVersion, treeNodeLookup);
-        HashMap<edu.usc.ksom.pm.panther.paintCommon.Annotation, ArrayList<IWith>> annotToPosWithLookup = new HashMap<edu.usc.ksom.pm.panther.paintCommon.Annotation, ArrayList<IWith>>();
+        //HashMap<edu.usc.ksom.pm.panther.paintCommon.Annotation, ArrayList<IWith>> annotToPosWithLookup = new HashMap<edu.usc.ksom.pm.panther.paintCommon.Annotation, ArrayList<IWith>>();
         StringBuffer errorBuf = new StringBuffer();
         StringBuffer paintErrBuf = new StringBuffer();
         HashSet<edu.usc.ksom.pm.panther.paintCommon.Annotation> removeSet = new HashSet<edu.usc.ksom.pm.panther.paintCommon.Annotation>();
@@ -1696,7 +1726,7 @@ public class FamilyUtil {
         HashSet<edu.usc.ksom.pm.panther.paintCommon.Annotation> removedFromGOAnnot = new HashSet<edu.usc.ksom.pm.panther.paintCommon.Annotation>();
         try {
             dataIO.addPruned(familyId, uplVersion, treeNodeLookup);            
-            dataIO.getFullGOAnnotations(familyId, uplVersion, treeNodeLookup, annotToPosWithLookup, errorBuf, paintErrBuf, removeSet, modifySet, new HashSet<Annotation>(), removedFromGOAnnot, true);
+            dataIO.getFullGOAnnotations(familyId, uplVersion, treeNodeLookup, errorBuf, paintErrBuf, removeSet, modifySet, new HashSet<Annotation>(), removedFromGOAnnot, DataIO.DATA_SOURCE.AGG, null);
             return outputFamilyAnnotationInfoStr(errorBuf, paintErrBuf, familyId, System.currentTimeMillis() - start, WSConstants.SEARCH_TYPE_AGG_FAMILY_ANNOTATION_INFO);
         } catch (Exception e) {
             e.printStackTrace();
@@ -1707,7 +1737,10 @@ public class FamilyUtil {
         HashMap<String, Node> treeNodeLookup = new HashMap<String, Node>();
         long start = System.currentTimeMillis();
         dataIO.getAnnotationNodeLookup(familyId, uplVersion, treeNodeLookup);
+        
+        // This structure is blank
         HashMap<edu.usc.ksom.pm.panther.paintCommon.Annotation, ArrayList<IWith>> annotToPosWithLookup = new HashMap<edu.usc.ksom.pm.panther.paintCommon.Annotation, ArrayList<IWith>>();
+        
         StringBuffer errorBuf = new StringBuffer();
         StringBuffer paintErrBuf = new StringBuffer();
         HashSet<edu.usc.ksom.pm.panther.paintCommon.Annotation> removeSet = new HashSet<edu.usc.ksom.pm.panther.paintCommon.Annotation>();
@@ -1715,7 +1748,7 @@ public class FamilyUtil {
         HashSet<edu.usc.ksom.pm.panther.paintCommon.Annotation> removedFromGOAnnot = new HashSet<edu.usc.ksom.pm.panther.paintCommon.Annotation>();
         try {
             dataIO.addPruned(familyId, uplVersion, treeNodeLookup);            
-            dataIO.getFullGOAnnotations(familyId, uplVersion, treeNodeLookup, annotToPosWithLookup, errorBuf, paintErrBuf, removeSet, modifySet, new HashSet<Annotation>(), removedFromGOAnnot, false);
+            dataIO.getFullGOAnnotations(familyId, uplVersion, treeNodeLookup, errorBuf, paintErrBuf, removeSet, modifySet, new HashSet<Annotation>(), removedFromGOAnnot, DataIO.DATA_SOURCE.STANDARD_PAINT_ANNOT, null);
             return outputFamilyOtherEvdnce(annotToPosWithLookup, familyId, System.currentTimeMillis() - start, WSConstants.SEARCH_TYPE_FAMILY_EVIDENCE_INFO);
         } catch (Exception e) {
             e.printStackTrace();

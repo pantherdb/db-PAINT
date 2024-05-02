@@ -274,7 +274,7 @@ public class FixAnnotUtility {
                     String comment = DATE_FORMATTER.format(date) + " " + userName + " " + MSG_COMMENT;
                     StringBuffer errBuf = new StringBuffer();
                     StringBuffer paintErrBuf = new StringBuffer();
-                    int rtnCode = dataIO.fixBook(updateList.get(i), user, DataIO.CUR_CLASSIFICATION_VERSION_SID, comment, unLockIfNecessary, errBuf, paintErrBuf);
+                    int rtnCode = dataIO.fixAnnotationsAndReplaceObsoleted(updateList.get(i), user, DataIO.CUR_CLASSIFICATION_VERSION_SID, comment, unLockIfNecessary, errBuf, paintErrBuf);
                     if (DataIO.CODE_FIX_BOOK_UPDATE_UNNECESSARY == rtnCode) {
                         msg = "No update was necessary for book " + updateList.get(i) + "\n";
                     }
@@ -526,13 +526,13 @@ public class FixAnnotUtility {
         System.out.println("This utility has 2 options - Fix annotations for all books with PAINT annotations in system or Fix annotations for specified books");
         System.out.println("Specify server name, username, password, directory for storing output information, indicate if GAF file should be output (true or false) and optionally absolute pathname for file containing list of books to be updated.");
         System.out.println("For example http://paintcuration.usc.edu username password C:/note/unix/dir/style false or http://paintcuration.usc.edu username password /home/mydir/save_info_dir true /home/mydir/save_info_dir/book_list_file");
-//        if (args.length < 4) {
-//            System.out.println("At least 4 parameters are required.  See description above");
-//            return;
-//        }
+        if (args.length < 5) {
+            System.out.println("At least 5 parameters are required.  See description above");
+            return;
+        }
         FixAnnotUtility fau = new FixAnnotUtility();
-//        fau.fixBooksInFile("http://localhost:8080", "paint_user", "password", "C:/usc/svn/new_panther/curation/paint/gopaint/branches/TaxConstraint/update_books/update_status", false, "C:/usc/svn/new_panther/curation/paint/gopaint/branches/TaxConstraint/update_books/updateList.txt");
-//        fau.fixBooksInSystem("http://localhost:8080", "paint_user", "password", "C:/usc/svn/new_panther/curation/paint/gopaint/branches/TaxConstraint/update_books/update_status", false);
+//        fau.fixBooksInFile("http://localhost:8080", "paint", "password", "C:/usc/svn/new_panther/curation/paint/gopaint/branches/CarryOverObsoleteAlternateTerms/update_books/update_status", "false", "C:/usc/svn/new_panther/curation/paint/gopaint/branches/CarryOverObsoleteAlternateTerms/update_books/updateList.txt");
+//        fau.fixBooksInSystem("http://localhost:8080", "paint_user", "password", "C:/usc/svn/new_panther/curation/paint/gopaint/branches/CarryOverObsoleteAlternateTerms/update_books/update_status", "false");
         if (args.length == 5) {
             fau.fixBooksInSystem(args[0], args[1], args[2], args[3], args[4]);
         }

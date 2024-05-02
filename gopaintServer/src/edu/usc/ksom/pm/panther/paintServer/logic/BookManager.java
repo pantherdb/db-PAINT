@@ -180,13 +180,13 @@ public class BookManager {
 
         try {
             dataIO.addPruned(familyId, uplVersion, nodeLookup);
-            HashMap<edu.usc.ksom.pm.panther.paintCommon.Annotation, ArrayList<IWith>> annotToPosWithLookup = new HashMap<edu.usc.ksom.pm.panther.paintCommon.Annotation, ArrayList<IWith>>();
+            //HashMap<edu.usc.ksom.pm.panther.paintCommon.Annotation, ArrayList<IWith>> annotToPosWithLookup = new HashMap<edu.usc.ksom.pm.panther.paintCommon.Annotation, ArrayList<IWith>>();
             StringBuffer errorBuf = new StringBuffer();
             StringBuffer paintErrBuf = new StringBuffer();
             HashSet<edu.usc.ksom.pm.panther.paintCommon.Annotation> removeSet = new HashSet<edu.usc.ksom.pm.panther.paintCommon.Annotation>();
             HashSet<String> modifySet = new HashSet<String>();
             HashSet<edu.usc.ksom.pm.panther.paintCommon.Annotation> removedFromGOAnnot = new HashSet<edu.usc.ksom.pm.panther.paintCommon.Annotation>();
-            dataIO.getFullGOAnnotations(familyId, uplVersion, nodeLookup, annotToPosWithLookup, errorBuf, paintErrBuf, removeSet, modifySet, new HashSet<Annotation>(), removedFromGOAnnot, false);
+            dataIO.getFullGOAnnotations(familyId, uplVersion, nodeLookup, errorBuf, paintErrBuf, removeSet, modifySet, new HashSet<Annotation>(), removedFromGOAnnot, DataIO.DATA_SOURCE.STANDARD_PAINT_ANNOT, null);
         } catch (Exception e) {
 
         }

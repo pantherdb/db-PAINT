@@ -1,5 +1,5 @@
 /**
- * Copyright 2023 University Of Southern California
+ * Copyright 2024 University Of Southern California
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -25,8 +25,11 @@ import org.apache.log4j.Logger;
 import com.sri.panther.paintServer.util.ConfigFile;
 import com.sri.panther.paintCommon.util.Utils;
 import com.sri.panther.paintServer.util.ReleaseResources;
+import java.util.Date;
+import java.util.Map.Entry;
+import java.util.concurrent.TimeUnit;
 
-import org.apache.commons.dbcp.BasicDataSource;
+import org.apache.commons.dbcp2.BasicDataSource;
 
 public class DBConnectionPool {
     private static final java.text.SimpleDateFormat DATE_FORMATTER = new java.text.SimpleDateFormat("yyyy.MM.dd G 'at' HH:mm:ss z");
@@ -40,9 +43,11 @@ public class DBConnectionPool {
     private static final String DRIVER_CLASS_NAME = "org.postgresql.Driver";
     private static final String QUERY_VALIDATION = "select 1 from dual";
     private static int TIMEOUT_ABANDONED = 300;
+    private static final long TIME_BETWEEN_EVICTION_RUN_IN_MILLIS = TimeUnit.MINUTES.toMillis(5);       //Check idle connections every 5 minutes    
 
     private static Hashtable<String, BasicDataSource> connectionLookup = new Hashtable<String, BasicDataSource>();
     private static DBConnectionPool instance;
+    private static boolean debug = false;
 
     private DBConnectionPool() {
 
@@ -105,12 +110,16 @@ public class DBConnectionPool {
         int poolMax
                 = Integer.parseInt(ConfigFile.getProperty(dbsid + "." + DBConnectionPool.KEY_DB_CONPOOL_MAXSIZE));
         dataSource.setMinIdle(poolMin);
-        dataSource.setMaxActive(poolMax);
+        dataSource.setMaxTotal(poolMax);
         dataSource.setValidationQuery(QUERY_VALIDATION);
         dataSource.setTestOnBorrow(true);
-        dataSource.setRemoveAbandoned(true);
+        dataSource.setRemoveAbandonedOnBorrow(true);
         dataSource.setRemoveAbandonedTimeout(TIMEOUT_ABANDONED);
+        dataSource.setAbandonedUsageTracking(true);
         dataSource.setLogAbandoned(true);
+        dataSource.setTestWhileIdle(true);
+        dataSource.setTimeBetweenEvictionRunsMillis(TIME_BETWEEN_EVICTION_RUN_IN_MILLIS);
+        dataSource.setLifo(false);          //Force system to use idle connections so that they are validated always
         connectionLookup.put(dbsid, dataSource);
         System.out.println("Finished initializing database connection pool for " + dbsid);
     }
@@ -121,13 +130,70 @@ public class DBConnectionPool {
      * @returns a logical connection to the database
      * @exception SQLException If a SQL exception occurs
      */
+    public synchronized Connection getConnection(String dbsid) throws SQLException {
+        if (true == debug) {
+            System.out.println(DATE_FORMATTER.format(new java.util.Date(System.currentTimeMillis())) + " Going to request connection for " + dbsid);
+        }
+        if (null == dbsid) {
+            System.out.println("Requesting connection for null dbsid");
+            Exception e = new Exception();
+            e.printStackTrace();
+            return null;
+        }
+        Connection con = null;
+        BasicDataSource dataSource = null;
+        try {
+            // get the connection from the connection pool.
+            dataSource = (BasicDataSource) connectionLookup.get(dbsid);
+            if (null == dataSource) {
+                System.out.println(DATE_FORMATTER.format(new java.util.Date(System.currentTimeMillis())) + " Datasource for " +  dbsid + " is null");
+                return null;
+            }
+            if (true == debug) {
+                System.out.println(DATE_FORMATTER.format(new java.util.Date(System.currentTimeMillis())) + " Lookup table contains entries. Going to request connection");
+            }
+            con = dataSource.getConnection();
+            if (null == con) {
+                System.out.println(DATE_FORMATTER.format(new java.util.Date(System.currentTimeMillis())) + " Connection pool has returned null connection");
+            }
+            else {
+                if (true == debug) {
+                    System.out.println(DATE_FORMATTER.format(new java.util.Date(System.currentTimeMillis())) + " Non-null Connection has been returned from pool");
+                }
+            }
+        } catch (SQLException e) {
+            logger.error("SQLException: " + e.getMessage());
+            System.out.println(DATE_FORMATTER.format(new java.util.Date(System.currentTimeMillis())) + " SQLException: " + e.getMessage()); 
+            e.printStackTrace();
+        }
+        finally {
+            if (null == con) {
+                System.out.println(DATE_FORMATTER.format(new java.util.Date(System.currentTimeMillis())) + " Attempt to re-establish connection.  First close connection pool");
+                closeConnectionPool(dbsid);
+                System.out.println(DATE_FORMATTER.format(new java.util.Date(System.currentTimeMillis())) + " Creating connection pool again");            
+                createConnectionPool(dbsid);
+                con = dataSource.getConnection();
+                if (null == con) {
+                    System.out.println(DATE_FORMATTER.format(new java.util.Date(System.currentTimeMillis())) + " Connection is null after re-establishing connection pool");
+                }
+            }
+        }
+        if (null != dataSource) {
+            if (true == debug) {
+                System.out.println(DATE_FORMATTER.format(new java.util.Date(System.currentTimeMillis())) + " After connection allocation, there are " + dataSource.getNumActive() + " connections that are active");
+            }
+        } else {
+            System.out.println("Unable to get count of active connections\n");
+        }
+        return con;
+    }    
     /**
      * Gets a logical connection to the database from the pool.
      *
      * @return a logical connection to the database
      * @exception SQLException If a SQL exception occurs
      */
-    public Connection getConnection(String dbsid) throws SQLException {
+    public Connection getConnectionOrig(String dbsid) throws SQLException {
         if (null == dbsid) {
             return null;
         }
@@ -140,31 +206,35 @@ public class DBConnectionPool {
                 return null;
             }
             //System.out.println(DATE_FORMATTER.format(new java.util.Date(System.currentTimeMillis())) + " Before allocation, there are " + dataSource.getNumActive() + " connections that are active caller class name is " + getCallerClassName().toString());
+            System.out.println(new Date() + " Going to retrieve connection from connection pool");
             con = dataSource.getConnection();
+            System.out.println(new Date() + " Connection pool has returned a connection");            
             if (null == con) {
+            System.out.println(new Date() + " Connection pool has returned a null connection"); 
                 return con;
             }
+            System.out.println(new Date() + " Connection pool has returned a non-null connection"); 
         } catch (SQLException e) {
             logger.error("SQLException: " + e.getMessage());
             ReleaseResources.releaseDBResources(null, null, con);
             System.out.println("Attempt to re-establish connection.  First close connection pool");
-            closeConnectionPool(dataSource);
+            closeConnectionPool(dbsid);
             System.out.println("Creating connection pool again");            
             createConnectionPool(dbsid);
             con = dataSource.getConnection();
         }
         if (null != dataSource) {
-            //System.out.println(DATE_FORMATTER.format(new java.util.Date(System.currentTimeMillis())) + " After allocation, there are " + dataSource.getNumActive() + " connections that are active");
+            System.out.println(DATE_FORMATTER.format(new java.util.Date(System.currentTimeMillis())) + " After allocation, there are " + dataSource.getNumActive() + " connections that are active");
         } else {
-            System.out.println("Unable to get count of active connections\n");
+            System.out.println("Unable to get count of active connections");
         }
         return con;
     }
     
     public static void printConnectionStatus() {
-//        for (Entry <String, BasicDataSource> conToDataSrc : connectionLookup.entrySet()) {
-//            System.out.println(DATE_FORMATTER.format(new java.util.Date(System.currentTimeMillis())) + " " + conToDataSrc.getKey() + " has " + conToDataSrc.getValue().getNumActive() + " active connections.");
-//        }
+        for (Entry <String, BasicDataSource> conToDataSrc : connectionLookup.entrySet()) {
+            System.out.println(DATE_FORMATTER.format(new java.util.Date(System.currentTimeMillis())) + " " + conToDataSrc.getKey() + " has " + conToDataSrc.getValue().getNumActive() + " active connections.");
+        }
     }
     
 
@@ -180,7 +250,8 @@ public class DBConnectionPool {
         return sb;
     }
     
-    public static void closeConnectionPool(BasicDataSource dataSource) {
+    public static void closeConnectionPool(String dbSid) {
+        BasicDataSource dataSource = (BasicDataSource) connectionLookup.get(dbSid);
         if (null == dataSource) {
             return;
         }

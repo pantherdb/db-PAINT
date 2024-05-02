@@ -1,5 +1,5 @@
 /**
- *  Copyright 2022 University Of Southern California
+ *  Copyright 2024 University Of Southern California
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -16,6 +16,14 @@
 
 package org.paint.datamodel;
 
+import com.sri.panther.paintCommon.Constant;
+import edu.usc.ksom.pm.panther.paintCommon.Domain;
+import edu.usc.ksom.pm.panther.paintCommon.GOTerm;
+import edu.usc.ksom.pm.panther.paintCommon.GOTermHelper;
+import edu.usc.ksom.pm.panther.paintCommon.KeyResidue;
+import edu.usc.ksom.pm.panther.paintCommon.Node;
+import edu.usc.ksom.pm.panther.paintCommon.NodeStaticInfo;
+import edu.usc.ksom.pm.panther.paintCommon.NodeVariableInfo;
 import java.awt.BasicStroke;
 import java.awt.Color;
 import java.awt.Font;
@@ -28,36 +36,27 @@ import java.awt.Stroke;
 import java.awt.font.TextAttribute;
 import java.text.AttributedString;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.List;
-
 import org.apache.log4j.Logger;
 import org.bbop.swing.HyperlinkLabel;
 import org.paint.config.Preferences;
 import org.paint.go.GOConstants;
 import org.paint.go.GO_Util;
 import org.paint.gui.event.TermHyperlinkListener;
+import org.paint.gui.familytree.TreeModel;
+import org.paint.gui.familytree.TreeModel.TreeColorSchema;
 import org.paint.gui.table.GeneTableModel;
 import org.paint.gui.table.OrthoCell;
 import org.paint.main.PaintManager;
+import org.paint.util.AnnotationUtil;
 import org.paint.util.DuplicationColor;
 import org.paint.util.HTMLUtil;
+import org.paint.util.HorizontalTransferColor;
 import org.paint.util.RenderUtil;
-
-import com.sri.panther.paintCommon.Constant;
-import edu.usc.ksom.pm.panther.paintCommon.Domain;
-import edu.usc.ksom.pm.panther.paintCommon.GOTerm;
-import edu.usc.ksom.pm.panther.paintCommon.GOTermHelper;
-import edu.usc.ksom.pm.panther.paintCommon.KeyResidue;
-import edu.usc.ksom.pm.panther.paintCommon.Node;
-import edu.usc.ksom.pm.panther.paintCommon.NodeStaticInfo;
-import edu.usc.ksom.pm.panther.paintCommon.NodeVariableInfo;
-import java.util.HashMap;
-import org.paint.gui.familytree.TreeModel;
-import org.paint.gui.familytree.TreeModel.TreeColorSchema;
 import org.paint.util.SpeciesClsColor;
-import org.paint.util.AnnotationUtil;
 
 public class GeneNode {
 
@@ -135,6 +134,7 @@ public class GeneNode {
 
     private int depthInTree;
     private int dupColorIndex;
+    private int horizontalColorIndex;
     private String speciesClassification;
 
     private double sequenceWt = 0;
@@ -367,7 +367,8 @@ public class GeneNode {
                     int[] yCoords = {
                         p.y, p.y - GLYPH_RADIUS - 1, p.y, p.y + GLYPH_RADIUS + 1
                     };
-                    g.setColor(fillColor);
+                    // For Horizontal transfer, focus attention to node by using a different fill color instead of the default fill colorr
+                    g.setColor(Color.WHITE);//g.setColor(fillColor);
                     g.fillPolygon(xCoords, yCoords, 4);
                     g.setColor(drawColor);
                     g.drawPolygon(xCoords, yCoords, 4);
@@ -426,8 +427,11 @@ public class GeneNode {
                 if (TreeColorSchema.DUPLICATION == tcs) {
                     g.setColor(DuplicationColor.inst().getDupColor(getDupColorIndex()));
                 }
-                else {
+                else if (TreeColorSchema.SPECIES_CLS == tcs) {
                     g.setColor(SpeciesClsColor.getInst().getColorForSpecies(speciesClassification));
+                }
+                else {
+                    g.setColor(HorizontalTransferColor.getInstance().getHorizontalTransferColor(getHorizontalColorIndex()));
                 }
             }
             g.fillRect(x, p.y - GLYPH_RADIUS, viewport.width, GLYPH_DIAMETER * 2);
@@ -1243,6 +1247,15 @@ public class GeneNode {
         this.dupColorIndex = sfColorIndex;
     }
 
+
+    public int getHorizontalColorIndex() {
+        return horizontalColorIndex;
+    }
+
+    public void setHorizontalColorIndex(int horizontalColorIndex) {
+        this.horizontalColorIndex = horizontalColorIndex;
+    }    
+    
     public String getSpeciesClassification() {
         return speciesClassification;
     }

@@ -1,5 +1,5 @@
 /**
- *  Copyright 2021 University Of Southern California
+ *  Copyright 2023 University Of Southern California
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -15,13 +15,16 @@
  */
 package edu.usc.ksom.pm.panther.paintCommon;
 
+import com.sri.panther.paintCommon.Constant;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Set;
+import java.util.regex.Pattern;
 
 public class AnnotationHelper implements Serializable {
 
@@ -916,6 +919,34 @@ public class AnnotationHelper implements Serializable {
     public static String generateIBAMsg(String ibaTerm, String publicId, String species, String term) {
         return IBA_MSG_ANNOT_NEGATES_EXP_TO_TERM_PART_1 + ibaTerm + IBA_MSG_ANNOT_NEGATES_EXP_TO_TERM_PART_2 + publicId + IBA_MSG_ANNOT_NEGATES_EXP_TO_TERM_PART_3 + species + IBA_MSG_ANNOT_NEGATES_EXP_TO_TERM_PART_4 + term + IBA_MSG_ANNOT_NEGATES_EXP_TO_TERM_PART_5;
     }
+    
+    public static boolean IBDPossibleForNode(String term, Node node, TaxonomyHelper taxonomyHelper, GOTermHelper goTermHelper) {
+        HashSet<String> errorMsgSet = new HashSet<String>();
+        ArrayList<Node> nodeList = Node.getAllNonPrunedLeaves(node);
+        for (Node leaf : nodeList) {
+            NodeVariableInfo nvi = leaf.getVariableInfo();
+            if (null == nvi) {
+                continue;
+            }
+
+            ArrayList<Annotation> leafAnnots = nvi.getGoAnnotationList();
+            if (null == leafAnnots) {
+                continue;
+            }
+            for (Annotation leafAnnot : leafAnnots) {
+                HashSet<Annotation> possibleWiths = new HashSet<Annotation>();
+                String errorMsg = canNodeBeAnnotatedWithIBD(term, leafAnnot.getQualifierSet(), node, possibleWiths, taxonomyHelper, goTermHelper, false);
+                if (null != errorMsg) {
+                    errorMsgSet.add(errorMsg);
+                    continue;
+                }
+                if (false == possibleWiths.isEmpty()) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
 
     public static AnnotQualifierGroup possibleToAnnotateWithIBD(String term, Node node, StringBuffer errorMsgBuf, TaxonomyHelper taxonomyHelper, GOTermHelper goTermHelper) {
         HashSet<Annotation> expWiths = new HashSet<Annotation>();
@@ -1785,6 +1816,45 @@ public class AnnotationHelper implements Serializable {
         AnnotationDetail ad = a.getAnnotationDetail();
         Node n = ad.getAnnotatedNode();
         return taxonomyHelper.termAndQualifierValidForSpeciesCheckTaxonomy(a.getGoTerm(), n.getStaticInfo().getCalculatedSpecies(), ad.getQualifiers());
+    }
+    
+    public static boolean ignoreAnnot(Annotation a, Node n, Hashtable<Organism, HashSet<String>> nonDisplayedAnnotMatrixOrgToEvdnceLookup) {
+        if (null == nonDisplayedAnnotMatrixOrgToEvdnceLookup || 0 == nonDisplayedAnnotMatrixOrgToEvdnceLookup.size()) {
+            return false;
+        }
+        AnnotationDetail ad = a.getAnnotationDetail();
+        HashSet<WithEvidence> annotWithSet = ad.getWithEvidenceAnnotSet();
+        HashSet<WithEvidence> annotNodeSet = ad.getWithEvidenceNodeSet();
+        HashSet<WithEvidence> annotDBRefSet = ad.getWithEvidenceDBRefSet();
+        if (null != annotWithSet || null != annotNodeSet || (null == annotDBRefSet ||
+                                                            (null != annotDBRefSet && 0 == annotDBRefSet.size()))) {
+            return false;
+        }
+
+        String longGeneName = n.getStaticInfo().getLongGeneName();
+        if (null == longGeneName) {
+            return false;
+        }
+        String parts[] = longGeneName.split(Pattern.quote(Constant.STR_PIPE));
+                    int length = parts.length;
+                    if (length < 2) {
+                        return false;
+                    }
+        String shortOrg = parts[0];
+        for (Organism o: nonDisplayedAnnotMatrixOrgToEvdnceLookup.keySet()) {
+            if (false == shortOrg.equals(o.getShortName())) {
+                continue;
+            }
+            HashSet<String> nonDisplayCodeSet = nonDisplayedAnnotMatrixOrgToEvdnceLookup.get(o);
+            for (WithEvidence we: annotDBRefSet) {
+                String curCode = we.getEvidenceCode();
+                if (false == nonDisplayCodeSet.contains(curCode)) {
+                    return false;
+                }
+            }
+            return true;
+        }
+        return false;
     }
 }
 

@@ -1,5 +1,5 @@
 /**
- * Copyright 2022 University Of Southern California
+ * Copyright 2024 University Of Southern California
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -30,6 +30,7 @@ import edu.usc.ksom.pm.panther.paintCommon.Evidence;
 import edu.usc.ksom.pm.panther.paintCommon.GOTermHelper;
 import edu.usc.ksom.pm.panther.paintCommon.Node;
 import edu.usc.ksom.pm.panther.paintCommon.NodeVariableInfo;
+import edu.usc.ksom.pm.panther.paintCommon.Organism;
 import edu.usc.ksom.pm.panther.paintCommon.SaveBookInfo;
 import edu.usc.ksom.pm.panther.paintCommon.VersionContainer;
 import java.io.File;
@@ -37,7 +38,6 @@ import java.io.FileOutputStream;
 import java.io.ObjectOutputStream;
 import java.nio.file.FileSystems;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -114,6 +114,8 @@ public class PaintManager {
     private GOTermHelper goTermHelper;
     private TaxonomyHelper taxonHelper;
     private HashSet<String> curatableBookSet;
+    private ArrayList<Organism> allOrgList;
+    private Hashtable<Organism, HashSet<String>> nonDisplayedAnnotMatrixOrgToEvdnceLookup; 
     private User user;
     private Vector userInfo;
     private HashMap<GeneNode, HashSet<Annotation>> removedAnnotLookup = new HashMap<GeneNode, HashSet<Annotation>>();
@@ -798,11 +800,12 @@ public class PaintManager {
         return annot_matrix;
     }
 
-    public void setupFixedInfo(GOTermHelper goTermHelper, TaxonomyHelper taxonHelper, VersionContainer vc, HashSet<String> curatableBookSet) {
+    public void setupFixedInfo(GOTermHelper goTermHelper, TaxonomyHelper taxonHelper, VersionContainer vc, HashSet<String> curatableBookSet, ArrayList<Organism> allOrgList) {
         this.goTermHelper = goTermHelper;
         this.taxonHelper = taxonHelper;
         this.versinContainer = vc;
         this.curatableBookSet = curatableBookSet;
+        this.allOrgList = allOrgList;
     }
    
     public VersionContainer getVersionContainer() {
@@ -820,6 +823,18 @@ public class PaintManager {
     public HashSet<String> getCuratableBookSet() {
         return curatableBookSet;
     }
+    
+    public ArrayList<Organism> getAllOrgList() {
+        return new ArrayList<Organism>(allOrgList);
+    }
+    
+    public Hashtable<Organism, HashSet<String>> getnonDisplayedAnnotMatrixOrgToEvdnceLookup() {
+        return nonDisplayedAnnotMatrixOrgToEvdnceLookup;
+    }
+    
+    public void setnonDisplayedAnnotMatrixOrgToEvdnceLookup(Hashtable<Organism, HashSet<String>> nonDisplayedAnnotMatrixOrgToEvdnceLookup) {
+        this.nonDisplayedAnnotMatrixOrgToEvdnceLookup = nonDisplayedAnnotMatrixOrgToEvdnceLookup;
+    } 
 
     public void setUser(User user) {
         this.user = user;

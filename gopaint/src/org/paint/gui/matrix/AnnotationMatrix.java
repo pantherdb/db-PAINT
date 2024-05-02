@@ -1,5 +1,5 @@
 /**
- *  Copyright 2021 University Of Southern California
+ *  Copyright 2023 University Of Southern California
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -43,6 +43,8 @@ import org.paint.datamodel.GeneNode;
 import org.paint.gui.AspectSelector;
 import org.paint.gui.event.AnnotationChangeEvent;
 import org.paint.gui.event.AnnotationChangeListener;
+import org.paint.gui.event.AnnotationDisplayEvent;
+import org.paint.gui.event.AnnotationDisplayListener;
 import org.paint.gui.event.AspectChangeEvent;
 import org.paint.gui.event.AspectChangeListener;
 import org.paint.gui.event.EventManager;
@@ -60,7 +62,8 @@ public class AnnotationMatrix  extends JTable implements
         MouseMotionListener,
         GeneSelectListener,
         NodeReorderListener,         
-        AspectChangeListener{
+        AspectChangeListener,
+        AnnotationDisplayListener{
     
     private AnnotationMatrixHeaderRenderer header_renderer;
     private AnnotationMatrixCellRenderer matrix_renderer;
@@ -93,6 +96,7 @@ public class AnnotationMatrix  extends JTable implements
 //		manager.registerTermListener(this);
 		manager.registerAspectChangeListener(this);
 		manager.registerGeneAnnotationChangeListener(this);
+                manager.registerAnnotationDisplayListener(this);
 
 		setFont(Preferences.inst().getFont());
 
@@ -555,5 +559,15 @@ public class AnnotationMatrix  extends JTable implements
         }
         return PaintManager.inst().getGeneByPTNId(lastCommon.getStaticInfo().getPublicId());
     }    
+
+
+    public void handleAnnotationDisplayEvent(AnnotationDisplayEvent event) {
+        PaintManager pm = PaintManager.inst();
+        mi = MatrixBuilder.getMatrixInfo(pm.getTree().getTreeModel());
+        if (null == mi) {
+            return;
+        }
+        setModels(pm.getTree().getTerminusNodes(), mi);
+    }
     
 }
