@@ -1,3 +1,0 @@
-        <copy file="${lib.dir}/batik-parser.jar" todir="${paintApp.dir}" overwrite="true"/>
-        <copy file="${lib.dir}/batik-script.jar" todir="${paintApp.dir}" overwrite="true"/> 
-        <copy file="${lib.dir}/batik-svg-dom.jar" todir="${paintApp.dir}" overwrite="true"/>
