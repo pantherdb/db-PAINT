@@ -1,5 +1,5 @@
 /**
- *  Copyright 2025 University Of Southern California
+ *  Copyright 2022 University Of Southern California
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -19,7 +19,6 @@ import com.sri.panther.paintCommon.Book;
 import com.sri.panther.paintCommon.Constant;
 import com.sri.panther.paintCommon.TransferInfo;
 import com.sri.panther.paintCommon.User;
-import com.sri.panther.paintCommon.util.Utils;
 import edu.usc.ksom.pm.panther.paintCommon.DataTransferObj;
 
 import java.awt.BorderLayout;
@@ -78,7 +77,6 @@ import org.paint.util.HTMLUtil;
 public class ManageBooksDlg extends JDialog {
 
     Frame frame;
-    private PaintManager pm;
     JTabbedPane mainPanel;
     JPanel SearchLockPanel;
     JPanel myBooksPanel;
@@ -181,7 +179,6 @@ public class ManageBooksDlg extends JDialog {
     int defaultSortColSearchTbl = 8;
     int nonSortCol = 9;
     int COL_INDEX_COMMENT = 6;
-    public static final int COL_INDEX_ORG = Utils.getIndex(COLUMN_NAMES_SEARCH, COLUMN_NAME_ORG);    
     private static final String[] COLUMN_NAMES_MY_BOOKS =     { COLUMN_NAME_BOOK_ID, COLUMN_NAME_NAME, COLUMN_NAME_CURATION_STATUS, COLUMN_NAME_OPEN, COLUMN_NAME_UNLOCK};
     private static final Class[] COLUMN_TYPES_MY_BOOKS = {String.class, String.class, String.class, JButton.class, Boolean.class};
     
@@ -189,8 +186,6 @@ public class ManageBooksDlg extends JDialog {
     private static final String JLABEL_MY_BOOKS_SELECT_BOOKS_TO_UNLOCK = "Select books to unlock";
     
     public static final String[] ORG_LIST_SPECIAL = {"HUMAN", "MOUSE", "DROME", "CAEEL", "YEAST", "ARATH"};
-    public static final String PLANT_GENOME = "Plant";
-    public static final String BACTERIAL_GENOME = "Bacteria";
     
     boolean DEBUG = true;
     protected String servletUrl;
@@ -205,7 +200,6 @@ public class ManageBooksDlg extends JDialog {
     
     public static final String URL_LINK_PREFIX_PANTREE_BOOK_COMMENT = "http://pantree.org/tree/familyCuratorNotes.jsp?accession=";
     
-    
 
     public ManageBooksDlg(Frame frame, String servletUrl, Vector userInfo) {
         super(frame, true);
@@ -213,7 +207,6 @@ public class ManageBooksDlg extends JDialog {
         this.frame = frame;
         this.servletUrl = servletUrl;
         this.userInfo = userInfo;
-        this.pm = PaintManager.inst();
         //this.dbClsId = dbClsId;
         initializePanel();
     }
@@ -646,14 +639,6 @@ public class ManageBooksDlg extends JDialog {
                         tip = HTML_START + CLICK_MSG + tip + HTML_END;
                     }
                 }
-                else if (realColumnIndex == COL_INDEX_ORG) {
-                    BookTableModel model = (BookTableModel) searchBooksTable.getModel();
-                    tip = (String)model.getValueAt(row, realColumnIndex);
-                    if (null != tip) {
-                        tip = tip.replaceAll(LINE_BREAK, HTML_LINEBREAK);
-                        tip = HTML_START + tip + HTML_END;
-                    }
-                }
                 if (null == tip) {
                     return Constant.STR_EMPTY;
                 }
@@ -949,32 +934,6 @@ public class ManageBooksDlg extends JDialog {
                     return Constant.STR_EMPTY;
                 } 
                 StringBuffer sb = new StringBuffer();
-                boolean containsBacteria = false;
-                boolean containsPlant = false;
-                for (String bacteria: pm.getBacterialGenomes()) {
-                    if (orgSet.contains(bacteria)) {
-                        containsBacteria = true;
-                        break;
-                    }
-                }
-                if (true == containsBacteria) {
-                    sb.append(BACTERIAL_GENOME);
-                }
-                
-                for (String plant: pm.getPlantGenomes()) {
-                    if (orgSet.contains(plant)) {
-                        containsPlant = true;
-                        break;
-                    }
-                }
-                if (true == containsPlant) {
-                    if (0 != sb.length()) {
-                        sb.append(Constant.STR_COMMA);
-                        sb.append(Constant.STR_SPACE);
-                    }
-                    sb.append(PLANT_GENOME);
-                }
-                
                 for (String org: ORG_LIST_SPECIAL) {
                     if (true == orgSet.contains(org)) {
                         if (0 != sb.length()) {

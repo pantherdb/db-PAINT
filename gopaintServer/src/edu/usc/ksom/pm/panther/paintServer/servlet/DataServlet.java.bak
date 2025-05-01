@@ -1,5 +1,5 @@
 /**
- * Copyright 2025 University Of Southern California
+ * Copyright 2023 University Of Southern California
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -51,7 +51,6 @@ import edu.usc.ksom.pm.panther.paintCommon.VersionContainer;
 import edu.usc.ksom.pm.panther.paintCommon.VersionInfo;
 import edu.usc.ksom.pm.panther.paintServer.logic.BookManager;
 import edu.usc.ksom.pm.panther.paintServer.logic.DataAccessManager;
-import edu.usc.ksom.pm.panther.paintServer.logic.SpeciesTree;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
@@ -93,8 +92,6 @@ public class DataServlet extends HttpServlet {
     public static final String ACTION_GET_VERSIONS = "versions";
     
     public static final String REQUEST_ALL_ORGANISMS = "allOrganisms";
-    public static final String REQUEST_ALL_GENOMES_BACTERIA = "allGenomesBacteria";    
-    public static final String REQUEST_ALL_GENOMES_PLANT = "allGenomesPlant";    
     
     public static final String REQUEST_LOCK_BOOKS = "LockBooks";
     public static final String REQUEST_UNLOCK_BOOKS = "UnlockBooks";
@@ -266,16 +263,6 @@ public class DataServlet extends HttpServlet {
             allOrganisms(request, response);
             return;
         }
-        
-        if (actionParam.compareTo(REQUEST_ALL_GENOMES_BACTERIA) == 0) {
-            getAllBacteriaGenomes(request, response);
-            return;
-        }
-        
-        if (actionParam.compareTo(REQUEST_ALL_GENOMES_PLANT) == 0) {
-            getAllPlantGenomes(request, response);
-            return;
-        }        
     }
     
     private void getTaxonomyHelper(HttpServletRequest request, HttpServletResponse response) {
@@ -1655,80 +1642,6 @@ public class DataServlet extends HttpServlet {
             System.out.println("Finished with stream and closed");
 
             ArrayList<Organism> orgList = OrganismManager.getInstance().getOrgList();
-            serverOut.setObj(orgList);
-            sendGZIP(response, serverOut);
-        }
-        catch(Exception e) {
-            
-        }    
-    }
-    
-    private void getAllBacteriaGenomes(HttpServletRequest request, HttpServletResponse response) {
-        System.out.println("Going to get Bacterial genomes");
-        response.setContentType("java/object");
-        ObjectInputStream in = null;
-
-        try {
-            System.out.println("Before opening stream");
-            // in = new ObjectInputStream(request.getInputStream());
-            in = new ObjectInputStream(new GZIPInputStream(request.getInputStream()));
-            DataTransferObj clientRequest = (DataTransferObj) in.readObject();
-            DataTransferObj serverOut = new DataTransferObj();
-            VersionContainer vc = clientRequest.getVc();
-            if (null == vc) {
-                serverOut.setMsg(new StringBuffer(MSG_ERROR_CANNOT_VERIFY_VERSION_INFO));
-                sendGZIP(response, serverOut);
-                return;
-            }
-
-            String versionComp = versionContainer.compareForServerOps(vc);
-            if (null != versionComp) {
-                serverOut.setMsg(new StringBuffer(versionComp));
-                sendGZIP(response, serverOut);
-                return;
-            }            
-
-            in.close();
-            System.out.println("Finished with stream and closed");
-
-            ArrayList<String> orgList = SpeciesTree.getInstance().getSpeciesListBacteria();
-            serverOut.setObj(orgList);
-            sendGZIP(response, serverOut);
-        }
-        catch(Exception e) {
-            
-        }    
-    }    
-    
-    private void getAllPlantGenomes(HttpServletRequest request, HttpServletResponse response) {
-        System.out.println("Going to get Plant genomes");
-        response.setContentType("java/object");
-        ObjectInputStream in = null;
-
-        try {
-            System.out.println("Before opening stream");
-            // in = new ObjectInputStream(request.getInputStream());
-            in = new ObjectInputStream(new GZIPInputStream(request.getInputStream()));
-            DataTransferObj clientRequest = (DataTransferObj) in.readObject();
-            DataTransferObj serverOut = new DataTransferObj();
-            VersionContainer vc = clientRequest.getVc();
-            if (null == vc) {
-                serverOut.setMsg(new StringBuffer(MSG_ERROR_CANNOT_VERIFY_VERSION_INFO));
-                sendGZIP(response, serverOut);
-                return;
-            }
-
-            String versionComp = versionContainer.compareForServerOps(vc);
-            if (null != versionComp) {
-                serverOut.setMsg(new StringBuffer(versionComp));
-                sendGZIP(response, serverOut);
-                return;
-            }            
-
-            in.close();
-            System.out.println("Finished with stream and closed");
-
-            ArrayList<String> orgList = SpeciesTree.getInstance().getSpeciesListPlant();
             serverOut.setObj(orgList);
             sendGZIP(response, serverOut);
         }

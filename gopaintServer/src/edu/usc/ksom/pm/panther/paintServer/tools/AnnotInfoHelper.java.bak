@@ -1,5 +1,5 @@
 /**
- *  Copyright 2024 University Of Southern California
+ *  Copyright 2023 University Of Southern California
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -27,10 +27,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map.Entry;
@@ -78,8 +75,6 @@ public class AnnotInfoHelper {
 
     public static final String DIR_INFO = "/info";    
     public static final String FILE_SEPARATOR = "/";
-    public static final String FILE_NAME_SUMMARY = "summary.txt";
-    public static final ArrayList<String> SEPARATOR_INFO = new ArrayList<String>(Arrays.asList("\n\n\n\n"));
     
     public static final String STR_EMPTY = "";
     public static final String PATTERN_NON_ALPHANUMERIC = "[^a-zA-Z0-9]";
@@ -121,20 +116,7 @@ public class AnnotInfoHelper {
     }
     
     public static void outputInfo(String bookDir) {
-
         try {
-        Path tmpSummaryFilePath = Paths.get(bookDir + DIR_INFO + FILE_SEPARATOR + FILE_NAME_SUMMARY);
-        Path summaryFilePath = tmpSummaryFilePath;
-        if (false == Files.exists(tmpSummaryFilePath)) {
-            if (false == Files.exists(tmpSummaryFilePath.getParent())) {
-                Files.createDirectories(tmpSummaryFilePath.getParent());
-            }
-            summaryFilePath = Files.createFile(tmpSummaryFilePath);
-        } else {
-            ArrayList<String> fileInfo = new ArrayList<String>();
-            Files.write(summaryFilePath, fileInfo, StandardCharsets.UTF_8);
-        }
-        
             File folder = new File(bookDir);
 
             File[] files = folder.listFiles();
@@ -163,12 +145,11 @@ public class AnnotInfoHelper {
                 
             }
             int counter = 1;
-            ArrayList<String> keyList = new ArrayList<String>(patternMsgLookup.keySet());
-            Collections.sort(keyList);
-            for (String key: keyList) {
-                  String fileName = key.replaceAll(PATTERN_NON_ALPHANUMERIC, STR_UNDERSCORE);
-                if (fileName.length() > 75) {
-                    fileName = fileName.substring(0,75);
+            for (Entry<String, ArrayList<String>> msgEntry : patternMsgLookup.entrySet()) {
+                String key = msgEntry.getKey();
+                String fileName = key.replaceAll(PATTERN_NON_ALPHANUMERIC, STR_UNDERSCORE);
+                if (fileName.length() > 50) {
+                    fileName = fileName.substring(0,50);
                 }
                 String filePrefix = bookDir + DIR_INFO + FILE_SEPARATOR + fileName + counter;
                 Path tmpFileStatusPath = Paths.get(filePrefix + MSG_EXT);
@@ -182,9 +163,7 @@ public class AnnotInfoHelper {
                     ArrayList<String> fileInfo = new ArrayList<String>();
                     Files.write(statusFilePath, fileInfo, StandardCharsets.UTF_8);
                 }
-                Files.write(statusFilePath, patternMsgLookup.get(key), StandardCharsets.UTF_8);
-                Files.write(summaryFilePath, patternMsgLookup.get(key), StandardCharsets.UTF_8, StandardOpenOption.APPEND);
-                Files.write(summaryFilePath, SEPARATOR_INFO, StandardCharsets.UTF_8, StandardOpenOption.APPEND);
+                Files.write(statusFilePath, msgEntry.getValue(), StandardCharsets.UTF_8);
                 counter++;
             }
         } catch (Exception ie) {

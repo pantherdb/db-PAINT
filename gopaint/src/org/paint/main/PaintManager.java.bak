@@ -1,5 +1,5 @@
 /**
- * Copyright 2025 University Of Southern California
+ * Copyright 2024 University Of Southern California
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -115,8 +115,6 @@ public class PaintManager {
     private TaxonomyHelper taxonHelper;
     private HashSet<String> curatableBookSet;
     private ArrayList<Organism> allOrgList;
-    private ArrayList<String> bacterialGenomes;
-    private ArrayList<String> plantGenomes;    
     private Hashtable<Organism, HashSet<String>> nonDisplayedAnnotMatrixOrgToEvdnceLookup; 
     private User user;
     private Vector userInfo;
@@ -802,15 +800,12 @@ public class PaintManager {
         return annot_matrix;
     }
 
-    public void setupFixedInfo(GOTermHelper goTermHelper, TaxonomyHelper taxonHelper, VersionContainer vc, HashSet<String> curatableBookSet,
-                               ArrayList<Organism> allOrgList, ArrayList<String> bacterialGenomes, ArrayList<String> plantGenomes) {
+    public void setupFixedInfo(GOTermHelper goTermHelper, TaxonomyHelper taxonHelper, VersionContainer vc, HashSet<String> curatableBookSet, ArrayList<Organism> allOrgList) {
         this.goTermHelper = goTermHelper;
         this.taxonHelper = taxonHelper;
         this.versinContainer = vc;
         this.curatableBookSet = curatableBookSet;
         this.allOrgList = allOrgList;
-        this.bacterialGenomes = bacterialGenomes;
-        this.plantGenomes = plantGenomes;
     }
    
     public VersionContainer getVersionContainer() {
@@ -831,14 +826,6 @@ public class PaintManager {
     
     public ArrayList<Organism> getAllOrgList() {
         return new ArrayList<Organism>(allOrgList);
-    }
-
-    public ArrayList<String> getBacterialGenomes() {
-        return bacterialGenomes;
-    }
-
-    public ArrayList<String> getPlantGenomes() {
-        return plantGenomes;
     }
     
     public Hashtable<Organism, HashSet<String>> getnonDisplayedAnnotMatrixOrgToEvdnceLookup() {

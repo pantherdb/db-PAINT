@@ -1,5 +1,5 @@
 /**
- * Copyright 2025 University Of Southern California
+ * Copyright 2023 University Of Southern California
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -121,7 +121,6 @@ public class PAINT {
                 
                 HashSet<String> bookSet = (HashSet<String>)serverObj.getObj();
                 
-                // All genomes
                 dto = new DataTransferObj();
                 dto.setVc(vc);
                 serverObj = pServer.getAllOrganisms(pantherURL, dto);
@@ -136,39 +135,7 @@ public class PAINT {
                     JOptionPane.showMessageDialog(GUIManager.getManager().getFrame(), "Error retrieving list of supported organisms \n" + sb.toString(), "Error", JOptionPane.ERROR_MESSAGE);
                     System.exit(-1);
                 }
-                
-                // Bacterial genomes
-                dto = new DataTransferObj();
-                dto.setVc(vc);
-                serverObj = pServer.getBacterialGenomes(pantherURL, dto);
-                ArrayList<String> bacteriaList = (ArrayList<String>)serverObj.getObj();
-                System.out.println(new Date() + " Retrieved bacterial genomes list from server");                
-                if (null == serverObj) {
-                    JOptionPane.showMessageDialog(GUIManager.getManager().getFrame(), "Unable to retrieve bacterial genomes from server", "Error", JOptionPane.ERROR_MESSAGE);
-                    System.exit(-1);
-                }
-                sb = serverObj.getMsg();
-                if (null != sb && 0 != sb.length()) {
-                    JOptionPane.showMessageDialog(GUIManager.getManager().getFrame(), "Error retrieving plant genomes \n" + sb.toString(), "Error", JOptionPane.ERROR_MESSAGE);
-                    System.exit(-1);
-                }                
-
-                // Repeat for plant genomes
-                dto = new DataTransferObj();
-                dto.setVc(vc);
-                serverObj = pServer.getPlantGenomes(pantherURL, dto);
-                ArrayList<String> plantList = (ArrayList<String>)serverObj.getObj();
-                System.out.println(new Date() + " Retrieved plant genomes list from server");                
-                if (null == serverObj) {
-                    JOptionPane.showMessageDialog(GUIManager.getManager().getFrame(), "Unable to retrieve plant genomes from server", "Error", JOptionPane.ERROR_MESSAGE);
-                    System.exit(-1);
-                }
-                sb = serverObj.getMsg();
-                if (null != sb && 0 != sb.length()) {
-                    JOptionPane.showMessageDialog(GUIManager.getManager().getFrame(), "Error retrieving plant genomes \n" + sb.toString(), "Error", JOptionPane.ERROR_MESSAGE);
-                    System.exit(-1);
-                }                 
-                
+            
                 if (null == vc.get(VersionContainer.VersionedObj.CLS_VERSION) || null == gth) {
                     JOptionPane.showMessageDialog(GUIManager.getManager().getFrame(), "Unable to get static information from server", "Error", JOptionPane.ERROR_MESSAGE);
                     System.exit(-1);
@@ -180,7 +147,7 @@ public class PAINT {
                 
                 
                 PaintManager pm = PaintManager.inst();
-                pm.setupFixedInfo(gth, th, vc, bookSet, orgList, bacteriaList, plantList);
+                pm.setupFixedInfo(gth, th, vc, bookSet, orgList);
                 System.out.println(new Date() + " Done with initialization");
 
                 GUIManager.addVetoableShutdownListener(new VetoableShutdownListener() {

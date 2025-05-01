@@ -1,5 +1,5 @@
 /**
- *  Copyright 2025 University Of Southern California
+ *  Copyright 2023 University Of Southern California
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -76,10 +76,8 @@ public class PantherServer {
     public static final String REQUEST_SEARCH_UNCURATED_BOOKS = "uncuratedBooks";
     public static final String REQUEST_SEARCH_REQUIRE_PAINT_REVIEW_UNLOCKED = "requirePaintReviewUnlocked";
     
-    public static final String REQUEST_ALL_ORGANISMS = "allOrganisms";
-    public static final String REQUEST_ALL_GENOMES_BACTERIA = "allGenomesBacteria";    
-    public static final String REQUEST_ALL_GENOMES_PLANT = "allGenomesPlant";
-            
+    public static final String REQUEST_ALL_ORGANISMS = "allOrganisms";    
+
     public static final String REQUEST_OPEN_BOOK = "OpenBook";
 //	public static final String REQUEST_OPEN_BOOK_FOR_GO_USER = "openBookForGOUsr";
 //	public static final String REQUEST_CLS_INFO = "requestClsInfo";
@@ -480,16 +478,6 @@ public class PantherServer {
         public DataTransferObj getAllOrganisms(String serverPath, DataTransferObj dto) {
             server_status = "";
             return (DataTransferObj)sendAndReceiveZip(serverPath, REQUEST_ALL_ORGANISMS, dto, null, null);            
-        }
-        
-        public DataTransferObj getPlantGenomes(String serverPath, DataTransferObj dto) {
-            server_status = "";
-            return (DataTransferObj)sendAndReceiveZip(serverPath, REQUEST_ALL_GENOMES_PLANT, dto, null, null);            
-        }
-        
-        public DataTransferObj getBacterialGenomes(String serverPath, DataTransferObj dto) {
-            server_status = "";
-            return (DataTransferObj)sendAndReceiveZip(serverPath, REQUEST_ALL_GENOMES_BACTERIA, dto, null, null);            
         }
         
         public DataTransferObj getFamilyDomain(String serverPath, DataTransferObj dto) {
