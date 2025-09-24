@@ -1,5 +1,5 @@
 /**
- *  Copyright 2025 University Of Southern California
+ *  Copyright 2022 University Of Southern California
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -40,8 +40,6 @@ import java.util.Map;
 
 import javax.swing.Icon;
 import javax.swing.ImageIcon;
-import javax.swing.JMenuBar;
-import javax.swing.JRootPane;
 
 import org.apache.log4j.Logger;
 import org.bbop.framework.GUIManager;
@@ -101,10 +99,7 @@ public class Preferences {
 	private Color expPaintColor =   new Color(16, 128, 64);  //new Color(142, 35, 35);
 	private Color curatedPaintColor = new Color(255, 127, 0); //new Color(68, 116, 179);  //new Color(255, 127, 0);
 	private Color inferPaintColor = new Color(16, 64, 128);
-        public static final Color SEA_BLUE = new Color(43, 148, 201);
-        public static final Color BRIGHT_GREEN = new Color(37, 224, 20);
-        public static final Color EXP_ANNOT_ADDED_IN_PAINT = BRIGHT_GREEN;
-        
+
 	public final static int HIGHLIGHT_BP = 1;
 	public final static int HIGHLIGHT_CC = 2;
 	public final static int HIGHLIGHT_MF = 4;
@@ -128,9 +123,6 @@ public class Preferences {
 	private Color  msa_weighted_colors[] = {
 			new Color(21, 138, 255), new Color(220, 233, 255)
 	};
-        
-        public static final Color COLOR_WARNING_DEV = new Color(255, 204, 204); 
-        public static Color COLOR_DEFAULT = new Color(238, 238, 238);         
         
 //	private Color  msa_colors_key_residue[] = {
 //			new Color(0, 153, 0), new Color(77, 204, 77), new Color(253, 255, 153)
@@ -843,22 +835,4 @@ public class Preferences {
 		return name;
 	}
 
-  
-    public void warnUserDevEnv() {
-        GUIManager guiManager = GUIManager.getManager();
-        if (null == guiManager || null == guiManager.getFrame()) {
-            return;
-        }
-        JRootPane rootPane = guiManager.getFrame().getRootPane();
-        if (null == rootPane || null == rootPane.getJMenuBar()) {
-            return;
-        }
-        JMenuBar mBar = rootPane.getJMenuBar();
-        if (PAINTVersion.IS_TEST_ENV) {
-            mBar.setBackground(COLOR_WARNING_DEV);
-        } else {
-            mBar.setBackground(COLOR_DEFAULT);
-        }
-    }
-       
 }

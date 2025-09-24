@@ -1,5 +1,5 @@
 /**
- * Copyright 2023 University Of Southern California
+ * Copyright 2025 University Of Southern California
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -426,7 +426,7 @@ public class AnnotationTransferHndlr extends TransferHandler {
                     }
                     if (0 < sb.length()) {
                         String formatted = WordUtils.wrap(sb.toString(), 80);
-                        JOptionPane.showMessageDialog(GUIManager.getManager().getFrame(), formatted);
+                        JOptionPane.showMessageDialog(GUIManager.getManager().getFrame(), formatted, "Taxonomy violation", JOptionPane.WARNING_MESSAGE);
                     }
                 }
             }

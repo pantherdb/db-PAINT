@@ -1,5 +1,5 @@
 /**
- *  Copyright 2022 University Of Southern California
+ *  Copyright 2025 University Of Southern California
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -1547,8 +1547,81 @@ public class PaintAction {
         PaintManager pm = PaintManager.inst();
         AnnotationHelper.propagateIBD(ibd, pm.getTaxonHelper(), pm.goTermHelper(), errorMsgBuf, modifiedSet, new HashSet<Annotation>());
         EventManager.inst().fireAnnotationChangeEvent(new AnnotationChangeEvent(node));
-    }        
+    }
+    
+    public void addExperimentalAnnotation(String term, GeneNode node, String evidenceCode, String PMID, HashSet<Qualifier> qualifierSet) {
+        Node n = node.getNode();
+        NodeVariableInfo nvi = n.getVariableInfo();
+        if (null == nvi) {
+            nvi = new NodeVariableInfo();
+            n.setVariableInfo(nvi);
+        }
+        
+        PaintManager pm = PaintManager.inst();        
+        Annotation a = new Annotation();
 
+        AnnotationDetail ad = new AnnotationDetail();
+        a.setAnnotationDetail(ad);
+        nvi.addGOAnnotation(a);
+        ad.setAnnotatedNode(n);
+        a.setAnnotStoredInDb(true);
+        a.setQualifierSet(qualifierSet);
+        a.setGoTerm(term);
+        a.setExpAnnotCreatedInPaint(true);
+        a.setExperimental(true);
+        if (false == qualifierSet.isEmpty()) {
+            a.setQualifierSet(qualifierSet);
+            for (Qualifier q : qualifierSet) {
+                a.getAnnotationDetail().addToAddedQualifierLookup(q, a);
+            }
+        }
+
+        // With
+        WithEvidence we = new WithEvidence();
+        we.setEvidenceCode(evidenceCode);
+        DBReference dbRef = new DBReference();
+        dbRef.setEvidenceType(WithEvidence.EVIDENCE_TYPE_ANNOT_PAINT_PMID);
+        dbRef.setEvidenceValue(PMID);
+        we.setWith(dbRef);
+        a.addWithEvidence(we);
+        EventManager.inst().fireAnnotationChangeEvent(new AnnotationChangeEvent(node));
+
+
+        pm.handleExpTermUpdate();
+        // Adding the annotation may result in additional experimental evidence for existing annotations.
+        AnnotationHelper.fixAnnotationsForGraftPruneExpOperation(pm.getTree().getRoot().getNode(), node.getNode(), pm.getTaxonHelper(), pm.goTermHelper());
+        DirtyIndicator.inst().setAnnotated(true);
+        AnnotationUtil.branchNotify(node);    
+        
+    }    
+
+    public void removeExperimentalAnnotation(GeneNode geneNode, Annotation a) {
+        Node n = geneNode.getNode();
+        NodeVariableInfo nvi = n.getVariableInfo();
+        if (null == nvi) {
+            System.out.println("No NVI info to delete for " + n.getStaticInfo().getPublicId());
+            return;
+        }
+        ArrayList<Annotation> annotList = nvi.getGoAnnotationList();
+        if (null == annotList) {
+            System.out.println("No annotations to delete for " + n.getStaticInfo().getPublicId());
+            return;
+        }
+        if (false == annotList.contains(a)) {
+            System.out.println("Annotation not found for " + n.getStaticInfo().getPublicId());
+            return;            
+        }
+        annotList.remove(a);
+        DirtyIndicator.inst().setAnnotated(true);     
+        EventManager.inst().fireAnnotationChangeEvent(new AnnotationChangeEvent(geneNode));
+
+        PaintManager pm = PaintManager.inst();
+        pm.handleExpTermUpdate();        
+        
+        // Removing the annotation may result in loss of evidence for existing annotations
+        AnnotationHelper.fixAnnotationsForGraftPruneExpOperation(pm.getTree().getRoot().getNode(), geneNode.getNode(), pm.getTaxonHelper(), pm.goTermHelper());
+        branchNotify(geneNode);
+    }
         
         
         // Adds IBD and IBA for descendants

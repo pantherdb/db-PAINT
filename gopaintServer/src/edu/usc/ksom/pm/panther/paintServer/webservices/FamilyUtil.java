@@ -1,5 +1,5 @@
 /**
- *  Copyright 2023 University Of Southern California
+ *  Copyright 2025 University Of Southern California
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -218,7 +218,7 @@ public class FamilyUtil {
     private static DataIO dataIO = DataAccessManager.getInstance().getDataIO();
     private static OrganismManager organismManager = OrganismManager.getInstance();
     private static GOTermHelper goTermHelper = CategoryLogic.getInstance().getGOTermHelper();
-    private static final HashSet<String> BOOKS_WITH_LEAF_EXP_ANNOTS = BookManager.getInstance().getBooksWihtExpLeaves();
+    //private static final HashSet<String> BOOKS_WITH_LEAF_EXP_ANNOTS = BookManager.getInstance().getBooksWihtExpLeaves();
     
     public static String getFamilyInfo(String id, String database, String uplVersion, String searchType) {
         
@@ -1764,7 +1764,7 @@ public class FamilyUtil {
             e.printStackTrace();
             return null;
         }
-
+        HashSet<String> booksWithExpLeafAnnots = BookManager.getInstance().getBooksWihtExpLeaves();
         try {
             DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
             DocumentBuilder builder = factory.newDocumentBuilder();
@@ -1786,7 +1786,7 @@ public class FamilyUtil {
 
             bookElem.appendChild(Utils.createTextNode(doc, ELEMENT_NAME, b.getName()));
             boolean isAnnotatable = false;
-            if (BOOKS_WITH_LEAF_EXP_ANNOTS.contains(b.getId())) {
+            if (booksWithExpLeafAnnots.contains(b.getId())) {
                 isAnnotatable = true;
             }
             Element isAnnotElem = Utils.createTextNode(doc, ELEMENT_ANNOTATABLE, Boolean.toString(isAnnotatable));

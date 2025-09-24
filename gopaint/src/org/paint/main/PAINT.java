@@ -106,32 +106,33 @@ public class PAINT {
                 DataTransferObj dto = new DataTransferObj();
                 dto.setVc(vc);
 
-                System.out.println(new Date() + " Going to retrieve curatable book information from server");
-                DataTransferObj serverObj = pServer.getCuratableBooks(pantherURL, dto);
-                System.out.println(new Date() + " Retrieved curatable book information from server");                
-                if (null == serverObj) {
-                    JOptionPane.showMessageDialog(GUIManager.getManager().getFrame(), "Unable to retrieve list of curatable books from server", "Error", JOptionPane.ERROR_MESSAGE);
-                    System.exit(-1);
-                }
-                StringBuffer sb = serverObj.getMsg();
-                if (null != sb && 0 != sb.length()) {
-                    JOptionPane.showMessageDialog(GUIManager.getManager().getFrame(), "Download new version from server \n" + sb.toString(), "Error", JOptionPane.ERROR_MESSAGE);
-                    System.exit(-1);
-                }
-                
-                HashSet<String> bookSet = (HashSet<String>)serverObj.getObj();
+//                System.out.println(new Date() + " Going to retrieve curatable book information from server");
+//                DataTransferObj serverObj = pServer.getCuratableBooks(pantherURL, dto);                
+//                System.out.println(new Date() + " Retrieved curatable book information from server");                
+//                if (null == serverObj) {
+//                    JOptionPane.showMessageDialog(GUIManager.getManager().getFrame(), "Unable to retrieve list of curatable books from server", "Error", JOptionPane.ERROR_MESSAGE);
+//                    System.exit(-1);
+//                }
+//                StringBuffer sb = serverObj.getMsg();
+//                if (null != sb && 0 != sb.length()) {
+//                    JOptionPane.showMessageDialog(GUIManager.getManager().getFrame(), "Download new version from server \n" + sb.toString(), "Error", JOptionPane.ERROR_MESSAGE);
+//                    System.exit(-1);
+//                }
+//                
+//                HashSet<String> bookSet = (HashSet<String>)serverObj.getObj();
                 
                 // All genomes
+                //DataTransferObj serverObj = pServer.getCuratableBooks(pantherURL, dto);
                 dto = new DataTransferObj();
                 dto.setVc(vc);
-                serverObj = pServer.getAllOrganisms(pantherURL, dto);
+                DataTransferObj serverObj = pServer.getAllOrganisms(pantherURL, dto);
                 ArrayList<Organism> orgList = (ArrayList<Organism>)serverObj.getObj();
                 System.out.println(new Date() + " Retrieved organism list from server");                
                 if (null == serverObj) {
                     JOptionPane.showMessageDialog(GUIManager.getManager().getFrame(), "Unable to retrieve list of organisms from server", "Error", JOptionPane.ERROR_MESSAGE);
                     System.exit(-1);
                 }
-                sb = serverObj.getMsg();
+                StringBuffer sb = serverObj.getMsg();
                 if (null != sb && 0 != sb.length()) {
                     JOptionPane.showMessageDialog(GUIManager.getManager().getFrame(), "Error retrieving list of supported organisms \n" + sb.toString(), "Error", JOptionPane.ERROR_MESSAGE);
                     System.exit(-1);
@@ -180,7 +181,7 @@ public class PAINT {
                 
                 
                 PaintManager pm = PaintManager.inst();
-                pm.setupFixedInfo(gth, th, vc, bookSet, orgList, bacteriaList, plantList);
+                pm.setupFixedInfo(gth, th, vc, orgList, bacteriaList, plantList);
                 System.out.println(new Date() + " Done with initialization");
 
                 GUIManager.addVetoableShutdownListener(new VetoableShutdownListener() {
@@ -193,6 +194,7 @@ public class PAINT {
                         return true;
                     }
                 });
+                //Preferences.inst().warnUserDevEnv();
 
                 // These don't seem to work
 //                            JFrame frame = GUIManager.getManager().getFrame();

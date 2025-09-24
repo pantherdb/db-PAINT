@@ -1,5 +1,5 @@
 /**
- * Copyright 2023 University Of Southern California
+ * Copyright 2025 University Of Southern California
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -67,7 +67,7 @@ public class LibraryStats {
     public static final String ELEMENT_ORG = "organism";    
     private static DataIO dataIO = DataAccessManager.getInstance().getDataIO();    
     private static final OrganismManager OM = OrganismManager.getInstance();
-    private static final HashSet<String> BOOKS_WITH_LEAF_EXP_ANNOTS = BookManager.getInstance().getBooksWihtExpLeaves();
+    //private static final HashSet<String> BOOKS_WITH_LEAF_EXP_ANNOTS = BookManager.getInstance().getBooksWihtExpLeaves();
 
     
     public static String getStats(String requestType, String format) {
@@ -83,6 +83,7 @@ public class LibraryStats {
         if (null == bookList) {
             return null;
         }
+        HashSet<String> booksWithExpLeafAnnots = BookManager.getInstance().getBooksWihtExpLeaves();
 
         //HashSet<String> annotatableBooks = dataIO.getBooksWithExpEvdnceForLeaves();
 
@@ -111,7 +112,7 @@ public class LibraryStats {
 
                 bookElem.appendChild(Utils.createTextNode(doc, ELEMENT_NAME, b.getName()));
                 boolean isAnnotatable = false;
-                if (BOOKS_WITH_LEAF_EXP_ANNOTS.contains(b.getId())) {
+                if (booksWithExpLeafAnnots.contains(b.getId())) {
                     isAnnotatable = true;
                 }
                 Element isAnnotElem = Utils.createTextNode(doc, ELEMENT_ANNOTATABLE, Boolean.toString(isAnnotatable));

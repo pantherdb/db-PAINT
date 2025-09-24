@@ -1453,6 +1453,7 @@ public class AnnotationHelper implements Serializable {
         }
     }
     /**
+     * This module is used to fix annotations when nodes are pruned or grafted and also when experimental annotations are added or removed
      * Not only do annotations have to be restored after graft or prune operations, but also when annotations are deleted.  IBA's etc have to be propagated to
      * descendant nodes
      * @param n
@@ -1460,7 +1461,7 @@ public class AnnotationHelper implements Serializable {
      * @param taxonHelper
      * @param gth 
      */
-    public static void fixAnnotationsForGraftPruneOperation(Node n, Node graftPruneNode, TaxonomyHelper taxonHelper, GOTermHelper gth) {
+    public static void fixAnnotationsForGraftPruneExpOperation(Node n, Node graftPruneNode, TaxonomyHelper taxonHelper, GOTermHelper gth) {
         NodeVariableInfo nvi = n.getVariableInfo();
 
         if (null != nvi) {
@@ -1496,24 +1497,29 @@ public class AnnotationHelper implements Serializable {
                             propagateIBD(a, taxonHelper, gth, new StringBuffer(), new HashSet<Node>(), new HashSet<Annotation>());
                         }
                     } else if (true == Evidence.CODE_IKR.equals(a.getSingleEvidenceCodeFromSet())) {
-                        Annotation ibdPropagator = AnnotationHelper.getIBDpropagator(a);
-                        // Propagate IBA's
-                        // First get list of nodes that provided evidence for original IBD annotation.  These do not get the IBA annotation
-                        AnnotationDetail ibdDetail = ibdPropagator.getAnnotationDetail();
-                        HashSet<Annotation> withSet = ibdDetail.getWithAnnotSet();
-                        HashSet<Node> evidenceNodes = new HashSet<Node>();
-                        for (Annotation with : withSet) {
-                            evidenceNodes.add(with.getAnnotationDetail().getAnnotatedNode());
-                        }
-                        ArrayList<Node> children = n.getStaticInfo().getChildren();
-                        if (null != children) {
-                            for (Node child : children) {
-                                propagateIBA(child, a.getGoTerm(), a.getQualifierSet(), a, evidenceNodes, taxonHelper, gth, new StringBuffer(), new HashSet<Node>(), new HashSet<Annotation>());
-                            }
-                        }
+                        // Need to ensure this IKR is not a leaf experimental annotation
+                        HashSet<WithEvidence> withAnnotSet = a.getAnnotationDetail().getWithEvidenceAnnotSet();
+                        if (null != withAnnotSet && 0 != withAnnotSet.size()) {
 
-                        // Fix list of nodes providing evidence for annotation - Just in case graft/prune operation changed something
-                        AnnotationHelper.fixNodesProvidingEvdnceForIKRIRD(a, n, gth, new HashSet<String>(), new StringBuffer());
+                            Annotation ibdPropagator = AnnotationHelper.getIBDpropagator(a);
+                            // Propagate IBA's
+                            // First get list of nodes that provided evidence for original IBD annotation.  These do not get the IBA annotation
+                            AnnotationDetail ibdDetail = ibdPropagator.getAnnotationDetail();
+                            HashSet<Annotation> withSet = ibdDetail.getWithAnnotSet();
+                            HashSet<Node> evidenceNodes = new HashSet<Node>();
+                            for (Annotation with : withSet) {
+                                evidenceNodes.add(with.getAnnotationDetail().getAnnotatedNode());
+                            }
+                            ArrayList<Node> children = n.getStaticInfo().getChildren();
+                            if (null != children) {
+                                for (Node child : children) {
+                                    propagateIBA(child, a.getGoTerm(), a.getQualifierSet(), a, evidenceNodes, taxonHelper, gth, new StringBuffer(), new HashSet<Node>(), new HashSet<Annotation>());
+                                }
+                            }
+
+                            // Fix list of nodes providing evidence for annotation - Just in case graft/prune operation changed something
+                            AnnotationHelper.fixNodesProvidingEvdnceForIKRIRD(a, n, gth, new HashSet<String>(), new StringBuffer());
+                        }
                     } else if (true == Evidence.CODE_IRD.equals(a.getSingleEvidenceCodeFromSet())) {
                         // Fix list of nodes providing evidence for annotation - Just in case graft/prune operation changed something
                         AnnotationHelper.fixNodesProvidingEvdnceForIKRIRD(a, n, gth, new HashSet<String>(), new StringBuffer());
@@ -1548,7 +1554,7 @@ public class AnnotationHelper implements Serializable {
         ArrayList<Node> children = n.getStaticInfo().getChildren();
         if (null != children) {
             for (Node child : children) {
-                fixAnnotationsForGraftPruneOperation(child, graftPruneNode, taxonHelper, gth);
+                fixAnnotationsForGraftPruneExpOperation(child, graftPruneNode, taxonHelper, gth);
             }
         }
     }
@@ -1611,7 +1617,7 @@ public class AnnotationHelper implements Serializable {
         if (false == Evidence.CODE_IBD.equals(a.getSingleEvidenceCodeFromSet())) {
             Node n = a.getAnnotationDetail().getAnnotatedNode();
             Node propNode = propAnnot.getAnnotationDetail().getAnnotatedNode();
-            fixAnnotationsForGraftPruneOperation(propNode, n, taxonHelper, gth);
+            fixAnnotationsForGraftPruneExpOperation(propNode, n, taxonHelper, gth);
         }
     }
 

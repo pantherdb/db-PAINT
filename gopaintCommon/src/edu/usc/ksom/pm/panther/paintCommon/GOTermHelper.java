@@ -1,5 +1,5 @@
 /**
- *  Copyright 2020 University Of Southern California
+ *  Copyright 2025 University Of Southern California
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -18,6 +18,8 @@ package edu.usc.ksom.pm.panther.paintCommon;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -34,19 +36,87 @@ public class GOTermHelper implements Serializable{
     public static final String CAT_BIOLOGICAL_PROCESS = "biol";
     public static final String CAT_CELLULAR_COMPONENT = "cellul";
     
+
+    
     public static final String ASPECT_MF = "F";
     public static final String ASPECT_BP = "P";
     public static final String ASPECT_CC = "C";
     
     public static final HashSet<String> NON_ALLOWED_TERM_SET = new HashSet<String>(Arrays.asList("GO:0005515", "GO:0005488"));
     
+    public static final String PREFIX_ACC = "GO:";
+    
     private HashMap<String, GOTerm> clsToTerm;
     private ArrayList<GOTerm> topLevelTerms;
 
+    public static final String DELIM_TERM = "-";
+    //public static final int MAX_LENGTH = 70;
+    //private HashMap<String, GOTerm> DISPLAY_LOOKUP;
+    private ArrayList<String> DISPLAY_LIST;
+    
     public GOTermHelper(HashMap<String, GOTerm> clsToTerm, ArrayList<GOTerm> topLevelTerms) {
         this.clsToTerm = clsToTerm;
         this.topLevelTerms = topLevelTerms;
+        //DISPLAY_LOOKUP = initDisplayTermLookup();
+        this.DISPLAY_LIST = initDisplayList();       
     }
+    
+    
+//    private HashMap<String, GOTerm> initDisplayTermLookup() {
+//        HashMap<String, GOTerm> lookup = new HashMap<String, GOTerm>();
+//        for (GOTerm goTerm : clsToTerm.values()) {
+//            if (topLevelTerms.contains(goTerm)) {
+//                continue;
+//            }
+//            if (GOTermHelper.NON_ALLOWED_TERM_SET.contains(goTerm.getAcc())) {
+//                continue;
+//            }
+//            String display = goTerm.getName();
+//            if(display.length() > MAX_LENGTH){
+//                display = display.substring(0, MAX_LENGTH);
+//            }
+//            lookup.put(display + DELIM_TERM + goTerm.getAcc(), goTerm);
+//        }
+//        return lookup;
+//    }
+
+    /*
+    // Return list of entries as follows:
+    // 1.  Acc followed by delimiter followed by Name
+    // 2.  Name followed by delimiter followed by Acc
+    */
+    private ArrayList<String> initDisplayList() {
+        ArrayList<String> termNamedisplayList = new ArrayList<String>();
+        ArrayList<String> accDisplayList = new ArrayList<String>();
+
+        ArrayList<GOTerm> allTerms = new ArrayList<GOTerm>(clsToTerm.values());
+        Collections.sort(allTerms, new  Comparator<GOTerm>() {
+            public int compare(GOTerm term1, GOTerm term2) {
+                String name1 = term1.getName();
+                String name2 = term2.getName();
+                if (null == name1 || null == name2) {
+                    return term1.getAcc().compareTo(term2.getAcc());             
+                }
+                return name1.compareTo(name2);
+            }
+        
+        });
+        for (GOTerm goTerm : allTerms) {
+            if (topLevelTerms.contains(goTerm)) {
+                continue;
+            }
+            if (GOTermHelper.NON_ALLOWED_TERM_SET.contains(goTerm.getAcc())) {
+                continue;
+            }
+            String display = goTerm.getName();
+            termNamedisplayList.add(display + DELIM_TERM + goTerm.getAcc());
+            accDisplayList.add(goTerm.getAcc() + DELIM_TERM + display);
+        }
+        Collections.sort(accDisplayList);
+        accDisplayList.addAll(termNamedisplayList);
+        return accDisplayList;
+    }    
+    
     
     public GOTerm getTerm(String goId) {
         if (null == goId || null == clsToTerm) {
@@ -299,6 +369,12 @@ public class GOTermHelper implements Serializable{
         return new ArrayList<GOTerm>(clsToTerm.values());
     }
     
-    
+//    public HashMap<String, GOTerm> getDisplayLookup() {
+//        return (HashMap<String, GOTerm>)DISPLAY_LOOKUP.clone();
+//    }
+
+    public ArrayList<String> getDisplayList() {
+        return (ArrayList<String>)this.DISPLAY_LIST.clone();
+    }
     
 }

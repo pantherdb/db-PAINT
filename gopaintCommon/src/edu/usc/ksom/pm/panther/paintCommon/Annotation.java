@@ -1,5 +1,5 @@
 /**
- *  Copyright 2020 University Of Southern California
+ *  Copyright 2025 University Of Southern California
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -15,6 +15,7 @@
  */
 package edu.usc.ksom.pm.panther.paintCommon;
 
+import com.sri.panther.paintCommon.User;
 import java.io.Serializable;
 import java.util.Collection;
 import java.util.HashSet;
@@ -29,9 +30,7 @@ public class Annotation implements Serializable, IWith {
     private String annotationTypeId;
     private String date;
     private String annotationType;      //GO SF? now only GO
-    private boolean annotIsToChildTerm = false;        // gene is annotated with a more specific term.  This annotation exists so that users can annotate with a parent term
-//    private Annotation childAnnotation;     // For IKR and IRD, this will be the related IBA.  No other cases for now
-//    private Annotation parentAnnotation;    // for IBA, this is the IKR or IRD
+    
     private boolean annotStoredInDb = false;        // Annotations that are propagated are not stored in database.  
     private AnnotationDetail annotationDetail = new AnnotationDetail();
     //Annotation propagatorAnnot = null;           // For IBA, IKR, IRD we have an annotation that was propagated.
@@ -39,6 +38,7 @@ public class Annotation implements Serializable, IWith {
     // Specific to GO annotation type
     private String goTerm;              // GO:123
     private HashSet<Qualifier> qualifierSet;        // Use annotationDetail to get and set qualifiers
+    private boolean expAnnotCreatedInPaint = false;
 
     private boolean experimental = false;
 
@@ -202,7 +202,7 @@ public class Annotation implements Serializable, IWith {
         newAnnot.annotationType = this.annotationType;
         newAnnot.annotationTypeId = this.annotationTypeId;
         newAnnot.goTerm = this.goTerm;
-        newAnnot.annotIsToChildTerm = this.annotIsToChildTerm;
+//        newAnnot.annotIsToChildTerm = this.annotIsToChildTerm;
         
         if (null != this.qualifierSet) {
             HashSet<Qualifier> newQualifierSet = new HashSet<Qualifier>(this.qualifierSet.size());
@@ -211,6 +211,7 @@ public class Annotation implements Serializable, IWith {
                 newQualifierSet.add(q.makeCopy());
             }
         }
+        newAnnot.expAnnotCreatedInPaint = this.expAnnotCreatedInPaint;
         
 //        if (null != evidence) {
 //            newAnnot.setEvidence(this.evidence.makeCopy());
@@ -218,13 +219,13 @@ public class Annotation implements Serializable, IWith {
         return newAnnot;
     }
 
-    public boolean isAnnotIsToChildTerm() {
-        return annotIsToChildTerm;
-    }
-
-    public void setAnnotIsToChildTerm(boolean annotIsToChildTerm) {
-        this.annotIsToChildTerm = annotIsToChildTerm;
-    }
+//    public boolean isAnnotIsToChildTerm() {
+//        return annotIsToChildTerm;
+//    }
+//
+//    public void setAnnotIsToChildTerm(boolean annotIsToChildTerm) {
+//        this.annotIsToChildTerm = annotIsToChildTerm;
+//    }
 
 //    public Annotation getChildAnnotation() {
 //        return childAnnotation;
@@ -468,5 +469,11 @@ public class Annotation implements Serializable, IWith {
         this.date = date;
     }
 
-    
+    public boolean isExpAnnotCreatedInPaint() {
+        return expAnnotCreatedInPaint;
+    }
+
+    public void setExpAnnotCreatedInPaint(boolean expAnnotCreatedInPaint) {
+        this.expAnnotCreatedInPaint = expAnnotCreatedInPaint;
+    }
 }

@@ -16,16 +16,18 @@
 package edu.usc.ksom.pm.panther.paintCommon;
 
 public class PAINTVersion {
+    
+    public static final Boolean IS_TEST_ENV = Boolean.TRUE;
 
     public static String getPAINTClientversion() {
-        return "PAINT_2025_02_05_1";
+        return "PAINT_2025_06_06_1";
     }
 
     public static String getPAINTServerVersion() {
-        return "PAINT_2025_02_05_1";
+        return "PAINT_2025_06_06_1";
     }
 
     public static String getPAINTCommonVersion() {
-        return "PAINT_2025_02_05_1";
+        return "PAINT_2025_06_06_1";
     }
 }

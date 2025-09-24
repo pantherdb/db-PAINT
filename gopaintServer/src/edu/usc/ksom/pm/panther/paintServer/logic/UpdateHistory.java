@@ -1,5 +1,5 @@
 /**
- * Copyright 2021 University Of Southern California
+ * Copyright 2025 University Of Southern California
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -52,7 +52,7 @@ public class UpdateHistory {
         NODE_ANNOTATION("Node annotation"),
         NODE_GRAFT_PRUNE("Node grafting or pruning"),        
         FAMILY_COMMENT("Family comment"), 
-        FAMILY_STATUS("Famiy status"); 
+        FAMILY_STATUS("Family status"); 
         
         public final String label;
         private Operation(String label) {
@@ -68,8 +68,17 @@ public class UpdateHistory {
                                                             "and a.annotation_type_id = at.annotation_type_id \n" +
                                                             "and at.annotation_type = 'GO_PAINT'\n" +
                                                             "and a.annotation_id = pe.annotation_id\n" +
-                                                            "and pe.confidence_code_sid = cc.confidence_code_sid ";
-    
+                                                            "and pe.confidence_code_sid = cc.confidence_code_sid \n" +
+                                                            "union\n " +
+                                                            "select distinct n.classification_version_sid, n.accession , n.public_id, pea.created_by , pea.creation_date, pea.obsoleted_by , pea.obsolescence_date, cc.confidence_code \n " +
+                                                            "from node n, paint_exp_annotation pea, annotation_type at, paint_exp_evidence pee, confidence_code cc \n " +
+                                                            "where n.accession like '%1'\n " +
+                                                            "and n.node_id = pea.node_id \n " +
+                                                            "and pea.annotation_type_id = at.annotation_type_id \n " +
+                                                            "and at.annotation_type = 'GO_PAINT'\n " +
+                                                            "and pea.annotation_id = pee.annotation_id\n " +
+                                                            "and pee.confidence_code_sid = cc.confidence_code_sid ";
+
     public static final String QUERY_NODE_GRAFT_PRUNE = "select distinct n.classification_version_sid, n.accession , n.public_id, a.created_by , a.creation_date, a.obsoleted_by , a.obsolescence_date\n" +
                                                             "from node n, paint_annotation a, annotation_type at\n" +
                                                             "where n.accession like '%1'\n" +
@@ -315,8 +324,7 @@ public class UpdateHistory {
             stmt = con.createStatement();
 
             rst = stmt.executeQuery(QUERY_NODE_ANNOTATION.replace(QUERY_PARAMETER_1, book + WILDCARD));
-
-            
+          
             while (rst.next()) {
                 OperationInfoDetail ih = new OperationInfoDetail();
                 ih.operation = Operation.NODE_ANNOTATION;
@@ -505,6 +513,8 @@ public class UpdateHistory {
         public Date obsolescenceDate;
         public String obsoletedBy;
         public String confidenceCode;   // Specific to operation node annotation
+        public String term;             // Term
+        public String qualifier;        // Qualifier
         public String comment;          // Specific to operation comment
         public String status;           // Specific to operation status
 

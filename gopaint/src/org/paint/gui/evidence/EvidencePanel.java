@@ -1,5 +1,5 @@
 /**
- * Copyright 2020 University Of Southern California
+ * Copyright 2025 University Of Southern California
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -331,6 +331,8 @@ public class EvidencePanel  extends AbstractPaintGUIComponent implements
         GOTermHelper gth = pm.goTermHelper();
         TaxonomyHelper th = pm.getTaxonHelper();
         ArrayList<Annotation> annotList = pm.getAnnotatedList();
+        ArrayList<Annotation> expAnnotList = pm.getExpAddedAnnotList();
+        annotList.addAll(expAnnotList);
         StringBuffer prunedBuf = new StringBuffer();
         StringBuffer warningBuf = new StringBuffer();
         HashMap<String, StringBuffer> aspectLookup = new HashMap<String, StringBuffer>();

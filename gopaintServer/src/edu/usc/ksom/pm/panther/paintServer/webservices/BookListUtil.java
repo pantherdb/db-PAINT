@@ -1,5 +1,5 @@
 /**
- * Copyright 2022 University Of Southern California
+ * Copyright 2025 University Of Southern California
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -55,7 +55,7 @@ public class BookListUtil {
     
     public static final String STRING_NULL = "null";
     private static DataIO dataIO = DataAccessManager.getInstance().getDataIO();  
-    private static final HashSet<String> BOOKS_WITH_LEAF_EXP_ANNOTS = BookManager.getInstance().getBooksWihtExpLeaves();
+    //private static final HashSet<String> BOOKS_WITH_LEAF_EXP_ANNOTS = BookManager.getInstance().getBooksWihtExpLeaves();
     
     public static String searchBooks(String searchField, String database, String uplVersion, String searchType) {
         
@@ -88,10 +88,11 @@ public class BookListUtil {
         else if (true == WSConstants.SEARCH_TYPE_STR_UNCURATED_BOOKS.equals(searchType)) {
             books = ds.getUncuratedUnlockedBooks(uplVersion);
         }
-        else if (true == WSConstants.SEARCH_TYPE_STR_BOOKS_WITH_EXP_EVIDENCE.equals(searchType)) {           
-            if (null != BOOKS_WITH_LEAF_EXP_ANNOTS) {
-                books = new Vector<Book>(BOOKS_WITH_LEAF_EXP_ANNOTS.size());
-                for (String accession : BOOKS_WITH_LEAF_EXP_ANNOTS) {
+        else if (true == WSConstants.SEARCH_TYPE_STR_BOOKS_WITH_EXP_EVIDENCE.equals(searchType)) {
+            HashSet<String> booksWithExpLeafAnnots = BookManager.getInstance().getBooksWihtExpLeaves();
+            if (null != booksWithExpLeafAnnots) {
+                books = new Vector<Book>(booksWithExpLeafAnnots.size());
+                for (String accession : booksWithExpLeafAnnots) {
                     Book b = new Book(accession, null, Book.CURATION_STATUS_UNKNOWN, null);
                     books.add(b);
                 }

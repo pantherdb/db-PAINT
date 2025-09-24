@@ -277,7 +277,7 @@ public class AnnotInfoHelper {
     
     public static void main(String args[]) {
         System.out.println("Specify name of directory with book files");
-        outputInfo("C:\\paint\\generate_iba_20220713\\leafIBAInfo");
+        outputInfo("C:\\paint\\prod_20250902\\output\\preUpdate");
         if (args.length >= 1) {
             outputInfo(args[0]);
             return;

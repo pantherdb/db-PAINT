@@ -1,5 +1,5 @@
 /**
- *  Copyright 2021 University Of Southern California
+ *  Copyright 2025 University Of Southern California
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -1818,7 +1818,7 @@ public class AnnotationUtil {
 
     public static void graftBranch(GeneNode gNode) {
         PaintManager pm = PaintManager.inst();
-        AnnotationHelper.fixAnnotationsForGraftPruneOperation(pm.getTree().getRoot().getNode(), gNode.getNode(), pm.getTaxonHelper(), pm.goTermHelper());
+        AnnotationHelper.fixAnnotationsForGraftPruneExpOperation(pm.getTree().getRoot().getNode(), gNode.getNode(), pm.getTaxonHelper(), pm.goTermHelper());
         branchNotify(gNode);
     }
 
@@ -1842,13 +1842,13 @@ public class AnnotationUtil {
                     annotIter.remove();
                 }
             }
-            if (true == annotList.isEmpty()) {
-                nvi.setGoAnnotationList(null);
-            }
+//            if (true == annotList.isEmpty()) {
+//                nvi.setGoAnnotationList(null);
+//            }
         }
 
         PaintManager pm = PaintManager.inst();
-        AnnotationHelper.fixAnnotationsForGraftPruneOperation(pm.getTree().getRoot().getNode(), gNode.getNode(), pm.getTaxonHelper(), pm.goTermHelper());
+        AnnotationHelper.fixAnnotationsForGraftPruneExpOperation(pm.getTree().getRoot().getNode(), gNode.getNode(), pm.getTaxonHelper(), pm.goTermHelper());
         
         branchNotify(gNode);
     }

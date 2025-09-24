@@ -22,6 +22,7 @@ public class Constant {
     public static final int USER_PRIVILEGE_NOT_SET = -10;
     public static final int USER_PRIVILEGE_UNLOGGED = -1;
     public static final int USER_PRIVILEGE_SAVE_LOCAL = 6;
+    public static final int USER_PRIVILEGE_OVERWRITE_OTHER_EXP_EVIDENCE = 9;    
     
     
     public static final String STR_EMPTY = "";

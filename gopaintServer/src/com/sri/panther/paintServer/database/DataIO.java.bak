@@ -1,5 +1,5 @@
 /**
- * Copyright 2025 University Of Southern California
+ * Copyright 2024 University Of Southern California
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -135,7 +135,6 @@ public class DataIO {
 
     protected static final String MSG_ERROR_UNABLE_TO_RETRIEVE_USER_RANK_INFO = "Unable to retrieve user rank info";
     protected static final String MSG_ERROR_UNABLE_TO_RETRIEVE_INFO_ERROR_RETURNED = "Unable to retrieve information, exception returned:  ";
-    
 
     protected static final String MSG_INITIALIZING_CLS_INFO = "Going to initialize the cls to version release lookup";
     protected static final String MSG_INITIALIZING_EVIDENCE_INFO = "Initializing evidence info";
@@ -236,14 +235,6 @@ public class DataIO {
 
     public static final String ANNOTATION_NODE_PUBLIC_ID_LOOKUP = "select n.accession, n.public_id, n.node_id from node n where n.accession like '%1:%' and n.classification_version_sid = %2 and n.obsolescence_date is null";
 
-    public static final String PAINT_EXP_ANNOTATION = "select pea.annotation_id \n" +
-                                                            "from paint_exp_annotation pea, node n \n" +
-                                                            "where n.classification_version_sid = %1 \n" +
-                                                            "and n.accession like '%2%' \n" +
-                                                            "and n.node_id = pea.node_id \n" +
-                                                            "and n.obsolescence_date is null \n" +
-                                                            "and pea.obsolescence_date is null ";
-    
     public static final String PANTHER_TREE_STRUCTURE = "select n1.accession as child_accession, n1.node_id as child_id, n2.accession as parent_accession, n2.node_id as parent_id from node n1, node n2, node_relationship nr where n1.CLASSIFICATION_VERSION_SID = %1 and n1.CLASSIFICATION_VERSION_SID = n2.CLASSIFICATION_VERSION_SID and n1.accession like '%2' and n1.node_id = nr.CHILD_NODE_ID and nr.parent_node_id = n2.NODE_ID ";
     
     public static final String PANTHER_NODE_ORGANISM = "select n.accession, o.organism \n" +
@@ -258,31 +249,9 @@ public class DataIO {
                                                         "where n.CLASSIFICATION_VERSION_SID = %1 \n" +
                                                         "and n.node_id = no.node_id and no.organism_id = o.organism_id and n.OBSOLESCENCE_DATE is null";
     
-    public static final String BOOKS_WITH_PAINT_ANNOTS = "select distinct substring(n.accession, 1, 9) as book from paint_annotation pa, node n\n" +
+    public static final String BOOKS_WITH_PAINT_EVIDENCE = "select distinct substring(n.accession, 1, 9) as book from paint_annotation pa, node n\n" +
                                                             "where pa.node_id = n.node_id\n" +
-                                                            "and n.classification_version_sid = %1 \n" ;
-    
-    public static final String GET_BOOKS_WITH_LEAF_EVIDENCE_AND_ANNOTATABLE_TERMS_GO_AGGREGATE = "select distinct substring(agg.accession, 1, 9) accession from go_aggregate agg, node n, node_type nt\n" +
-                                                            "where n.accession = agg.accession\n" +
-                                                            "and n.node_type_id = nt.node_type_id\n" +
-                                                            "and nt.node_type='LEAF'\n" +
-                                                            "and agg.confidence_code in ( %1 )\n" +
-                                                            "and agg.term not in ( %2 )";
-    
-    public static final String GET_BOOKS_WITH_LEAF_EVIDENCE_AND_ANNOTATABLE_TERMS_PAINT_AGGREGATE =  " select distinct substring(pea.accession, 1, 9) accession from paint_exp_aggregate pea " +
-                                                            " where pea.confidence_code in ( %1 )\n" +
-                                                            " and pea.term not in ( %2 )";   
-    
-//    public static final String GET_BOOKS_WITH_LEAF_GO_EVIDENCE_AND_ANNOTATABLE_TERMS = "select distinct substring(agg.accession, 1, 9) accession from go_aggregate agg, node n, node_type nt\n" +
-//                                                            "where n.accession = agg.accession\n" +
-//                                                            "and n.node_type_id = nt.node_type_id\n" +
-//                                                            "and nt.node_type='LEAF'\n" +
-//                                                            "and agg.confidence_code in ( %1 )\n" +
-//                                                            "and agg.term not in ( %2 )"   +
-//                                                            " union \n" +
-//                                                            " select distinct substring(pea.accession, 1, 9) accession from paint_exp_aggregate pea " +
-//                                                            " where pea.confidence_code in ( %1 )\n" +
-//                                                            " and pea.term not in ( %2 )";       
+                                                            "and n.classification_version_sid = %1 \n" ;                                          
     
     public static final String IDENTIFIER_AN = "select n.accession, it.IDENTIFIER_TYPE_SID, i.NAME, it.name as identifier_type from node n, protein_node pn, protein p, identifier i, identifier_type it where n.classification_version_sid = %1 and n.accession like '%2' and n.node_id = pn.node_id and pn.protein_id = p.protein_id and p.PROTEIN_ID = i.primary_object_id and i.IDENTIFIER_TYPE_SID = it.IDENTIFIER_TYPE_SID and it.IDENTIFIER_TYPE_SID in (%3)";
     
@@ -357,18 +326,10 @@ public class DataIO {
                                                                 "select *, 'false' as paint_annot from go_aggregate\n" +
                                                                 "where accession like '%1'";
     
-    // Note although these annotations are being created in PAINT, it is not considered to be a 'PAINT' annotation
-    public static final String FULL_GO_ANNOTATIONS_PART_3 = " union\n" +
-                                                                "select *, NULL as contrib_group, 'false' as paint_annot from  get_paint_exp_annotations( %2 ) \n" +
-                                                                "where accession like '%1'";
-    
-    
     public static final String FULL_GO_ANNOTATIONS_AGGREGATE = "select *, 'false' as paint_annot from go_aggregate\n" +
                                                                 "where accession like '%1' union\n" +
                                                                 "select *, NULL  as contrib_group, 'true' as paint_annot from paint_aggregate\n" +
-                                                                "where accession like '%1' union\n" + 
-                                                                "select *, NULL  as contrib_group, 'false' as paint_annot from get_paint_exp_annotations( %2 ) \n" +
-                                                                "where accession like '%1' ";
+                                                                "where accession like '%1'";
     
     
     
@@ -467,18 +428,12 @@ public class DataIO {
                                         "and a.classification_id is null";    
     
     
-//    public static final String GET_BOOKS_WITH_LEAF_GO_EVIDENCE_AND_ANNOTATABLE_TERMS = "select distinct substring(agg.accession, 1, 9) accession from go_aggregate agg, node n, node_type nt\n" +
-//                                                            "where n.accession = agg.accession\n" +
-//                                                            "and n.node_type_id = nt.node_type_id\n" +
-//                                                            "and nt.node_type='LEAF'\n" +
-//                                                            "and agg.confidence_code in ( %1 )\n" +
-//                                                            "and agg.term not in ( %2 )";
-//    
-//    public static final String GET_BOOKS_WITH_PAINT_EXP_EVIDENCE_AND_ANNOTATABLE_TERMS = "select distinct substring(n.accession, 1, 9) as book\n" +
-//                                                            "from paint_exp_annotation pea, node n, node_type nt\n" +
-//                                                            "where pea.node_id = n.node_id\n" +
-//                                                            "and n.classification_version_sid = 31\n" +
-//                                                            "and n.node_type_id = nt.node_type_id and nt.node_type='LEAF'\n";
+    public static final String GET_BOOKS_WITH_LEAF_GO_EVIDENCE_AND_ANNOTATABLE_TERMS = "select distinct substring(agg.accession, 1, 9) accession from go_aggregate agg, node n, node_type nt\n" +
+                                                            "where n.accession = agg.accession\n" +
+                                                            "and n.node_type_id = nt.node_type_id\n" +
+                                                            "and nt.node_type='LEAF'\n" +
+                                                            "and agg.confidence_code in ( %1 )\n" +
+                                                            "and agg.term not in ( %2 )";
     
     public static final String GET_EXPERIMENTAL_EVIDENCE_BY_TAXON_ID = "select ga.* from organism o, protein_source ps, protein p, protein_node pn, node n, go_aggregate ga\n" +
                                                             "where o.classification_version_sid = %1 \n" +
@@ -492,27 +447,9 @@ public class DataIO {
                                                             "and ps.obsolescence_date is null\n" +
                                                             "and p.obsolescence_date is null\n" +
                                                             "and pn.obsolescence_date is null\n" +
-                                                            "and n.obsolescence_date is null\n" + 
-                                                            "union \n" + 
-                                                            "select pea.*, NULL  as contrib_group, 'false' as paint_annot from organism o, protein_source ps, protein p, protein_node pn, node n, paint_exp_aggregate pea\n" + 
-                                                            "where o.classification_version_sid = %1 \n" +
-                                                            "and o.taxon_id = %2 \n" +
-                                                            "and o.organism_id = ps.organism_id\n" +
-                                                            "and ps.source_id = p.source_id\n" +
-                                                            "and p.protein_id = pn.protein_id\n" +
-                                                            "and pn.node_id = n.node_id\n" +
-                                                            "and n.accession = pea.accession\n" +
-                                                            "and pea.confidence_code in ( %3 ) \n" +            
-                                                            "and ps.obsolescence_date is null\n" +
-                                                            "and p.obsolescence_date is null\n" +
-                                                            "and pn.obsolescence_date is null\n" +
-                                                            "and n.obsolescence_date is null\n";            
-            
-            
+                                                            "and n.obsolescence_date is null";
     
-    public static final String GET_ALL_EXPERIMENTAL = "select * from go_aggregate where confidence_code in ( %3 ) \n" +
-                                                      " union \n" + 
-                                                      "select pea.*, NULL  as contrib_group, 'false' as paint_annot from paint_exp_aggregate where confidence_code in ( %3 )";
+    public static final String GET_ALL_EXPERIMENTAL = "select * from go_aggregate where confidence_code in ( %3 )";
 
     
     public static final String GET_ALL_ANNOTS_EVIDENCE_BY_TAXON_ID = "select ga.* from organism o, protein_source ps, protein p, protein_node pn, node n, go_aggregate ga\n" +
@@ -526,20 +463,7 @@ public class DataIO {
                                                             "and ps.obsolescence_date is null\n" +
                                                             "and p.obsolescence_date is null\n" +
                                                             "and pn.obsolescence_date is null\n" +
-                                                            "and n.obsolescence_date is null\n " +
-                                                            "union\n " + 
-                                                            "select pea.*, NULL  as contrib_group, 'false' as paint_annot from organism o, protein_source ps, protein p, protein_node pn, node n, paint_exp_aggregate pea\n" +
-                                                            "where o.classification_version_sid = %1 \n" +
-                                                            "and o.taxon_id = %2 \n" +
-                                                            "and o.organism_id = ps.organism_id\n" +
-                                                            "and ps.source_id = p.source_id\n" +
-                                                            "and p.protein_id = pn.protein_id\n" +
-                                                            "and pn.node_id = n.node_id\n" +
-                                                            "and n.accession = pea.accession\n" +
-                                                            "and ps.obsolescence_date is null\n" +
-                                                            "and p.obsolescence_date is null\n" +
-                                                            "and pn.obsolescence_date is null\n" +
-                                                            "and n.obsolescence_date is null";
+                                                            "and n.obsolescence_date is null";    
 //    public static final String GET_PRUNED = "select a.annotation_id, n.accession, n.node_id, n.public_id from node n, go_annotation a\n" +
 //                                        "where n.classification_version_sid = %1\n" +
 //                                        "and n.accession like '%2'\n" +
@@ -552,13 +476,8 @@ public class DataIO {
     public static final String GET_LIST_OF_BOOKS = " select c.CLASSIFICATION_ID, c.accession, c.name from classification c where  c.depth = %1 and c.CLASSIFICATION_VERSION_SID = %2 ";
     
     public static final String GET_GO_ANNOTATIONS_FOR_NODE = "select * from node n, go_aggregate g\n" +
-                                                             "where n.public_id = '%1' and n.classification_version_sid = %2 \n" +
-                                                             "and n.accession = g.accession\n " +
-                                                             "union \n" + 
-                                                             "select * from node n, pea.*, NULL  as contrib_group, 'false' as paint_annot from node, paint_exp_aggregate pea\n" +
-                                                             "where n.public_id = '%1' and n.classification_version_sid = %2 \n" +
-                                                             "and n.accession = pea.accession";
-    
+                                                                "where n.public_id = '%1' and n.classification_version_sid = %2 \n" +
+                                                                "and n.accession = g.accession"; 
     public static final String GET_STATUS_USER_INFO = " select c.ACCESSION, c.NAME, u.NAME, u.EMAIL, cst.STATUS, cst.STATUS_TYPE_SID, u.login_name, u.group_name, cs.CREATION_DATE  from classification c, curation_status cs, curation_status_type cst, users u where c.depth = %1 and c.CLASSIFICATION_VERSION_SID = %2 and c.CLASSIFICATION_ID  = cs.CLASSIFICATION_ID and cs.STATUS_TYPE_SID = cst.STATUS_TYPE_SID and cs.USER_ID = u.user_id ";
  
     public static final String GET_STATUS_USER_INFO_FOR_BOOK = " select c.ACCESSION, c.NAME, u.NAME, u.EMAIL, cst.STATUS, cst.STATUS_TYPE_SID, u.login_name, u.group_name, cs.CREATION_DATE  from classification c, curation_status cs, curation_status_type cst, users u where c.depth = %1 and c.CLASSIFICATION_VERSION_SID = %2 and c.accession like '%3' and c.CLASSIFICATION_ID  = cs.CLASSIFICATION_ID and cs.STATUS_TYPE_SID = cst.STATUS_TYPE_SID and cs.USER_ID = u.user_id ";
@@ -581,16 +500,9 @@ public class DataIO {
     public static final String DELETE_ANNOTATION_FROM_PAINT_ANNOTATION_QUALIFIER = "delete from paint_annotation_qualifier where annotation_id = %1";      
     
     public static final String INSERT_ANNOTATION_INTO_PAINT_ANNOTATION = "insert into paint_annotation (annotation_id, node_id, classification_id, annotation_type_id, created_by, creation_date) values(%1, %2, %3, %4, %5, now())";
-    public static final String INSERT_PAINT_ANNOTATION_QUALIFIER = "insert into paint_annotation_qualifier(annotation_qualifier_id, annotation_id, qualifier_id) values (%1, %2, %3)";   
+    public static final String INSERT_PAINT_ANNOTATION_QUALIFIER = "insert into paint_annotation_qualifier(annotation_qualifier_id, annotation_id, qualifier_id) values (%1, %2, %3)";
+    
     public static final String INSERT_ANNOTATION_INTO_PAINT_EVIDENCE = "insert into paint_evidence (evidence_id, evidence_type_sid, evidence, creation_date, created_by, confidence_code_sid, annotation_id) values (%1, %2, ?, now(), %3, %4, %5)";
-    
-    public static final String OBSOLETE_ANNOTATION_FROM_PAINT_EXP_ANNOTATION = "update paint_exp_annotation set obsolescence_date = now(), obsoleted_by = %1 where annotation_id = ? ";
-    public static final String OBSOLETE_ANNOTATION_FROM_PAINT_EXP_EVIDENCE = "update paint_exp_evidence set obsolescence_date = now(), obsoleted_by = %1 where annotation_id = ? ";
-    public static final String DELETE_ANNOTATION_FROM_PAINT_EXP_ANNOTATION_QUALIFIER = "delete from paint_exp_annotation_qualifier where annotation_id = %1";    
-    
-    public static final String INSERT_ANNOTATION_INTO_PAINT_EXP_ANNOTATION = "insert into paint_exp_annotation (annotation_id, node_id, classification_id, annotation_type_id, created_by, creation_date) values(%1, %2, %3, %4, %5, now())";
-    public static final String INSERT_PAINT_EXP_ANNOTATION_QUALIFIER = "insert into paint_exp_annotation_qualifier(annotation_qualifier_id, annotation_id, qualifier_id) values (%1, %2, %3)";   
-    public static final String INSERT_ANNOTATION_INTO_PAINT_EXP_EVIDENCE = "insert into paint_exp_evidence (evidence_id, evidence_type_sid, evidence, creation_date, created_by, confidence_code_sid, annotation_id) values (%1, %2, ?, now(), %3, %4, %5)";
     
     public static final String PREPARED_BOOK_LOCK = "insert into curation_status (CURATION_STATUS_ID, STATUS_TYPE_SID, CLASSIFICATION_ID, USER_ID, CREATION_DATE) values(?, ?, ?, ?, now())";
     public static final String PREPARED_BOOK_UNLOCK = "delete from CURATION_STATUS where CLASSIFICATION_ID = ? AND USER_ID = ? and STATUS_TYPE_SID = ?";
@@ -1530,135 +1442,50 @@ public class DataIO {
         }
        
     }
-
-    public HashSet<String> getBooksWithGOExpEvidenceForLeaves() {
-        Connection con = null;
-        Statement gstmt = null;
-        ResultSet grslt = null;
-        HashSet<String> books = new HashSet<String>();
-        try {
-            con = getConnection();
-            if (null == con) {
-                return null;
-            }
-
-            HashSet<String> experimental = Evidence.getExperimental();
-            if (null == experimental) {
-                return null;
-            }
-            String expStr = Utils.listToString(new Vector(experimental), QUOTE, STR_COMMA);
-            String query = GET_BOOKS_WITH_LEAF_EVIDENCE_AND_ANNOTATABLE_TERMS_GO_AGGREGATE.replace(QUERY_PARAMETER_1, expStr);
-            String nonAllowedTerms = Utils.listToString(new Vector(GOTermHelper.NON_ALLOWED_TERM_SET), QUOTE, STR_COMMA);
-            query = query.replace(QUERY_PARAMETER_2, nonAllowedTerms);
-            gstmt = con.createStatement();
-            grslt = gstmt.executeQuery(query);
-            while (grslt.next()) {
-                String accession = grslt.getString(COLUMN_NAME_ACCESSION);
-                books.add(accession);
-            }
-            return books;
-            
-        } catch (SQLException se) {
-            System.out.println("Unable to retrieve books with experimental evidence on leaves, exception "
-                    + se.getMessage() + " has been returned.");
-        }
-        catch (Exception e) {
-            e.printStackTrace();
-        }
-        finally {
-            ReleaseResources.releaseDBResources(grslt, gstmt, con);
-        }
-        
-        return null;        
-    }
-    
-    public HashSet<String> getBooksWithPAINTExpEvidenceForLeaves() {
-        Connection con = null;
-        Statement gstmt = null;
-        ResultSet grslt = null;
-        HashSet<String> books = new HashSet<String>();
-        try {
-            con = getConnection();
-            if (null == con) {
-                return null;
-            }
-
-            HashSet<String> experimental = Evidence.getExperimental();
-            if (null == experimental) {
-                return null;
-            }
-            String expStr = Utils.listToString(new Vector(experimental), QUOTE, STR_COMMA);
-            String query = GET_BOOKS_WITH_LEAF_EVIDENCE_AND_ANNOTATABLE_TERMS_PAINT_AGGREGATE.replace(QUERY_PARAMETER_1, expStr);
-            String nonAllowedTerms = Utils.listToString(new Vector(GOTermHelper.NON_ALLOWED_TERM_SET), QUOTE, STR_COMMA);
-            query = query.replace(QUERY_PARAMETER_2, nonAllowedTerms);
-            System.out.println("Start query to retrieve books with experimental annotations " + DATE_FORMATTER.format(new java.util.Date(System.currentTimeMillis())));
-            gstmt = con.createStatement();
-            grslt = gstmt.executeQuery(query);
-            while (grslt.next()) {
-                String accession = grslt.getString(COLUMN_NAME_ACCESSION);
-                books.add(accession);
-            }
-            System.out.println("End query to retrieve books with experimental annotations " + DATE_FORMATTER.format(new java.util.Date(System.currentTimeMillis())));
-            return books;
-            
-        } catch (SQLException se) {
-            System.out.println("Unable to retrieve books with experimental evidence on leaves, exception "
-                    + se.getMessage() + " has been returned.");
-        }
-        catch (Exception e) {
-            e.printStackTrace();
-        }
-        finally {
-            ReleaseResources.releaseDBResources(grslt, gstmt, con);
-        }
-        
-        return null;        
-    }
     
     /*
     // Books with experimental evidences and terms that can be annotated
     */
-//    TOO slow - Use BookManager.getBooksWihtExpLeaves();
-//    public HashSet<String> getBooksWithExpEvdnceForLeaves() {
-//        Connection con = null;
-//        Statement gstmt = null;
-//        ResultSet grslt = null;
-//        HashSet<String> books = new HashSet<String>();
-//        try {
-//            con = getConnection();
-//            if (null == con) {
-//                return null;
-//            }
-//
-//            HashSet<String> experimental = Evidence.getExperimental();
-//            if (null == experimental) {
-//                return null;
-//            }
-//            String expStr = Utils.listToString(new Vector(experimental), QUOTE, STR_COMMA);
-//            String query = GET_BOOKS_WITH_LEAF_GO_EVIDENCE_AND_ANNOTATABLE_TERMS.replace(QUERY_PARAMETER_1, expStr);
-//            String nonAllowedTerms = Utils.listToString(new Vector(GOTermHelper.NON_ALLOWED_TERM_SET), QUOTE, STR_COMMA);
-//            query = query.replace(QUERY_PARAMETER_2, nonAllowedTerms);
-//            gstmt = con.createStatement();
-//            grslt = gstmt.executeQuery(query);
-//            while (grslt.next()) {
-//                String accession = grslt.getString(COLUMN_NAME_ACCESSION);
-//                books.add(accession);
-//            }
-//            return books;
-//            
-//        } catch (SQLException se) {
-//            System.out.println("Unable to retrieve books with experimental evidence on leaves, exception "
-//                    + se.getMessage() + " has been returned.");
-//        }
-//        catch (Exception e) {
-//            e.printStackTrace();
-//        }
-//        finally {
-//            ReleaseResources.releaseDBResources(grslt, gstmt, con);
-//        }
-//        
-//        return null;
-//    }
+    public HashSet<String> getBooksWithExpEvdnceForLeaves() {
+        Connection con = null;
+        Statement gstmt = null;
+        ResultSet grslt = null;
+        HashSet<String> books = new HashSet<String>();
+        try {
+            con = getConnection();
+            if (null == con) {
+                return null;
+            }
+
+            HashSet<String> experimental = Evidence.getExperimental();
+            if (null == experimental) {
+                return null;
+            }
+            String expStr = Utils.listToString(new Vector(experimental), QUOTE, STR_COMMA);
+            String query = GET_BOOKS_WITH_LEAF_GO_EVIDENCE_AND_ANNOTATABLE_TERMS.replace(QUERY_PARAMETER_1, expStr);
+            String nonAllowedTerms = Utils.listToString(new Vector(GOTermHelper.NON_ALLOWED_TERM_SET), QUOTE, STR_COMMA);
+            query = query.replace(QUERY_PARAMETER_2, nonAllowedTerms);
+            gstmt = con.createStatement();
+            grslt = gstmt.executeQuery(query);
+            while (grslt.next()) {
+                String accession = grslt.getString(COLUMN_NAME_ACCESSION);
+                books.add(accession);
+            }
+            return books;
+            
+        } catch (SQLException se) {
+            System.out.println("Unable to retrieve books with experimental evidence on leaves, exception "
+                    + se.getMessage() + " has been returned.");
+        }
+        catch (Exception e) {
+            e.printStackTrace();
+        }
+        finally {
+            ReleaseResources.releaseDBResources(grslt, gstmt, con);
+        }
+        
+        return null;
+    }
     
     public HashMap<String, NodeAnnotation> getAllAnnotsByTaxonId(String uplVersion, String taxonId) {
         Connection con = null;
@@ -2020,8 +1847,8 @@ public class DataIO {
      * @param book
      * @param uplVersion
      * @param nodeLookup
-     * @param errorBuf - Is both error and information based 
-     * @param paintErrBuf - Is both error and information based 
+     * @param errorBuf
+     * @param paintErrBuf
      * @param removedAnnotSet - Need this information for comparison during save operation
      * @param modifiedAnnotSet - Need this information for comparison during save operation
      * @param dataSource - AGG for aggregate table,
@@ -2072,9 +1899,6 @@ public class DataIO {
             nodeAccToNodeLookup.put(nsi.getNodeAcc(), n);
             accToPTNLookup.put(nsi.getNodeAcc(), nsi.getPublicId());
         }
-        
-        // Get experimental paint annotations
-        HashSet<String> expPaintAnnotSet = getExpPaintAnnotSet(uplVersion, book);
 
 
         Connection con = null;
@@ -2099,7 +1923,7 @@ public class DataIO {
                 case STANDARD_PAINT_ANNOT: {
                     query = addVersionReleaseClause(uplVersion, Constant.STR_EMPTY, TABLE_NAME_n);
                     query = addVersionReleaseClause(uplVersion, query, TABLE_NAME_clf);
-                    query = FULL_GO_ANNOTATIONS_PART_1 + query + FULL_GO_ANNOTATIONS_PART_2 + FULL_GO_ANNOTATIONS_PART_3;
+                    query = FULL_GO_ANNOTATIONS_PART_1 + query + FULL_GO_ANNOTATIONS_PART_2;
 
                     query = Utils.replace(query, QUERY_PARAMETER_1, book + QUERY_ANNOTATION_NODE_MIDDLE_WILDCARD);
                     query = Utils.replace(query, QUERY_PARAMETER_2, uplVersion);
@@ -2113,12 +1937,12 @@ public class DataIO {
                     String part_1_query = addVersionReleaseClause(uplVersion, Constant.STR_EMPTY, TABLE_NAME_n);
                     part_1_query = addVersionReleaseClause(uplVersion, part_1_query, TABLE_NAME_clf);
                     part_1_query = FULL_GO_ANNOTATIONS_PART_1 + part_1_query;
- 
+
                     // Combine standard annotation query with replacement query followed by experimental evidence part
                     query = part_1_query + 
                             // Note clf not null should not be part of the clause.  Only node table
                             FULL_GO_ANNOTATIONS_OBSOLETED_AND_REPLACED + addVersionReleaseClause(uplVersion, Constant.STR_EMPTY, TABLE_NAME_n) +
-                            FULL_GO_ANNOTATIONS_PART_2 + FULL_GO_ANNOTATIONS_PART_3;
+                            FULL_GO_ANNOTATIONS_PART_2;
                     query = Utils.replace(query, QUERY_PARAMETER_1, book + QUERY_ANNOTATION_NODE_MIDDLE_WILDCARD);
                     query = Utils.replace(query, QUERY_PARAMETER_2, uplVersion);
                     break;                    
@@ -2324,10 +2148,6 @@ public class DataIO {
                         a = new Annotation();
                         a.setAnnotationId(annotId);
                         a.setExperimental(true);
-                        if (expPaintAnnotSet.contains(annotId)) {
-                        // Indicate annotation created as experiemtal from PAINT
-                            a.setExpAnnotCreatedInPaint(true);
-                        }
                         expAnnotLookup.put(annotId, a);
                         a.setGoTerm(annotInfo.get(2));
                         a.setDate(annotInfo.get(10));
@@ -2484,7 +2304,7 @@ public class DataIO {
             if (false == checkAggOnly) {
                 query = addVersionReleaseClause(uplVersion, Constant.STR_EMPTY, TABLE_NAME_n);
                 query = addVersionReleaseClause(uplVersion, query, TABLE_NAME_clf);
-                query = FULL_GO_ANNOTATIONS_PART_1 + query + FULL_GO_ANNOTATIONS_PART_2 + FULL_GO_ANNOTATIONS_PART_3;
+                query = FULL_GO_ANNOTATIONS_PART_1 + query + FULL_GO_ANNOTATIONS_PART_2;
 
                 query = Utils.replace(query, QUERY_PARAMETER_1, book + QUERY_ANNOTATION_NODE_MIDDLE_WILDCARD);
                 query = Utils.replace(query, QUERY_PARAMETER_2, uplVersion);
@@ -3867,17 +3687,6 @@ public class DataIO {
         // check descendants
         ArrayList<Node> children = nsi.getChildren();
         if (null == children || 0 == children.size()) {
-            if (null != nvi) {
-                ArrayList<Annotation> annots = nvi.getGoAnnotationList();
-                if (null != annots) {
-                    for (Annotation a : annots) {
-                        if (a.isExpAnnotCreatedInPaint()) {
-                            String infoMsg = "Information - Experimental annotation for node " + nsi.getPublicId() + " to term " + a.getGoTerm() + " created on " + a.getDate() + ".\n";
-                            paintErrBuf.append(infoMsg);
-                        }
-                    }
-                }
-            }
             return;
         }
         for (Node child : children) {
@@ -5570,23 +5379,16 @@ public class DataIO {
             if (annotToNodeRepTermLookup != null && 0 < annotToNodeRepTermLookup.size()) {
                 isObsoleteTermReplace = true;
             }
-
-            HashMap<String, ArrayList<Annotation>> annotLookup;
-            ArrayList<Annotation> nonEepAnnotList = null;
-            ArrayList<Annotation> expAnnotList = null;
+            ArrayList<Annotation> curAnnotList = null;
             if (false == isObsoleteTermReplace) {
-                annotLookup = getSavedAnnotations(uplVersion, book, treeNodeLookup, removedAnnotSet, modifiedAnnotSet, addedAnnotSet, removedFromGOAnnotSet, errBuf, paintErrBuf, DATA_SOURCE.STANDARD_PAINT_ANNOT, null);
-                nonEepAnnotList = annotLookup.get(KEY_PAINT_NON_EXP);
-                expAnnotList = annotLookup.get(KEY_PAINT_EXP);
+                curAnnotList = getSavedAnnotations(uplVersion, book, treeNodeLookup, removedAnnotSet, modifiedAnnotSet, addedAnnotSet, removedFromGOAnnotSet, errBuf, paintErrBuf, DATA_SOURCE.STANDARD_PAINT_ANNOT, null);
             }
             else {
                 System.out.println(book + " has annotations to obsoleted terms that have replacement");
-                annotLookup = getSavedAnnotations(uplVersion, book, treeNodeLookup, removedAnnotSet, modifiedAnnotSet, addedAnnotSet, removedFromGOAnnotSet, errBuf, paintErrBuf, DATA_SOURCE.STANDARD_PAINT_ANNOT_AND_OBSOLETE_REPLACE, annotToNodeRepTermLookup);
-                nonEepAnnotList = annotLookup.get(KEY_PAINT_NON_EXP);
-                expAnnotList = annotLookup.get(KEY_PAINT_EXP);
-                
+                curAnnotList = getSavedAnnotations(uplVersion, book, treeNodeLookup, removedAnnotSet, modifiedAnnotSet, addedAnnotSet, removedFromGOAnnotSet, errBuf, paintErrBuf, DATA_SOURCE.STANDARD_PAINT_ANNOT_AND_OBSOLETE_REPLACE, annotToNodeRepTermLookup);
+
                 // Ensure that annotations that are getting carried over do not have the old annotation id
-                for (Annotation a: nonEepAnnotList) {
+                for (Annotation a: curAnnotList) {
                     if (a.getAnnotationId() != null && annotToNodeRepTermLookup.containsKey(a.getAnnotationId())) {
                         a.setAnnotationId(null);
                     }
@@ -5662,8 +5464,7 @@ public class DataIO {
             sbi.setPrunedList(prunedList);
             sbi.setComment(c);
             sbi.setFamilyName(getFamilyName(book, uplVersion));
-            sbi.setAnnotationList(nonEepAnnotList);
-            sbi.setExpAnnotatonList(expAnnotList);
+            sbi.setAnnotationList(curAnnotList);
             success = this.saveBook(sbi, uplVersion, false, updateCon);
             if (false == Constant.STR_EMPTY.equals(success)) {
                 return CODE_FIX_BOOK_UPDATE_UNSUCCESSFUL;
@@ -5722,139 +5523,139 @@ public class DataIO {
 
     
     
-//    public int fixBookOldNotUsedAnyLonger(String book, User user, String uplVersion, String comment, boolean updateLockedBook, StringBuffer errBuf, StringBuffer paintErrBuf) throws Exception{
-//        Connection updateCon = null;
-//        try {
-//            String bookId = getBookId(book, uplVersion);
-//
-//            HashSet<Annotation> removedAnnotSet = new HashSet<Annotation>();
-//            HashSet<String> modifiedAnnotSet = new HashSet<String>();
-//            HashSet<Annotation> addedAnnotSet = new HashSet<Annotation>();      // Annotations with evidence codes such as TCV
-//            HashSet<Annotation> removedFromGOAnnotSet = new HashSet<Annotation>();
-//
-//
-//            ArrayList<Annotation> curAnnotList = getSavedAnnotations(uplVersion, book, removedAnnotSet, modifiedAnnotSet, addedAnnotSet, removedFromGOAnnotSet, errBuf, paintErrBuf);  // Disable temporarily   new ArrayList<Annotation>();
-//            if (removedAnnotSet.isEmpty() && modifiedAnnotSet.isEmpty() && addedAnnotSet.isEmpty()) {
-//                return CODE_FIX_BOOK_UPDATE_UNNECESSARY;
-//            }
-//            
-//            // Determine if someone is already locking the book
-//            String lockingUser = getUserIdLockingBook(book, uplVersion);
-//            
-//            // If book is locked and we are not supposed update locked books, return
-//            if (null != lockingUser && false == updateLockedBook) {
-//                return CODE_FIX_BOOK_UPDATE_UNSUCCESSFUL_BOOK_LOCKED;
-//            }            
-//            
-//            // Get connection that is going to be used for all the updates.  If any update is unsuccessful, then whole transaction is aborted.
-//            updateCon = getConnection();            
-//            updateCon.setAutoCommit(false);
-//            updateCon.rollback();
-//            
-//            
-//            if (true == updateLockedBook && null != lockingUser) {
-//                String success = this.unlockBook(lockingUser, bookId, updateCon);
-//                if (false == Constant.STR_EMPTY.equals(success)) {
-//                    return CODE_FIX_BOOK_UPDATE_UNSUCCESSFUL;
-//                }
-//            }
-//
-//            
-//            // Lock book
-//            String success = this.lockBook(bookId, user.getUserId(), updateCon);
-//            if (false == MSG_SUCCESS.equals(success)) {
+    public int fixBookOldNotUsedAnyLonger(String book, User user, String uplVersion, String comment, boolean updateLockedBook, StringBuffer errBuf, StringBuffer paintErrBuf) throws Exception{
+        Connection updateCon = null;
+        try {
+            String bookId = getBookId(book, uplVersion);
+
+            HashSet<Annotation> removedAnnotSet = new HashSet<Annotation>();
+            HashSet<String> modifiedAnnotSet = new HashSet<String>();
+            HashSet<Annotation> addedAnnotSet = new HashSet<Annotation>();      // Annotations with evidence codes such as TCV
+            HashSet<Annotation> removedFromGOAnnotSet = new HashSet<Annotation>();
+
+
+            ArrayList<Annotation> curAnnotList = getSavedAnnotations(uplVersion, book, removedAnnotSet, modifiedAnnotSet, addedAnnotSet, removedFromGOAnnotSet, errBuf, paintErrBuf);  // Disable temporarily   new ArrayList<Annotation>();
+            if (removedAnnotSet.isEmpty() && modifiedAnnotSet.isEmpty() && addedAnnotSet.isEmpty()) {
+                return CODE_FIX_BOOK_UPDATE_UNNECESSARY;
+            }
+            
+            // Determine if someone is already locking the book
+            String lockingUser = getUserIdLockingBook(book, uplVersion);
+            
+            // If book is locked and we are not supposed update locked books, return
+            if (null != lockingUser && false == updateLockedBook) {
+                return CODE_FIX_BOOK_UPDATE_UNSUCCESSFUL_BOOK_LOCKED;
+            }            
+            
+            // Get connection that is going to be used for all the updates.  If any update is unsuccessful, then whole transaction is aborted.
+            updateCon = getConnection();            
+            updateCon.setAutoCommit(false);
+            updateCon.rollback();
+            
+            
+            if (true == updateLockedBook && null != lockingUser) {
+                String success = this.unlockBook(lockingUser, bookId, updateCon);
+                if (false == Constant.STR_EMPTY.equals(success)) {
+                    return CODE_FIX_BOOK_UPDATE_UNSUCCESSFUL;
+                }
+            }
+
+            
+            // Lock book
+            String success = this.lockBook(bookId, user.getUserId(), updateCon);
+            if (false == MSG_SUCCESS.equals(success)) {
+                return CODE_FIX_BOOK_UPDATE_UNSUCCESSFUL;
+            }
+
+            // Save changes
+//            ArrayList<Object> saveInfo = new ArrayList<Object>(4);
+//            saveInfo.add(removedAnnotSet);
+//            saveInfo.add(modifiedAnnotSet);
+//            saveInfo.add(addedAnnotSet);
+//            saveInfo.add(removedFromGOAnnotSet);
+//            saveInfo.add(curAnnotList);
+//            saveInfo.add(bookId);
+
+            String curComment = getFamilyComment(book, uplVersion, new ArrayList<Integer>());
+            if (null == curComment) {
+                curComment = new String();
+            }
+            Comment c = new Comment(null, null, curComment);
+            if (null != comment) {
+                c.appendCommentUserNotes(comment);
+            }
+
+            SaveBookInfo sbi = new SaveBookInfo();
+            sbi.setUser(user);
+            sbi.setBookId(book);
+            HashMap<String, Node> prunedLookup = new HashMap<String, Node>();
+            addPruned(book, uplVersion, prunedLookup);
+            ArrayList<Node> prunedList = new ArrayList<Node>(prunedLookup.values());
+            sbi.setPrunedList(prunedList);
+            sbi.setComment(c);
+            sbi.setFamilyName(getFamilyName(book, uplVersion));
+            sbi.setAnnotationList(curAnnotList);
+            success = this.saveBook(sbi, uplVersion, false, updateCon);
+            if (false == Constant.STR_EMPTY.equals(success)) {
+                return CODE_FIX_BOOK_UPDATE_UNSUCCESSFUL;
+            }
+            
+            
+            // Unlock book
+            success = this.unlockBook(user.getUserId(), bookId, updateCon);
+            if (false == Constant.STR_EMPTY.equals(success)) {
+                return CODE_FIX_BOOK_UPDATE_UNSUCCESSFUL;
+            }
+            
+            // Lock book for original user, if necessary
+            if (null != lockingUser) {
+                success = this.lockBook(bookId, lockingUser, updateCon);
+                if (false == MSG_SUCCESS.equals(success)) {
+                    return CODE_FIX_BOOK_UPDATE_UNSUCCESSFUL;
+                }
+            }
+            
+//            // Rollback for testing purposes
+//            if (0 == 0) {
+//                updateCon.rollback();
+//                updateCon.setAutoCommit(true);
 //                return CODE_FIX_BOOK_UPDATE_UNSUCCESSFUL;
 //            }
-//
-//            // Save changes
-////            ArrayList<Object> saveInfo = new ArrayList<Object>(4);
-////            saveInfo.add(removedAnnotSet);
-////            saveInfo.add(modifiedAnnotSet);
-////            saveInfo.add(addedAnnotSet);
-////            saveInfo.add(removedFromGOAnnotSet);
-////            saveInfo.add(curAnnotList);
-////            saveInfo.add(bookId);
-//
-//            String curComment = getFamilyComment(book, uplVersion, new ArrayList<Integer>());
-//            if (null == curComment) {
-//                curComment = new String();
-//            }
-//            Comment c = new Comment(null, null, curComment);
-//            if (null != comment) {
-//                c.appendCommentUserNotes(comment);
-//            }
-//
-//            SaveBookInfo sbi = new SaveBookInfo();
-//            sbi.setUser(user);
-//            sbi.setBookId(book);
-//            HashMap<String, Node> prunedLookup = new HashMap<String, Node>();
-//            addPruned(book, uplVersion, prunedLookup);
-//            ArrayList<Node> prunedList = new ArrayList<Node>(prunedLookup.values());
-//            sbi.setPrunedList(prunedList);
-//            sbi.setComment(c);
-//            sbi.setFamilyName(getFamilyName(book, uplVersion));
-//            sbi.setAnnotationList(curAnnotList);
-//            success = this.saveBook(sbi, uplVersion, false, updateCon);
-//            if (false == Constant.STR_EMPTY.equals(success)) {
-//                return CODE_FIX_BOOK_UPDATE_UNSUCCESSFUL;
-//            }
-//            
-//            
-//            // Unlock book
-//            success = this.unlockBook(user.getUserId(), bookId, updateCon);
-//            if (false == Constant.STR_EMPTY.equals(success)) {
-//                return CODE_FIX_BOOK_UPDATE_UNSUCCESSFUL;
-//            }
-//            
-//            // Lock book for original user, if necessary
-//            if (null != lockingUser) {
-//                success = this.lockBook(bookId, lockingUser, updateCon);
-//                if (false == MSG_SUCCESS.equals(success)) {
-//                    return CODE_FIX_BOOK_UPDATE_UNSUCCESSFUL;
-//                }
-//            }
-//            
-////            // Rollback for testing purposes
-////            if (0 == 0) {
-////                updateCon.rollback();
-////                updateCon.setAutoCommit(true);
-////                return CODE_FIX_BOOK_UPDATE_UNSUCCESSFUL;
-////            }
-////            return CODE_FIX_BOOK_UPDATE_UNSUCCESSFUL;       
-//                        
-//            // commit update
-//            updateCon.commit();
-//            updateCon.setAutoCommit(true);
-//            System.out.println(DATE_FORMATTER.format(new java.util.Date(System.currentTimeMillis())) + "***** Committed save information for book id " + book);
-//            return CODE_FIX_BOOK_UPDATE_SUCCESSFUL;     
-//        }
-//        catch(Exception e) {
-//            e.printStackTrace();
-//            try {
-//                if (null != updateCon) {
-//                    updateCon.rollback();
-//                    updateCon.setAutoCommit(true);
-//                }
-//            }
-//            catch(Exception ex) {
-//                System.out.println(ex);
-//            }
-//            System.out.println(DATE_FORMATTER.format(new java.util.Date(System.currentTimeMillis())) + " Save failed for book id " + book);
-//            return CODE_FIX_BOOK_UPDATE_UNSUCCESSFUL;
-//        }
-//        finally {
-//            if (null != updateCon) {             
-//                ReleaseResources.releaseDBResources(null, null, updateCon);
-//            }
-//        }
-//    }
+//            return CODE_FIX_BOOK_UPDATE_UNSUCCESSFUL;       
+                        
+            // commit update
+            updateCon.commit();
+            updateCon.setAutoCommit(true);
+            System.out.println(DATE_FORMATTER.format(new java.util.Date(System.currentTimeMillis())) + "***** Committed save information for book id " + book);
+            return CODE_FIX_BOOK_UPDATE_SUCCESSFUL;     
+        }
+        catch(Exception e) {
+            e.printStackTrace();
+            try {
+                if (null != updateCon) {
+                    updateCon.rollback();
+                    updateCon.setAutoCommit(true);
+                }
+            }
+            catch(Exception ex) {
+                System.out.println(ex);
+            }
+            System.out.println(DATE_FORMATTER.format(new java.util.Date(System.currentTimeMillis())) + " Save failed for book id " + book);
+            return CODE_FIX_BOOK_UPDATE_UNSUCCESSFUL;
+        }
+        finally {
+            if (null != updateCon) {             
+                ReleaseResources.releaseDBResources(null, null, updateCon);
+            }
+        }
+    }
     
-//    private static int INDEX_REMOVED_ANNOT_SET = 0;
-//    private static int INDEX_MODIFIED_ANNOT_SET = 1;
-//    private static int INDEX_ADDED_ANNOT_SET = 2;
-//    private static int INDEX_REMOVED_FROM_GO_ANNOT_SET = 3;
-//    private static int INDEX_CURRENT_ANNOT_SET = 4;
-//    private static int INDEX_BOOK_ID = 5;
+    private static int INDEX_REMOVED_ANNOT_SET = 0;
+    private static int INDEX_MODIFIED_ANNOT_SET = 1;
+    private static int INDEX_ADDED_ANNOT_SET = 2;
+    private static int INDEX_REMOVED_FROM_GO_ANNOT_SET = 3;
+    private static int INDEX_CURRENT_ANNOT_SET = 4;
+    private static int INDEX_BOOK_ID = 5;
     
     public synchronized String saveBook(SaveBookInfo sbi, String uplVersion) throws Exception {
         return saveBook(sbi, uplVersion, true, null);
@@ -5896,12 +5697,9 @@ public class DataIO {
         }
         
         ArrayList<Annotation> newAnnotationList = sbi.getAnnotationList();
-        ArrayList<Annotation> newExpAnnotationList = sbi.getExpAnnotatonList();
-        if (null == newAnnotationList && null == newExpAnnotationList) {
+        if (null == newAnnotationList) {
             return MSG_SAVE_FAILED_ANNOTATION_IS_NULL;
         }
-        
-
 
         // Although term maybe invalid, TCV annotation to term will be valid
 //        ArrayList<String> annotTerms = new ArrayList<String>();
@@ -6019,9 +5817,7 @@ public class DataIO {
         
         // Handle Annotations
         ArrayList<Annotation> obsoleteAnnotList = new ArrayList<Annotation>();
-        ArrayList<Annotation> obsoleteExpAnnotList = new ArrayList<Annotation>();        
         ArrayList<Annotation> toSaveList = new ArrayList<Annotation>();
-        ArrayList<Annotation> toSaveExpList = new ArrayList<Annotation>();
         HashMap<Annotation, Annotation> newToCurAnnotLookup = new HashMap<Annotation, Annotation>();        // Annotations that match i.e. new and current are the same
 
         HashSet<Annotation> removedAnnotSet = new HashSet<Annotation>();
@@ -6032,86 +5828,10 @@ public class DataIO {
         HashSet<Annotation> removedFromGOAnnotSet = new HashSet<Annotation>();
         StringBuffer errBuf = new StringBuffer();
         StringBuffer paintErrBuf = new StringBuffer();
+        ArrayList<Annotation> curAnnotList = getSavedAnnotations(uplVersion, bookId, removedAnnotSet, modifiedAnnotSet, addedAnnotSet, removedFromGOAnnotSet, errBuf, paintErrBuf);  // Disable temporarily   new ArrayList<Annotation>();
 
 
-        HashMap<String, ArrayList<Annotation>> annotLookup = getSavedAnnotations(uplVersion, bookId, removedAnnotSet, modifiedAnnotSet, addedAnnotSet, removedFromGOAnnotSet, errBuf, paintErrBuf);  // Disable temporarily   new ArrayList<Annotation>();
-        ArrayList<Annotation> currentNonExpAnnotList = annotLookup.get(KEY_PAINT_NON_EXP);
-        ArrayList<Annotation> currentExpAnnotList = annotLookup.get(KEY_PAINT_EXP);
         
-        // Handle experimental paint annotations first.  Non-experimental annotations may be dependent on these
-        for (int i = 0 ; i < newExpAnnotationList.size(); i++) {
-            Annotation a = newExpAnnotationList.get(i);
-            System.out.println("Looking for comparison to experimental annotation with GO term " + a.getGoTerm() + " with evidence code " + a.getSingleEvidenceCodeFromSet());
-//            if ("144560534".equals(a.getAnnotationId())) {
-//                System.out.println("Here");
-//            }
-            boolean found = false;
-            Annotation compA = null;
-//            if ("GO:0098706".equals(a.getGoTerm())) {
-//                System.out.println("Here");
-//            }
-            for (int j = 0; j < currentExpAnnotList.size(); j++) {
-                 compA = currentExpAnnotList.get(j);
-//                 if ("144560534".equals(compA.getAnnotationId())) {
-//                    System.out.println("Here");
-//                 }
-//                System.out.println("Comparing annotations " + i + " of  " + newAnnotationList.size() + " with " + j + " of " + curAnnotList.size());
-//                if (i == 13 && j == 15) {
-//                    System.out.println("Here");
-//                }
-                if (true == annotationsSame(a, compA)) {
-                    found = true;
-                    
-                    // User might have removed an annotation and added it back.  We are not going to generate an annotation record for that annotation, since 
-                    // it already exists in the database.  However, if there are other annotations that are dependent on this annotation, they need this annotation's
-                    // id.  Set the annotation id here.
-                    if (null == a.getAnnotationId() && null != compA.getAnnotationId()) {
-                        System.out.println("Annotation id " + compA.getAnnotationId() + " has been assigned to annotation without an annotation id, during annotation comparison");                        
-                        a.setAnnotationId(compA.getAnnotationId());
-                    }
-                    
-                    break;                    
-                }
-                else {
-                    compA = null;
-                }
-            }
-            if (false == found) {
-                if (false == toSaveExpList.contains(a)) {
-                    toSaveExpList.add(a);
-                }
-                System.out.println("No match found for exp annotation to GO term " + a.getGoTerm() + " going to save new annotation");
-                newExpAnnotationList.remove(a);
-                i--;                    
-            }
-        }
-        
-        // Any current experimental annotations that are not in the new list, have to be obsoleted
-        for (int i = 0 ; i < currentExpAnnotList.size(); i++) {
-            Annotation a = currentExpAnnotList.get(i);
-
-            boolean found = false;
-            Annotation compA = null;
-            for (int j = 0; j < newExpAnnotationList.size(); j++) {
-                compA = newExpAnnotationList.get(j);
-                if (true == annotationsSame(a, compA)) {
-                    found = true;
-                    break;
-                }
-            }
-            if (false == found) {
-                obsoleteExpAnnotList.add(a);
-            }
-        }
-
-        for (Annotation a : toSaveExpList) {
-            a.setAnnotationId(Integer.toString(getUids(1)[0]));
-        }        
-        
-        
-        
-
-        // Handle non-experimental paint annotations
         for (int i = 0 ; i < newAnnotationList.size(); i++) {
             Annotation a = newAnnotationList.get(i);
             System.out.println("Looking for comparison to annotation with GO term " + a.getGoTerm() + " with evidence code " + a.getSingleEvidenceCodeFromSet());
@@ -6123,8 +5843,8 @@ public class DataIO {
 //            if ("GO:0098706".equals(a.getGoTerm())) {
 //                System.out.println("Here");
 //            }
-            for (int j = 0; j < currentNonExpAnnotList.size(); j++) {
-                 compA = currentNonExpAnnotList.get(j);
+            for (int j = 0; j < curAnnotList.size(); j++) {
+                 compA = curAnnotList.get(j);
 //                 if ("144560534".equals(compA.getAnnotationId())) {
 //                    System.out.println("Here");
 //                 }
@@ -6181,12 +5901,12 @@ public class DataIO {
                 // Found match - Remove from both lists.  This is to handle case when we have duplicate annotations
                 newAnnotationList.remove(a);
                 i--;
-                currentNonExpAnnotList.remove(compA);
+                curAnnotList.remove(compA);
             }
         }
 
         
-        for (Annotation a : currentNonExpAnnotList) {
+        for (Annotation a : curAnnotList) {
             if (false == obsoleteAnnotList.contains(a) && false == addedAnnotSet.contains(a)) {
                 System.out.println("Going to obsolete annotation to GO term " + a.getGoTerm() + " since user has removed these during curation");
                 obsoleteAnnotList.add(a);
@@ -6291,11 +6011,6 @@ public class DataIO {
             a.setAnnotationId(Integer.toString(getUids(1)[0]));
         }
         
-        
-        
-
-
-        
         String err = AnnotationHelper.checkValidity(toSaveList, CategoryLogic.getInstance().getGOTermHelper());
         if (null != err) {
             return err;
@@ -6314,7 +6029,7 @@ public class DataIO {
         }
         
         boolean updateAnnot = false;
-        if (false == obsoleteAnnotList.isEmpty() || false == toSaveList.isEmpty() || (null != obsoleteExpAnnotList && false == toSaveExpList.isEmpty())) {
+        if (false == obsoleteAnnotList.isEmpty() || false == toSaveList.isEmpty()) {
             updateAnnot = true;
             
             Date date = new Date(System.currentTimeMillis());
@@ -6330,21 +6045,11 @@ public class DataIO {
                 }
             }
             if (null != toSaveList) {
-                for (Annotation a : toSaveList) {
+                for (Annotation a: toSaveList) {
                     updateCommentUpdateHistory(comment, true, a, goTermHelper, date, user.getLoginName());
-                }
+                }                
             }
-
-            if (null != obsoleteExpAnnotList) {
-                for (Annotation a : obsoleteExpAnnotList) {
-                    updateCommentUpdateHistory(comment, false, a, goTermHelper, date, user.getLoginName());
-                }                  
-            }
-            if (null != toSaveExpList) {
-                for (Annotation a : toSaveExpList) {
-                    updateCommentUpdateHistory(comment, true, a, goTermHelper, date, user.getLoginName());
-                }          
-            }
+            
         }
         
         // Handle comments
@@ -6412,10 +6117,6 @@ public class DataIO {
                 obsoleteInsertPruned(updateCon, uplVersion, obsoleteAnnotPrunedList, newPrunedLookup, userIdStr);
             }
             
-            if (null != obsoleteExpAnnotList) {
-                obsoleteInsertExpPaintAnnotation(updateCon, bookClsId, obsoleteExpAnnotList, toSaveExpList, userIdStr);
-            }
-            
             // Annotations
             if (true == updateAnnot) {
                 obsoleteInsertAnnotation(updateCon, bookClsId, obsoleteAnnotList, toSaveList, userIdStr);
@@ -6444,12 +6145,12 @@ public class DataIO {
             // Save the book
             if (null == useUpdateConnection) {
                 updateCon.commit();
-                    updateCon.setAutoCommit(true);
+                updateCon.setAutoCommit(true);
                 System.out.println(DATE_FORMATTER.format(new java.util.Date(System.currentTimeMillis())) + "***** Committed save information for book id " + bookId);
                 return Constant.STR_EMPTY;
             } else {
                 return Constant.STR_EMPTY;
-                }
+            }
 
         }
         catch(Exception e) {
@@ -6839,158 +6540,6 @@ public class DataIO {
         }
     }
     
-    protected void obsoleteInsertExpPaintAnnotation(Connection updateCon, String bookClsId, ArrayList<Annotation> expObsoleteAnnotationList, ArrayList<Annotation> expSavePaintAnnotList, String userIdStr) throws Exception {        
-        if (false == expObsoleteAnnotationList.isEmpty()) {
-            PreparedStatement paintAnnotStmt = updateCon.prepareStatement(OBSOLETE_ANNOTATION_FROM_PAINT_EXP_ANNOTATION.replace(QUERY_PARAMETER_1, userIdStr));
-            PreparedStatement evdnceAnnotStmt = updateCon.prepareStatement(OBSOLETE_ANNOTATION_FROM_PAINT_EXP_EVIDENCE.replace(QUERY_PARAMETER_1, userIdStr));
-            Vector<String> annotsObsoleteList = new Vector<String>();
-            for (Annotation a: expObsoleteAnnotationList) {
-                String annotIdStr = a.getAnnotationId();
-                annotsObsoleteList.add(annotIdStr);
-                int annotationId = new Integer(annotIdStr).intValue();
-                paintAnnotStmt.setInt(1, annotationId);
-                paintAnnotStmt.addBatch();
-                evdnceAnnotStmt.setInt(1, annotationId);
-                evdnceAnnotStmt.addBatch();
-                Statement stmt = updateCon.createStatement();
-                int numDeleted = stmt.executeUpdate(DELETE_ANNOTATION_FROM_PAINT_EXP_ANNOTATION_QUALIFIER.replace(QUERY_PARAMETER_1, annotIdStr));
-                System.out.println(DATE_FORMATTER.format(new java.util.Date(System.currentTimeMillis())) + " Obsoleting exp_annotation qualifier for annotation for " + annotationId + ": " + numDeleted + " records deleted");
-                ReleaseResources.releaseDBResources(null, stmt, null);
-                System.out.println(DATE_FORMATTER.format(new java.util.Date(System.currentTimeMillis())) + " Obsoleting exp_annotation for " + annotationId + " with term " + a.getGoTerm());
-            }
-            System.out.println(DATE_FORMATTER.format(new java.util.Date(System.currentTimeMillis())) + " Batch processed for exp_annotations " + Utils.listToString(annotsObsoleteList, "", STR_COMMA));
-            int obsoleteAnnotCounts[] = paintAnnotStmt.executeBatch();
-            if (null == obsoleteAnnotCounts) {
-                System.out.println(DATE_FORMATTER.format(new java.util.Date(System.currentTimeMillis())) + " Batch processing returned null for obsoleting paint exp_annotation records");
-            }
-            else {
-                System.out.println(DATE_FORMATTER.format(new java.util.Date(System.currentTimeMillis())) + " obsoletion of paint exp_annotation records counts = " + Arrays.toString(obsoleteAnnotCounts));
-            }
-            int obsoleteEvidenceCounts[] = evdnceAnnotStmt.executeBatch();
-            if (null == obsoleteEvidenceCounts) {
-                System.out.println(DATE_FORMATTER.format(new java.util.Date(System.currentTimeMillis())) + " Batch processing returned null for obsoleting exp_paint evidence records");
-            }
-            else {
-                System.out.println(DATE_FORMATTER.format(new java.util.Date(System.currentTimeMillis())) + " obsoletion of exp_paint evidence records counts = " + Arrays.toString(obsoleteEvidenceCounts));
-            }            
-            ReleaseResources.releaseDBResources(null, paintAnnotStmt, null);
-            ReleaseResources.releaseDBResources(null, evdnceAnnotStmt, null);            
-        }        
-        
-        
-        
-        if (false == expSavePaintAnnotList.isEmpty()) {
-            GOTermHelper gth = CategoryLogic.getInstance().getGOTermHelper();
-            for (Annotation a : expSavePaintAnnotList) {
-                String annotationId = a.getAnnotationId();
-                String query = INSERT_ANNOTATION_INTO_PAINT_EXP_ANNOTATION.replace(QUERY_PARAMETER_1, annotationId);
-                String nodeId = a.getAnnotationDetail().getAnnotatedNode().getStaticInfo().getNodeId();
-                query = query.replace(QUERY_PARAMETER_2, nodeId);
-                String termId = gth.getTerm(a.getGoTerm()).getId();
-                query = query.replace(QUERY_PARAMETER_3, termId);
-                query = query.replace(QUERY_PARAMETER_4, ANNOTATION_TYPE_TO_ID_LOOKUP.get(ANNOTATION_TYPE_GO_PAINT));
-                query = query.replace(QUERY_PARAMETER_5, userIdStr);
-                Statement stmt = updateCon.createStatement();
-                stmt.executeUpdate(query);
-                ReleaseResources.releaseDBResources(null, stmt, null);
-                System.out.println(DATE_FORMATTER.format(new java.util.Date(System.currentTimeMillis())) + " Inserting annotation id " + annotationId + " into paint exp annotation table for node id " + nodeId + " with term id " + termId + " for term " + a.getGoTerm());
-
-                // Add qualifiers
-                HashSet<Qualifier> qSet = a.getQualifierSet();
-                if (null != qSet && 0 < qSet.size()) {
-                    for (Qualifier q : qSet) {
-                        if (null == q.getText()) {
-                            continue;
-                        }
-                        String qId = QUALIFIER_TYPE_TO_ID_LOOKUP.get(q.getText());
-                        if (null == qId) {
-                            System.out.println("Got not supported qualifier type " + qId);
-                            throw new Exception("Found non supported qualifier type " + qId);
-                        }
-                        String uid = Integer.toString(getUids(1)[0]);
-                        String qQuery = INSERT_PAINT_EXP_ANNOTATION_QUALIFIER.replace(QUERY_PARAMETER_1, uid);
-                        qQuery = qQuery.replace(QUERY_PARAMETER_2, annotationId);
-                        qQuery = qQuery.replace(QUERY_PARAMETER_3, qId);
-                        Statement qStmt = updateCon.createStatement();
-                        qStmt.executeUpdate(qQuery);
-                        ReleaseResources.releaseDBResources(null, qStmt, null);
-                        System.out.println(DATE_FORMATTER.format(new java.util.Date(System.currentTimeMillis())) + " Inserting qualifier for  annotation id " + annotationId + " into paint exp annotation qualifier table id = " + uid + " qualifier id is " + qId + " qualifier is " + q.getText());
-                    }
-                }
-
-                // Evidence
-                String code = a.getSingleEvidenceCodeFromSet();
-                String ccId = CONFIDENCE_CODE_TYPE_TO_ID_LOOKUP.get(code);
-                if (null == code) {
-                    System.out.println("Got not supported evidence code type " + code);
-                    throw new Exception("Found non supported evidence code type " + code);
-                }
-                AnnotationDetail ad = a.getAnnotationDetail();
-//                HashSet<Annotation> withSet = ad.getWithAnnotSet();
-//                if (null != withSet) {
-//                    for (Annotation with : withSet) {
-//                        // IKR and IRD have this case
-//                        if (a == with) {
-//                            continue;
-//                        }
-//                        String uid = Integer.toString(getUids(1)[0]);
-//                        String paintEQuery = INSERT_ANNOTATION_INTO_PAINT_EXP_EVIDENCE.replace(QUERY_PARAMETER_1, uid);
-//                        if (Evidence.CODE_IBA.equals(code) || Evidence.CODE_IKR.equals(code) || Evidence.CODE_IRD.equals(code) || Evidence.CODE_TCV.equals(code)) {
-//                            paintEQuery = paintEQuery.replace(QUERY_PARAMETER_2, EVIDENCE_TYPE_TO_SID_LOOKUP.get(EVIDENCE_TYPE_ANNOT_PAINT_ANCESTOR));
-//                        } else {
-//                            paintEQuery = paintEQuery.replace(QUERY_PARAMETER_2, EVIDENCE_TYPE_TO_SID_LOOKUP.get(EVIDENCE_TYPE_ANNOT_PAINT_EXP));
-//                        }
-//                        paintEQuery = paintEQuery.replace(QUERY_PARAMETER_3, userIdStr);
-//                        paintEQuery = paintEQuery.replace(QUERY_PARAMETER_4, ccId);
-//                        paintEQuery = paintEQuery.replace(QUERY_PARAMETER_5, annotationId);
-//                        PreparedStatement ps = updateCon.prepareStatement(paintEQuery);
-//                        ps.setString(1, with.getAnnotationId());
-//                        ps.executeUpdate();
-//                        System.out.println(DATE_FORMATTER.format(new java.util.Date(System.currentTimeMillis())) + " Inserting into paint evidence for paint ancestor or paint exp, id = " + uid + " for  annotation id " + annotationId + " code " + code + " for 'with' annotation id " + with.getAnnotationId());
-//                        ReleaseResources.releaseDBResources(null, ps, null);
-//                    }
-//                }
-//
-//                HashSet<Node> nodeSet = ad.getWithNodeSet();
-//                if (null != nodeSet) {
-//                    for (Node node : nodeSet) {
-//                        String uid = Integer.toString(getUids(1)[0]);
-//                        String paintEQuery = INSERT_ANNOTATION_INTO_PAINT_EXP_EVIDENCE.replace(QUERY_PARAMETER_1, uid);
-//
-//                        paintEQuery = paintEQuery.replace(QUERY_PARAMETER_2, EVIDENCE_TYPE_TO_SID_LOOKUP.get(EVIDENCE_TYPE_ANNOT_PAINT_REF));
-//
-//                        paintEQuery = paintEQuery.replace(QUERY_PARAMETER_3, userIdStr);
-//                        paintEQuery = paintEQuery.replace(QUERY_PARAMETER_4, ccId);
-//                        paintEQuery = paintEQuery.replace(QUERY_PARAMETER_5, annotationId);
-//                        PreparedStatement ps = updateCon.prepareStatement(paintEQuery);
-//                        ps.setString(1, node.getStaticInfo().getNodeId());
-//                        ps.executeUpdate();
-//                        ReleaseResources.releaseDBResources(null, ps, null);
-//                        System.out.println(DATE_FORMATTER.format(new java.util.Date(System.currentTimeMillis())) + " Inserting into paint evidence for paint ref, id = " + uid + " (i.e. for node id = " + node.getStaticInfo().getNodeId() + "), annotation id " + annotationId + " code " + code);
-//                    }
-//                }
-
-                // DBReference
-                HashSet<DBReference> dbRefSet = ad.getWithOtherSet();
-                if (null != dbRefSet) {
-                    for (DBReference dbRef : dbRefSet) {
-                        String uid = Integer.toString(getUids(1)[0]);
-                        String paintEQuery = INSERT_ANNOTATION_INTO_PAINT_EXP_EVIDENCE.replace(QUERY_PARAMETER_1, uid);
-                        paintEQuery = paintEQuery.replace(QUERY_PARAMETER_2, EVIDENCE_TYPE_TO_SID_LOOKUP.get(dbRef.getEvidenceType()));
-                        paintEQuery = paintEQuery.replace(QUERY_PARAMETER_3, userIdStr);
-                        paintEQuery = paintEQuery.replace(QUERY_PARAMETER_4, ccId);
-                        paintEQuery = paintEQuery.replace(QUERY_PARAMETER_5, annotationId);
-                        PreparedStatement ps = updateCon.prepareStatement(paintEQuery);
-                        ps.setString(1, dbRef.getEvidenceValue());
-                        ps.executeUpdate();
-                        ReleaseResources.releaseDBResources(null, ps, null);
-                        System.out.println(DATE_FORMATTER.format(new java.util.Date(System.currentTimeMillis())) + " Inserting DBref into paint exp evidence, id = " + uid + " for  annotation id " + annotationId + " type " + EVIDENCE_TYPE_TO_SID_LOOKUP.get(dbRef.getEvidenceType()) + " value " + dbRef.getEvidenceValue() + " code " + code);
-                    }
-                }
-            }
-        }
-    }
-    
     protected void obsoleteInsertPruned(Connection updateCon, String uplVersion, ArrayList<Annotation> obsoleteAnnotPrunedList, HashMap<Annotation, Node> newPrunedLookup, String userIdStr) throws Exception {
         if (false == obsoleteAnnotPrunedList.isEmpty()) {
             PreparedStatement prunedAnnotStmt = updateCon.prepareStatement(OBSOLETE_ANNOTATION_FROM_PAINT_ANNOTATION.replace(QUERY_PARAMETER_1, userIdStr));
@@ -7057,7 +6606,7 @@ public class DataIO {
         }
     }
         
-    protected HashMap<String, ArrayList<Annotation>> getSavedAnnotations(String uplVersion, String book, HashSet<Annotation> removedAnnotSet, HashSet<String> modifiedAnnotSet, HashSet<Annotation> addedAnnotSet, HashSet<Annotation> removedFromGOAnnot, StringBuffer errBuf, StringBuffer paintErrBuf) throws Exception {
+    protected ArrayList<Annotation> getSavedAnnotations(String uplVersion, String book, HashSet<Annotation> removedAnnotSet, HashSet<String> modifiedAnnotSet, HashSet<Annotation> addedAnnotSet, HashSet<Annotation> removedFromGOAnnot, StringBuffer errBuf, StringBuffer paintErrBuf) throws Exception {
         HashMap<String, Node> treeNodeLookup = new HashMap<String, Node>();
         getAnnotationNodeLookup(book, uplVersion, treeNodeLookup);
         addPruned(book, uplVersion, treeNodeLookup);
@@ -7078,16 +6627,10 @@ public class DataIO {
      * @return
      * @throws Exception 
      */
-    private static final String  KEY_PAINT_NON_EXP = "KEY_PAINT_NON_EXP";
-    private static final String  KEY_PAINT_EXP = "KEY_PAINT_EXP";
-    private HashMap<String, ArrayList<Annotation>> getSavedAnnotations(String uplVersion, String book, HashMap<String, Node> treeNodeLookupWithAnnotNodeAndPruned, HashSet<Annotation> removedAnnotSet, HashSet<String> modifiedAnnotSet, HashSet<Annotation> addedAnnotSet, HashSet<Annotation> removedFromGOAnnot, StringBuffer errBuf, StringBuffer paintErrBuf, DATA_SOURCE dataSource, HashMap<String, Map.Entry<String, String>> annotToNodeToReplaceLookup) throws Exception {
+    private ArrayList<Annotation> getSavedAnnotations(String uplVersion, String book, HashMap<String, Node> treeNodeLookupWithAnnotNodeAndPruned, HashSet<Annotation> removedAnnotSet, HashSet<String> modifiedAnnotSet, HashSet<Annotation> addedAnnotSet, HashSet<Annotation> removedFromGOAnnot, StringBuffer errBuf, StringBuffer paintErrBuf, DATA_SOURCE dataSource, HashMap<String, Map.Entry<String, String>> annotToNodeToReplaceLookup) throws Exception {
         getFullGOAnnotations(book, uplVersion, treeNodeLookupWithAnnotNodeAndPruned, errBuf, paintErrBuf, removedAnnotSet, modifiedAnnotSet, addedAnnotSet, removedFromGOAnnot, dataSource, annotToNodeToReplaceLookup);
         
-        HashMap<String, ArrayList<Annotation>> rtnLookup = new  HashMap<String, ArrayList<Annotation>>();
-        ArrayList<Annotation> annot_non_expList = new ArrayList<Annotation>();
-        ArrayList<Annotation> annot_expList = new ArrayList<Annotation>();
-        rtnLookup.put(KEY_PAINT_NON_EXP, annot_non_expList);
-        rtnLookup.put(KEY_PAINT_EXP, annot_expList);        
+        ArrayList<Annotation> rtnList = new ArrayList<Annotation>();
         for (Node n: treeNodeLookupWithAnnotNodeAndPruned.values()) {
             NodeVariableInfo nvi = n.getVariableInfo();
             if (null == nvi) {
@@ -7099,14 +6642,11 @@ public class DataIO {
             }
             for (Annotation a: annotList) {
                 if (true == AnnotationHelper.isDirectAnnotation(a)) {
-                    annot_non_expList.add(a);
-                }
-                if (a.isExpAnnotCreatedInPaint()) {
-                    annot_expList.add(a);
+                    rtnList.add(a);
                 }
             }
         } 
-        return rtnLookup;        
+        return rtnList;        
     }
     
     public static Annotation getAssociatedIKRorIRDforIBA(Node node, Annotation ibaAnnotation) {
@@ -7393,7 +6933,7 @@ public class DataIO {
                 return null;
             }
 
-            String query = BOOKS_WITH_PAINT_ANNOTS + addVersionReleaseClause(uplVersion, Constant.STR_EMPTY, TABLE_NAME_n);
+            String query = BOOKS_WITH_PAINT_EVIDENCE + addVersionReleaseClause(uplVersion, Constant.STR_EMPTY, TABLE_NAME_n);
             query = addVersionReleaseClause(uplVersion, query, TABLE_NAME_pa);
             query = Utils.replace(query, REPLACE_STR_PERCENT_1, uplVersion);
 
@@ -7419,47 +6959,6 @@ public class DataIO {
         }
         return null;        
     }
-
-    public HashSet<String> getExpPaintAnnotSet(String uplVersion, String book) {
-        HashSet<String> expPaintAnnotSet = new HashSet<String>();
-        Connection con = null;
-        Statement stmt = null;
-        ResultSet rst = null;        
-        try {
-            con = getConnection();
-            if (null == con) {
-                return null;
-            }
-
-
-            String query = PAINT_EXP_ANNOTATION;
-
-            query = Utils.replace(query, REPLACE_STR_PERCENT_1, uplVersion);
-            query = Utils.replace(query, REPLACE_STR_PERCENT_2, book + QUERY_WILDCARD);
-            System.out.println(book + " - start query to retrieve nodes with PAINT experimental annotations " + DATE_FORMATTER.format(new java.util.Date(System.currentTimeMillis())));
-            stmt = con.createStatement();
-            rst = stmt.executeQuery(query);
-
-            while (rst.next()) {                
-                expPaintAnnotSet.add(rst.getString(COLUMN_NAME_ANNOTATION_ID));
-            }
-            System.out.println(book + " - end query to retrieve nodes with PAINT experimental annotations " + DATE_FORMATTER.format(new java.util.Date(System.currentTimeMillis())));
-
-            ReleaseResources.releaseDBResources(rst, stmt, con);
-            
-
-        } catch (SQLException se) {
-            log.error(MSG_ERROR_UNABLE_TO_RETRIEVE_INFO_ERROR_RETURNED + se.getMessage());
-            se.printStackTrace();
-            expPaintAnnotSet = null;
-
-        } finally {
-            ReleaseResources.releaseDBResources(rst, stmt, con);
-
-        }
-
-        return expPaintAnnotSet;   
-    }    
     
     public TreeNodes getTreeNodesWithOrgs(String uplVersion, String book, HashMap<String, Node> nodeTbl) {
         if (null == nodeTbl) {
@@ -9069,8 +8568,8 @@ public class DataIO {
             //System.out.println(QueryString.PREPARED_USER_VALIDATION);
             rst = stmt.executeQuery();
 
-            if (rst.next()) {
-                userId = new Integer(rst.getInt(COLUMN_USER_ID));
+            while (rst.next()) {
+                userId = new Integer(rst.getInt(1));
             }
             rst.close();
             stmt.close();
@@ -9088,9 +8587,6 @@ public class DataIO {
                 }
             }
             ReleaseResources.releaseDBResources(rst, stmt, con);
-        }
-        if (null == userId) {
-            return null;
         }
         return userId.toString();
     }  

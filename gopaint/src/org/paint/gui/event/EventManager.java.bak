@@ -1,5 +1,5 @@
 /**
- *  Copyright 2025 University Of Southern California
+ *  Copyright 2023 University Of Southern California
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -119,8 +119,8 @@ public class EventManager {
 		if (!gene_listeners.contains(listener))
 			this.gene_listeners.add(listener);
 	}
-        
- 	/*
+
+	/*
 	 * Components that wish to be notified of changes and selections of GO terms
 	 * need to register themselves with the manager so that they will be notified whenever any
 	 * event occurs. 
@@ -216,12 +216,7 @@ public class EventManager {
 			this.geneAnnotationChangeListeners.add(listener);
 	}
         
-    public void removeGeneAnnotationChangeListener(AnnotationChangeListener listener) {
-        if (geneAnnotationChangeListeners != null) {
-            geneAnnotationChangeListeners.remove(listener);
-        }
-    }
-             
+        
         public void registerCommentChangeListener(CommentChangeListener listener) {
             if (null == commentChangeListeners) {
                 commentChangeListeners = new HashSet<CommentChangeListener>();

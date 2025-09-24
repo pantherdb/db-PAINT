@@ -1,5 +1,5 @@
 /**
- * Copyright 2019 University Of Southern California
+ * Copyright 2025 University Of Southern California
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -20,13 +20,11 @@ import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.HashMap;
 
-/**
- *
- * @author muruganu
- */
+
 public class SaveBookInfo implements Serializable {
     private ArrayList <Node> prunedList;
     private ArrayList<Annotation> annotationList;
+    private ArrayList<Annotation> expAnnotatonList;
     private String bookId;
     private Comment comment;
     private String familyName;
@@ -89,6 +87,14 @@ public class SaveBookInfo implements Serializable {
 
     public void setSaveStatus(Integer saveStatus) {
         this.saveStatus = saveStatus;
+    }
+
+    public ArrayList<Annotation> getExpAnnotatonList() {
+        return expAnnotatonList;
+    }
+
+    public void setExpAnnotatonList(ArrayList<Annotation> expAnnotatonList) {
+        this.expAnnotatonList = expAnnotatonList;
     }
     
     

@@ -1,5 +1,5 @@
 /**
- *  Copyright 2023 University Of Southern California
+ *  Copyright 2025 University Of Southern California
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -82,6 +82,7 @@ import org.paint.main.PaintManager;
 import com.sri.panther.paintCommon.Constant;
 import edu.usc.ksom.pm.panther.paintCommon.Node;
 import edu.usc.ksom.pm.panther.paintCommon.NodeVariableInfo;
+import org.paint.dialog.AddExpEvidenceDlg;
 import org.paint.gui.DirtyIndicator;
 import org.paint.gui.event.AnnotationDisplayEvent;
 import org.paint.gui.event.AnnotationDisplayListener;
@@ -113,6 +114,7 @@ AnnotationDisplayListener{
 	public static final String POPUP_MENU_COLLAPSE = "Collapse node";
 	public static final String POPUP_MENU_EXPAND = "Expand node";
 	public static final String POPUP_MENU_OUTPUT_SEQ = "Output seq ids for leaves";
+	public static final String POPUP_MENU_UPDATE_EXP = "Update exp evidence added via PAINT";        
 	public static final String POPUP_MENU_REROOT = "Reroot to node";
 	public static final String POPUP_MENU_RESET_ROOT = "Reset Root to Main";
 	public static final String POPUP_MENU_PRUNE = "Prune";
@@ -664,7 +666,12 @@ AnnotationDisplayListener{
 			JCheckBoxMenuItem checkItem = new JCheckBoxMenuItem(POPUP_MENU_PRUNE);
 			checkItem.addActionListener(new PruneActionListener(e, dsn));
 			checkItem.setSelected(dsn.isPruned());
-			popup.add(checkItem); 
+			popup.add(checkItem);
+                        if (dsn.isLeaf()) {
+				JMenuItem menuItem = new JMenuItem(POPUP_MENU_UPDATE_EXP);
+				menuItem.addActionListener(new UpdateExperimentalEvidenceListener(e, dsn));
+				popup.add(menuItem);                            
+                        }
 		}
 		return popup;
 	}
@@ -956,6 +963,27 @@ AnnotationDisplayListener{
 			ie.printStackTrace();
 		}
 	}
+        
+        private class UpdateExperimentalEvidenceListener implements ActionListener {
+
+            GeneNode node;
+
+            UpdateExperimentalEvidenceListener(MouseEvent e, GeneNode node) {
+                this.node = node;
+            }
+
+            /**
+             * Method declaration
+             *
+             *
+             * @param e
+             *
+             * @see
+             */
+            public void actionPerformed(ActionEvent e) {
+                AddExpEvidenceDlg dlg = new AddExpEvidenceDlg(node);
+            }
+        }
 
 	public void handleGeneSelectEvent(GeneSelectEvent event) {
 		List<GeneNode> selection = event.getPrevious();

@@ -1,5 +1,5 @@
 /**
- *  Copyright 2021 University Of Southern California
+ *  Copyright 2025 University Of Southern California
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -55,6 +55,7 @@ public class AnnotationMatrixCellRenderer extends JLabel implements TableCellRen
     private static final Color PAINT_COLOR_INFER = Preferences.inst().getInferPaintColor();//new Color(68, 116, 179);
     public static final Color COLOR_BASIC = new Color(155, 205, 255);
     public static final Color COLOR_CONTRAST = new Color(233, 236, 242);
+
     
     NodeInfoForMatrix nodeInfo;
     Qualifier qualifier;
@@ -123,10 +124,12 @@ public class AnnotationMatrixCellRenderer extends JLabel implements TableCellRen
             }
             setToolTipText(STR_HTML_START + STR_ROW + (this.row + 1)  + STR_COL + (this.column + 1) + STR_SPACE + tooltip + STR_HTML_END);
             return this;
-        }
-        else if (true == nodeInfo.isExpBackground()) {
+        } else if (true == nodeInfo.isExpBackground()) {
             // Experimental evidence
             backgroundColor = PAINT_COLOR_EXP;
+            if (nodeInfo.isPaintExp()) {
+                backgroundColor = Preferences.EXP_ANNOT_ADDED_IN_PAINT;
+            }
             String termStr = nodeInfo.getgTerm().getName() + STR_BRACKET_START + nodeInfo.getgTerm().getAcc() + STR_BRACKET_END;
             if (null == termStr || termStr.isEmpty()) {
                 termStr = nodeInfo.getgTerm().getAcc();

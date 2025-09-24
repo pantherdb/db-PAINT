@@ -1,5 +1,5 @@
 /**
- * Copyright 2023 University Of Southern California
+ * Copyright 2025 University Of Southern California
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -21,14 +21,12 @@ import com.sri.panther.paintCommon.Book;
 import com.sri.panther.paintServer.database.DataIO;
 import edu.usc.ksom.pm.panther.paintCommon.Annotation;
 import edu.usc.ksom.pm.panther.paintCommon.AnnotationNode;
-import edu.usc.ksom.pm.panther.paintCommon.IWith;
 import edu.usc.ksom.pm.panther.paintCommon.Node;
 import edu.usc.ksom.pm.panther.paintServer.servlet.DataServlet;
 import edu.usc.ksom.pm.panther.paintServer.webservices.FamilyUtil;
 import edu.usc.ksom.pm.panther.paintServer.webservices.MSAUtil;
 import edu.usc.ksom.pm.panther.paintServer.webservices.TreeLogic;
 import edu.usc.ksom.pm.panther.paintServer.webservices.WSConstants;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Hashtable;
@@ -41,8 +39,9 @@ public class BookManager {
 
     private static DataIO dataIO = DataAccessManager.getInstance().getDataIO();
 
-    private static HashSet<String> BOOKS_WOTH_EXP_LEAVES;
     private static Hashtable<String, Book> ACC_TO_BOOK_STATIC_INFO;
+    
+    private static HashSet<String> BOOKS_WITH_GO_EXP_EVIDENCE; 
 
     private static final int MAX_FAMILY_INFO = 12;        // Store information for maximum of ~10 genomes (12 * 0.9)
     private static final float FREQUENCY = 0.9f;
@@ -63,20 +62,16 @@ public class BookManager {
     }
 
     private static synchronized void init() {
-        BOOKS_WOTH_EXP_LEAVES = dataIO.getBooksWithExpEvdnceForLeaves();
         ACC_TO_BOOK_STATIC_INFO = dataIO.getStaticInfoForAllBooks(WSConstants.PROPERTY_CLS_VERSION);
+        BOOKS_WITH_GO_EXP_EVIDENCE = dataIO.getBooksWithGOExpEvidenceForLeaves();
         instance = new BookManager();
     }
 
     public HashSet<String> getBooksWihtExpLeaves() {
-        if (null == BOOKS_WOTH_EXP_LEAVES) {
-            System.out.println("Initializing books with leaves again");
-            BOOKS_WOTH_EXP_LEAVES = dataIO.getBooksWithExpEvdnceForLeaves();
-        }
-        if (null == BOOKS_WOTH_EXP_LEAVES) {
-            return null;
-        }
-        return (HashSet<String>) BOOKS_WOTH_EXP_LEAVES.clone();
+        HashSet<String> paintExpSet = dataIO.getBooksWithPAINTExpEvidenceForLeaves();
+        HashSet<String> rtnSet = (HashSet<String>)BOOKS_WITH_GO_EXP_EVIDENCE.clone();
+        rtnSet.addAll(paintExpSet);
+        return rtnSet;
     }
 
     public Hashtable<String, Book> allBooksStaticInfo() {

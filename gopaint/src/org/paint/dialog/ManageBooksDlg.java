@@ -147,7 +147,7 @@ public class ManageBooksDlg extends JDialog {
     public static final String LABEL_GET_BOOK_BY_ID = "Get book by id";
     public static final String LABEL_GET_UNCURATED_LIST = "Get unlocked and non-manually curated books";
     public static final String LABEL_GET_REQUIRE_PAINT_REVIEW_LIST = "Get books marked as require PAINT review";
-    public static final String LABEL_GET_BOOK_BY_PTN = "Get book by PTN";    
+    public static final String LABEL_GET_BOOK_BY_PTN = "Get book by PTN";
     public static final String LABEL_TITLE = "Manage Books";
         
 
@@ -272,8 +272,8 @@ public class ManageBooksDlg extends JDialog {
         gl.setHgap(0);        
         JPanel searchTypePanel = new JPanel(gl);
         searchTypePanel.setComponentOrientation(ComponentOrientation.LEFT_TO_RIGHT);
-        getBookByIdBtn = new JRadioButton(LABEL_GET_BOOK_BY_ID);
-        getBookByIdBtn.setSelected(true);        
+        getBookByIdBtn = new JRadioButton(LABEL_GET_BOOK_BY_ID);     
+        getBookByIdBtn.setSelected(true);
         geneSymbolBtn = new JRadioButton(LABEL_SEARCH_GENE_SYMBOL);
         geneIdentifierBtn = new JRadioButton(LABEL_SEARCH_GENE_IDENTIFIER);
         proteinIdentifierBtn = new JRadioButton(LABEL_SEARCH_PROTEIN_IDENTIFIER);
@@ -281,8 +281,8 @@ public class ManageBooksDlg extends JDialog {
         getAllBooksBtn = new JRadioButton(LABEL_GET_FULL_LIST);
         getAllUncurtedBtn = new JRadioButton(LABEL_GET_UNCURATED_LIST);
         getRequirePaintReviewBtn = new JRadioButton(LABEL_GET_REQUIRE_PAINT_REVIEW_LIST);        
-        getBooksByPTNBtn = new JRadioButton(LABEL_GET_BOOK_BY_PTN);        
-        
+        getBooksByPTNBtn = new JRadioButton(LABEL_GET_BOOK_BY_PTN);
+
 
         ButtonGroup bg = new ButtonGroup();
         bg.add(getBookByIdBtn);
@@ -302,7 +302,8 @@ public class ManageBooksDlg extends JDialog {
         searchTypePanel.add(getAllBooksBtn);
         searchTypePanel.add(getAllUncurtedBtn);
         searchTypePanel.add(getRequirePaintReviewBtn);
-        searchTypePanel.add(getBooksByPTNBtn);        
+        searchTypePanel.add(getBooksByPTNBtn);
+        
 //        double maxWidth = 0;
 //        double maxHeight = 0;
 //        maxWidth += geneSymbolBtn.getPreferredSize().getWidth();
@@ -350,6 +351,7 @@ public class ManageBooksDlg extends JDialog {
         
         
         myBooksTable = new JTable(new MyBooksTableModel(new ArrayList<Book>(), COLUMN_NAMES_MY_BOOKS, COLUMN_TYPES_MY_BOOKS));
+        myBooksTable.getTableHeader().setReorderingAllowed(false);
         myBooksTable.setDefaultRenderer(JButton.class, new ButtonCellRenderer(BUTTON_LABEL_VIEW));
         myBooksTable.addMouseListener(new LaunchBtnMouseAdapter(myBooksTable));
         myBooksTable.setPreferredScrollableViewportSize(new Dimension(750, 90));
@@ -428,7 +430,7 @@ public class ManageBooksDlg extends JDialog {
         sendInfo.add(userInfo);
         //sendInfo.add(dbClsId);
         DataTransferObj dto = new DataTransferObj();
-        dto.setVc(PaintManager.inst().getVersionContainer());
+        dto.setVc(this.pm.getVersionContainer());
         dto.setObj(sendInfo);
         DataTransferObj serverObj = PantherServer.inst().getMyBooks(servletUrl, dto, null, null);
      
@@ -559,9 +561,9 @@ public class ManageBooksDlg extends JDialog {
 //    }
     
 
-    protected void initializeBooksList() {
-        setData(new ArrayList());
-    }
+//    protected void initializeBooksList() {
+//        setData(new ArrayList());
+//    }
     
     protected void setData(ArrayList <Book> books) {
         SearchBookTableModel sbtm = new SearchBookTableModel(books, COLUMN_NAMES_SEARCH, COLUMN_TYPES_SEARCH);
@@ -626,8 +628,46 @@ public class ManageBooksDlg extends JDialog {
         bookListPanel.setLayout(new BoxLayout(bookListPanel,
                                                     BoxLayout.Y_AXIS));
 
-
-        searchBooksTable = new JTable(new SearchBookTableModel(new ArrayList<Book>(), COLUMN_NAMES_SEARCH, COLUMN_TYPES_SEARCH)) {
+        // Get all books 
+        ArrayList<Book> bookList = new ArrayList<Book>();
+//        DataTransferObj dto = new DataTransferObj();
+//        dto.setVc(PaintManager.inst().getVersionContainer());
+//        Vector sendInfo = new Vector(2);
+//        lastValidSearchStr = Constant.STR_EMPTY;
+//        sendInfo.add(lastValidSearchStr);     
+//        dto.setObj(sendInfo);
+//        DataTransferObj infoFromServer = PantherServer.inst().searchAllBooks(servletUrl, dto, null, null);
+//        if (null == infoFromServer) {
+//            JOptionPane.showMessageDialog(ManageBooksDlg.this.frame,
+//                    MSG_SERVER_ERROR_CANNOT_SEARCH_BOOKS,
+//                    MSG_HEADER_SEARCH_BOOKS,
+//                    JOptionPane.ERROR_MESSAGE);
+//        } else {
+//            StringBuffer sb = infoFromServer.getMsg();
+//            if (null != sb && 0 != sb.length()) {
+//                JOptionPane.showMessageDialog(ManageBooksDlg.this.frame,
+//                        sb.toString(),
+//                        MSG_HEADER_MY_BOOKS,
+//                        JOptionPane.ERROR_MESSAGE);
+//            } else {
+//                Vector serverRtnList = (Vector) infoFromServer.getObj();
+//                if (null == serverRtnList || 2 < serverRtnList.size()) {
+//                    JOptionPane.showMessageDialog(ManageBooksDlg.this.frame,
+//                            MSG_SERVER_ERROR_CANNOT_SEARCH_BOOKS,
+//                            MSG_HEADER_SEARCH_BOOKS,
+//                            JOptionPane.ERROR_MESSAGE);
+//                } else {
+//                    bookList = (ArrayList<Book>) serverRtnList.get(1);
+//                }
+//            }
+//        }
+//        if (null == bookList) {
+//            bookList = new ArrayList<Book>();
+//        }
+        
+        getBookByIdBtn.setSelected(true);
+        lastValidSearchBtn = ManageBooksDlg.this.getBookByIdBtn;
+        searchBooksTable = new JTable(new SearchBookTableModel(bookList, COLUMN_NAMES_SEARCH, COLUMN_TYPES_SEARCH)) {
             public String getToolTipText(MouseEvent e) {
                 String tip = null;
                 java.awt.Point p = e.getPoint();
@@ -660,6 +700,7 @@ public class ManageBooksDlg extends JDialog {
                 return tip;
             }
         };
+        searchBooksTable.getTableHeader().setReorderingAllowed(false);
         searchBooksTable.setDefaultRenderer(JButton.class, new ButtonCellRenderer(BUTTON_LABEL_VIEW));    
         searchBooksTable.addMouseListener(new LaunchBtnMouseAdapter(searchBooksTable));        
         searchBooksTable.setPreferredScrollableViewportSize(new Dimension(750, 90));
@@ -876,9 +917,13 @@ public class ManageBooksDlg extends JDialog {
         
         public SearchBookTableModel(ArrayList<Book> data, String columnNames[], Class columnTypes[]) {
             super(data, columnNames, columnTypes);
-            curatableBookSet = PaintManager.inst().getCuratableBookSet();
-            if (null == curatableBookSet) {
+            if (null == data || 0 == data.size()) {
                 curatableBookSet = new HashSet<String>();
+            } else {
+                curatableBookSet = ManageBooksDlg.this.pm.getCuratableBookSet();
+                if (null == curatableBookSet) {
+                    curatableBookSet = new HashSet<String>();
+                }
             }
         }
         
@@ -910,7 +955,7 @@ public class ManageBooksDlg extends JDialog {
             if (null == u) {
                 return true;
             }
-            User currentUser = PaintManager.inst().getUser();
+            User currentUser = ManageBooksDlg.this.pm.getUser();
             if (true == currentUser.getloginName().equals(u.getloginName())) {
                 return true;
             }
@@ -1240,8 +1285,8 @@ public class ManageBooksDlg extends JDialog {
             JFileChooser dlg = new JFileChooser();
             FileFilter filter = new FileNameExtensionFilter("Export file", "txt");
             dlg.setFileFilter(filter);
-            if (null != PaintManager.inst().getCurrentDirectory()) {
-                dlg.setCurrentDirectory(PaintManager.inst().getCurrentDirectory());
+            if (null != ManageBooksDlg.this.pm.getCurrentDirectory()) {
+                dlg.setCurrentDirectory(ManageBooksDlg.this.pm.getCurrentDirectory());
             }
             int rtrnVal = dlg.showSaveDialog(GUIManager.getManager().getFrame());
 
@@ -1272,10 +1317,10 @@ public class ManageBooksDlg extends JDialog {
     public class SearchActionListener implements ActionListener {
         public void actionPerformed(ActionEvent e) {
             String searchStr = ManageBooksDlg.this.searchTerm.getText();
-            if ((null == searchStr || 0 == searchStr.length()) &&
+            if ((null == searchStr || 0 == searchStr.trim().length()) &&
                  false == ManageBooksDlg.this.getAllBooksBtn.isSelected() &&
                  false == ManageBooksDlg.this.getAllUncurtedBtn.isSelected() &&
-                 false == ManageBooksDlg.this.getRequirePaintReviewBtn.isSelected()   ) {
+                 false == ManageBooksDlg.this.getRequirePaintReviewBtn.isSelected()) {
                 JOptionPane.showMessageDialog(ManageBooksDlg.this.frame,
                                               MSG_PLEASE_ENTER_SEARCH_TERM,
                                               MSG_HEADER_SEARCH_BOOKS,
@@ -1284,10 +1329,10 @@ public class ManageBooksDlg extends JDialog {
             }
 
             Vector sendInfo = new Vector(2);
-            sendInfo.add(searchStr);
+            sendInfo.add(searchStr.trim());
             //sendInfo.add(dbClsId);
             DataTransferObj dto = new DataTransferObj();
-            dto.setVc(PaintManager.inst().getVersionContainer());
+            dto.setVc(ManageBooksDlg.this.pm.getVersionContainer());
             dto.setObj(sendInfo);            
             DataTransferObj infoFromServer = null;
             ArrayList<Book> books = null;
@@ -1319,6 +1364,7 @@ public class ManageBooksDlg extends JDialog {
             else if (ManageBooksDlg.this.getRequirePaintReviewBtn.isSelected()) {
                 infoFromServer = PantherServer.inst().searchRequirePaintReviewUnlocked(servletUrl, dto, null, null); 
             }
+
             
 
             if (null == infoFromServer){
@@ -1407,7 +1453,7 @@ public class ManageBooksDlg extends JDialog {
 //
 //                return;               
 //            }
-            User u = PaintManager.inst().getUser();
+            User u = ManageBooksDlg.this.pm.getUser();
             if (null == u) {
                 return;
             }
@@ -1441,7 +1487,7 @@ public class ManageBooksDlg extends JDialog {
             sendInfo.add(booksForLocking);
             sendInfo.add(booksForUnlocking);
             DataTransferObj dto = new DataTransferObj();
-            dto.setVc(PaintManager.inst().getVersionContainer());
+            dto.setVc(ManageBooksDlg.this.pm.getVersionContainer());
             dto.setObj(sendInfo);
             DataTransferObj infoFromServer = PantherServer.inst().lockAndUnLockBooks(servletUrl, PantherServer.REQUEST_LOCK_UNLOCK_BOOKS, dto, null, null);
         if (null == infoFromServer) {
@@ -1473,7 +1519,7 @@ public class ManageBooksDlg extends JDialog {
             }
             else if (0 != msg.length()) {
                 JOptionPane.showMessageDialog(ManageBooksDlg.this.frame,
-                                              infoFromServer,
+                                              msg,
                                               MSG_HEADER_LOCK_UNLOCK_BOOKS,
                                               JOptionPane.ERROR_MESSAGE);            
 
@@ -1533,7 +1579,6 @@ public class ManageBooksDlg extends JDialog {
             // Get current tab
             int sel = pane.getSelectedIndex();
             
-
             if (1 == sel) {
                 // If my books list has been selected, populate my books list
                 populateMyBooksList();
@@ -1542,9 +1587,6 @@ public class ManageBooksDlg extends JDialog {
             else if (0 == sel) {
                 searchAgain();
             }
-
-            
-
         }
         
     }
@@ -1609,7 +1651,7 @@ public class ManageBooksDlg extends JDialog {
                     if ((modifiers & InputEvent.BUTTON1_MASK) != 0 && (modifiers & InputEvent.BUTTON3_MASK) == 0) {
                         Book aBook = ((BookTableModel) tm).getBookAtRow(convertRow);
                         String id = aBook.getId();
-                        HTMLUtil.bringUpInBrowser(PaintManager.inst().getBrowserLauncher(), URL_LINK_PREFIX_PANTREE_BOOK_COMMENT + id);
+                        HTMLUtil.bringUpInBrowser(ManageBooksDlg.this.pm.getBrowserLauncher(), URL_LINK_PREFIX_PANTREE_BOOK_COMMENT + id);
                     }
                 }
             }          
@@ -1669,7 +1711,7 @@ public class ManageBooksDlg extends JDialog {
 
         public void actionPerformed(ActionEvent e) {
             MyBooksTableModel model = (MyBooksTableModel)myBooksTable.getModel();
-            Vector <String> booksForUnlocking = model.booksForUnlocking(PaintManager.inst().getUser().getloginName());        // Note, retrieving unlocked books since these are the ones that are selected
+            Vector <String> booksForUnlocking = model.booksForUnlocking(ManageBooksDlg.this.pm.getUser().getloginName());        // Note, retrieving unlocked books since these are the ones that are selected
             if (0 == booksForUnlocking.size()) {
                 JOptionPane.showMessageDialog(ManageBooksDlg.this.frame,
                                               MSG_PLEASE_SELECT_UNLOCK_BOOKS,
@@ -1686,7 +1728,7 @@ public class ManageBooksDlg extends JDialog {
             sendInfo.add(booksForUnlocking);
 
             DataTransferObj dto = new DataTransferObj();
-            dto.setVc(PaintManager.inst().getVersionContainer());
+            dto.setVc(ManageBooksDlg.this.pm.getVersionContainer());
             dto.setObj(sendInfo);
             
             DataTransferObj infoFromServer = PantherServer.inst().unlockBooks(servletUrl, dto, null, null);
@@ -1740,7 +1782,7 @@ public class ManageBooksDlg extends JDialog {
         //sendInfo.add(dbClsId);
 
         DataTransferObj dto = new DataTransferObj();
-        dto.setVc(PaintManager.inst().getVersionContainer());
+        dto.setVc(ManageBooksDlg.this.pm.getVersionContainer());
         dto.setObj(sendInfo);
         DataTransferObj infoFromServer = null;
         ArrayList<Book> books = null;

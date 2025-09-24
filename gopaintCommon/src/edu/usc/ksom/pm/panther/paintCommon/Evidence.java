@@ -18,6 +18,7 @@ package edu.usc.ksom.pm.panther.paintCommon;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 
 public class Evidence implements Serializable {
 
@@ -120,31 +121,32 @@ public class Evidence implements Serializable {
 //        {"RCA", "Reviewed Computational Analysis"},
 //        {"TAS", "Traceable Author Statement"},};
 
-    private static final HashSet<String> experimentalCodes = initExperimental();
+    private static final LinkedHashSet<String> experimentalCodes = initExperimental();
     private static final HashSet<String> paintCodes = initPaintCodes();
 
-    private static final HashSet<String> initExperimental() {
-        HashSet expSet = new HashSet();
+    private static final LinkedHashSet<String> initExperimental() {
+        LinkedHashSet expSet = new LinkedHashSet();
         expSet.add("EXP");
         expSet.add("IDA");
         expSet.add("IPI");
         expSet.add("IMP");
         expSet.add("IGI");
         expSet.add("IEP");
+        expSet.add("IKR");      // NOTE, CAN HAVE IKR as experimental evidence as well as PAINT evidence 
         expSet.add("HTP");
         expSet.add("HDA");  
         expSet.add("HMP");  
         expSet.add("HGI");
         expSet.add("HEP");
-        expSet.add("IKR");      // NOTE, CAN HAVE IKR as experimental evidence as well as PAINT evidence       
+      
         return expSet;
     }
     
-    public static HashSet<String> getExperimental() {
+    public static LinkedHashSet<String> getExperimental() {
         if (null == experimentalCodes) {
             return null;
         }
-        return (HashSet<String>)experimentalCodes;
+        return (LinkedHashSet<String>)experimentalCodes.clone();
     }
     
     public static HashSet<String> getPaintCodes() {
